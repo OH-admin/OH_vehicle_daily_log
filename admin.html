@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Our Home ADC — Admin Inspection Log</title>
+<title>Our Home ADC — Admin</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -18,34 +18,90 @@
   --font:-apple-system,'Noto Sans KR',BlinkMacSystemFont,'Segoe UI',sans-serif;
 }
 body { font-family:var(--font); background:var(--bg2); color:var(--text); }
-.wrap { max-width:1100px; margin:0 auto; padding:24px 20px 60px; }
-.page-header { background:var(--bg); border-bottom:0.5px solid var(--border); padding:16px 24px; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; }
-.page-header h1 { font-size:18px; font-weight:600; }
+
+/* ── Login overlay ── */
+#login-overlay {
+  position:fixed; inset:0; background:var(--bg2);
+  display:flex; align-items:center; justify-content:center; z-index:999;
+}
+.login-box {
+  background:var(--bg); border-radius:var(--radius);
+  border:0.5px solid var(--border); padding:36px 40px;
+  width:360px; text-align:center;
+}
+.login-box h2 { font-size:17px; font-weight:600; margin-bottom:4px; }
+.login-box p  { font-size:13px; color:var(--text2); margin-bottom:24px; }
+.login-box input[type="password"] {
+  width:100%; padding:12px 14px; font-size:16px; text-align:center;
+  border:0.5px solid var(--border2); border-radius:var(--radius-sm);
+  background:var(--bg2); color:var(--text); font-family:var(--font);
+  letter-spacing:0.2em; margin-bottom:12px;
+}
+.login-box input:focus { outline:none; border-color:#333; background:var(--bg); }
+.login-err { font-size:13px; color:var(--red-tx); margin-top:8px; display:none; }
+.lock-icon { font-size:32px; margin-bottom:16px; }
+
+/* ── Main layout ── */
+#main-app { display:none; }
+.page-header {
+  background:var(--bg); border-bottom:0.5px solid var(--border);
+  padding:14px 24px; display:flex; align-items:center;
+  justify-content:space-between; position:sticky; top:0; z-index:10;
+}
+.page-header h1 { font-size:17px; font-weight:600; }
 .page-header p  { font-size:12px; color:var(--text2); margin-top:2px; }
+.header-right { display:flex; align-items:center; gap:12px; }
 .badge-admin { background:var(--blue-bg); color:var(--blue-tx); border:0.5px solid var(--blue-bd); font-size:11px; padding:3px 10px; border-radius:20px; font-weight:600; }
+
+.wrap { max-width:1200px; margin:0 auto; padding:24px 20px 60px; }
 .card { background:var(--bg); border-radius:var(--radius); border:0.5px solid var(--border); padding:16px 20px; margin-bottom:16px; }
 .sec-title { font-size:11px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:14px; }
-.filter-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:12px; align-items:end; }
+
+/* ── Tabs ── */
+.tabs { display:flex; gap:4px; margin-bottom:20px; background:var(--bg3); border-radius:var(--radius-sm); padding:4px; width:fit-content; }
+.tab { padding:8px 20px; font-size:14px; font-weight:500; border-radius:6px; cursor:pointer; color:var(--text2); border:none; background:transparent; font-family:var(--font); transition:all 0.15s; }
+.tab.active { background:var(--bg); color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+
+/* ── Filters ── */
+.filter-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; align-items:end; }
 .filter-group label { font-size:12px; color:var(--text2); display:block; margin-bottom:5px; }
-select, input[type="date"] {
+select, input[type="date"], input[type="text"], input[type="password"], input[type="time"] {
   width:100%; padding:9px 12px; font-size:14px;
   border:0.5px solid var(--border2); border-radius:var(--radius-sm);
   background:var(--bg2); color:var(--text); font-family:var(--font);
   -webkit-appearance:none; appearance:none;
 }
 select:focus, input:focus { outline:none; border-color:#333; background:var(--bg); }
+textarea {
+  width:100%; padding:9px 12px; font-size:14px;
+  border:0.5px solid var(--border2); border-radius:var(--radius-sm);
+  background:var(--bg2); color:var(--text); font-family:var(--font);
+  resize:vertical; min-height:60px;
+}
+textarea:focus { outline:none; border-color:#333; background:var(--bg); }
+
+/* ── Buttons ── */
 .btn { padding:9px 18px; font-size:14px; font-weight:500; border-radius:var(--radius-sm); cursor:pointer; font-family:var(--font); border:none; transition:opacity 0.15s; }
 .btn:active { opacity:0.75; }
 .btn-dark    { background:var(--text); color:#fff; }
 .btn-outline { background:var(--bg); color:var(--text); border:0.5px solid var(--border2); }
 .btn-green   { background:var(--green-bg); color:var(--green-tx); border:0.5px solid var(--green-bd); }
+.btn-red     { background:var(--red-bg); color:var(--red-tx); border:0.5px solid var(--red-bd); }
+.btn-blue    { background:var(--blue-bg); color:var(--blue-tx); border:0.5px solid var(--blue-bd); }
 .btn-sm { padding:5px 12px; font-size:12px; }
+.btn-full { width:100%; padding:12px; font-size:15px; }
+
+/* ── Stats ── */
 .stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:12px; margin-bottom:16px; }
 .stat-card { background:var(--bg2); border-radius:var(--radius-sm); padding:12px 14px; }
 .stat-card .val { font-size:26px; font-weight:600; color:var(--text); line-height:1; }
 .stat-card .lbl { font-size:11px; color:var(--text2); margin-top:4px; }
 .stat-card.red   .val { color:var(--red-tx); }
 .stat-card.amber .val { color:var(--warn-tx); }
+
+/* ── Table ── */
 .table-wrap { overflow-x:auto; }
 table { width:100%; border-collapse:collapse; font-size:13px; }
 thead tr { background:var(--bg2); }
@@ -54,6 +110,8 @@ td { padding:9px 10px; border-bottom:0.5px solid var(--border); vertical-align:m
 tr:hover td { background:var(--bg2); }
 tr.has-defect td { background:#fff8f8; }
 tr.has-issue  td { background:#fffbf5; }
+tr.is-manual  td { background:#f0f0ff; }
+
 .badge { font-size:11px; padding:2px 8px; border-radius:20px; font-weight:600; white-space:nowrap; display:inline-block; }
 .b-ok   { background:var(--green-bg); color:var(--green-tx); }
 .b-def  { background:var(--red-bg);   color:var(--red-tx); }
@@ -61,16 +119,42 @@ tr.has-issue  td { background:#fffbf5; }
 .b-pre  { background:var(--blue-bg);  color:var(--blue-tx); }
 .b-post { background:#f0e8fe; color:#4a1a8a; }
 .b-both { background:#e8fef0; color:#1a6a3a; }
-.empty { text-align:center; padding:48px 20px; color:var(--text2); font-size:15px; }
-.spinner { width:28px; height:28px; border:3px solid var(--bg3); border-top-color:var(--text); border-radius:50%; animation:spin 0.75s linear infinite; display:inline-block; margin-bottom:10px; }
-@keyframes spin { to { transform:rotate(360deg); } }
+.b-manual { background:#ededff; color:#3a3a9a; }
+
+/* ── Alerts ── */
 .alert { padding:10px 14px; border-radius:var(--radius-sm); font-size:13px; margin-bottom:14px; line-height:1.6; }
 .alert-err  { background:var(--red-bg);   color:var(--red-tx);   border:0.5px solid var(--red-bd); }
 .alert-warn { background:var(--warn-bg);  color:var(--warn-tx);  border:0.5px solid var(--warn-bd); }
 .alert-ok   { background:var(--green-bg); color:var(--green-tx); border:0.5px solid var(--green-bd); }
+
+/* ── Spinner ── */
+.empty { text-align:center; padding:48px 20px; color:var(--text2); font-size:15px; }
+.spinner { width:28px; height:28px; border:3px solid var(--bg3); border-top-color:var(--text); border-radius:50%; animation:spin 0.75s linear infinite; display:inline-block; margin-bottom:10px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ── Manual entry form ── */
+.form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; }
+.form-group label { font-size:12px; color:var(--text2); display:block; margin-bottom:5px; font-weight:500; }
+.form-group label .req { color:var(--red-tx); margin-left:2px; }
+.check-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.check-item { display:flex; align-items:center; justify-content:space-between; padding:8px 10px; background:var(--bg2); border-radius:var(--radius-sm); font-size:13px; }
+.check-item span { flex:1; }
+.tg-group { display:flex; gap:4px; }
+.tg { padding:4px 8px; font-size:12px; border:0.5px solid var(--border2); border-radius:20px; cursor:pointer; background:var(--bg); color:var(--text2); user-select:none; }
+.tg.ok.sel  { background:var(--green-bg); border-color:var(--green-bd); color:var(--green-tx); font-weight:600; }
+.tg.def.sel { background:var(--red-bg);   border-color:var(--red-bd);   color:var(--red-tx);   font-weight:600; }
+.tg.na.sel  { background:var(--bg3); border-color:var(--border2); color:var(--text2); font-weight:600; }
+.yn-group { display:flex; gap:6px; }
+.yn { flex:1; padding:8px; text-align:center; font-size:13px; border:0.5px solid var(--border2); border-radius:var(--radius-sm); cursor:pointer; background:var(--bg2); color:var(--text2); }
+.yn.y.sel { background:var(--red-bg);   border-color:var(--red-bd);   color:var(--red-tx);   font-weight:600; }
+.yn.n.sel { background:var(--green-bg); border-color:var(--green-bd); color:var(--green-tx); font-weight:600; }
+.section-divider { font-size:12px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.05em; padding:12px 0 8px; border-top:0.5px solid var(--border); margin-top:8px; }
+
+/* ── Print ── */
 .print-area { display:none; }
 @media print {
   body { background:white !important; }
+  #main-app > *:not(.print-area),
   .wrap, .no-print { display:none !important; }
   .print-area { display:block !important; font-family:Arial,Helvetica,sans-serif; color:#000; font-size:10px; }
   @page { margin:14mm 13mm; size:letter; }
@@ -79,112 +163,272 @@ tr.has-issue  td { background:#fffbf5; }
 </head>
 <body>
 
-<div class="page-header no-print">
-  <div>
-    <h1>Our Home Adult Day Care LLC</h1>
-    <p>관리자 — 일일 점검 기록 조회 &nbsp;·&nbsp; Admin — Daily Inspection Log</p>
+<!-- ══ LOGIN OVERLAY ══════════════════════════════════════════ -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="lock-icon">🔒</div>
+    <h2>Our Home Adult Day Care</h2>
+    <p>관리자 전용 페이지입니다<br>Admin access only</p>
+    <input type="password" id="pw-input" placeholder="비밀번호 입력"
+      onkeydown="if(event.key==='Enter') checkPw()" />
+    <button class="btn btn-dark btn-full" onclick="checkPw()">로그인 / Login</button>
+    <div class="login-err" id="login-err">비밀번호가 틀렸습니다.</div>
   </div>
-  <span class="badge-admin">Admin View</span>
 </div>
 
-<div class="wrap no-print">
-  <div id="err-box" class="alert alert-err" style="display:none;"></div>
-
-  <!-- Filters -->
-  <div class="card">
-    <div class="sec-title">조회 조건 / Filter</div>
-    <div class="filter-grid">
-      <div class="filter-group">
-        <label>시작 날짜 / From</label>
-        <input type="date" id="f-from" />
-      </div>
-      <div class="filter-group">
-        <label>종료 날짜 / To</label>
-        <input type="date" id="f-to" />
-      </div>
-      <div class="filter-group">
-        <label>운전자 / Driver</label>
-        <select id="f-driver">
-          <option value="">전체 / All</option>
-          <option>Chung, Byeong Woo</option>
-          <option>Goag, Chang Bog</option>
-          <option>Kim, Sunggil</option>
-          <option>Kim, Tae Kyun</option>
-          <option>Lee, Eunho</option>
-          <option>Lee, Hakwoon</option>
-          <option>Lee, Jung Jae</option>
-          <option>Maing, Jou Hak</option>
-          <option>You, Kyo Sun</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label>차량 / Vehicle</label>
-        <select id="f-vehicle">
-          <option value="">전체 / All</option>
-          <option>O25890</option><option>O25891</option><option>O29872</option>
-          <option>O24260</option><option>O25893</option><option>O25894</option>
-          <option>O25895</option><option>O25896</option><option>O24277</option>
-          <option>O24288</option><option>O24289</option><option>O24284</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label>결함 여부 / Defect</label>
-        <select id="f-defect">
-          <option value="">전체 / All</option>
-          <option value="yes">결함 있음 / Yes</option>
-          <option value="no">결함 없음 / No</option>
-        </select>
-      </div>
-      <div class="filter-group" style="display:flex;gap:8px;align-items:flex-end;">
-        <button class="btn btn-dark" style="flex:1;" onclick="applyFilters()">조회</button>
-        <button class="btn btn-outline" style="flex:1;" onclick="resetFilters()">초기화</button>
-      </div>
+<!-- ══ MAIN APP ════════════════════════════════════════════════ -->
+<div id="main-app">
+  <div class="page-header no-print">
+    <div>
+      <h1>Our Home Adult Day Care LLC</h1>
+      <p>관리자 — 일일 점검 기록 &nbsp;·&nbsp; Admin — Daily Inspection Log</p>
     </div>
-    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn btn-outline btn-sm" onclick="setQuick('today')">오늘</button>
-      <button class="btn btn-outline btn-sm" onclick="setQuick('week')">최근 7일</button>
-      <button class="btn btn-outline btn-sm" onclick="setQuick('month')">이번 달</button>
-      <button class="btn btn-outline btn-sm" onclick="setQuick('lastmonth')">지난 달</button>
+    <div class="header-right">
+      <span class="badge-admin">Admin View</span>
+      <button class="btn btn-outline btn-sm" onclick="logout()">로그아웃</button>
     </div>
   </div>
 
-  <!-- Stats -->
-  <div class="stats-row" id="stats-row" style="display:none;">
-    <div class="stat-card"><div class="val" id="st-total">0</div><div class="lbl">총 제출 건수</div></div>
-    <div class="stat-card red"><div class="val" id="st-defect">0</div><div class="lbl">결함 발견</div></div>
-    <div class="stat-card amber"><div class="val" id="st-pax">0</div><div class="lbl">승객 구역 문제</div></div>
-    <div class="stat-card"><div class="val" id="st-drivers">0</div><div class="lbl">참여 운전자 수</div></div>
-  </div>
+  <div class="wrap no-print">
+    <div id="err-box" class="alert alert-err" style="display:none;"></div>
 
-  <!-- Results -->
-  <div class="card" id="result-card" style="display:none;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-      <div class="sec-title" style="margin-bottom:0;" id="result-title">결과</div>
-      <button class="btn btn-outline btn-sm" onclick="exportCSV()">CSV 다운로드</button>
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('search')">조회 / Search</button>
+      <button class="tab" onclick="switchTab('manual')">수동 입력 / Manual Entry</button>
     </div>
-    <div id="loading" class="empty" style="display:none;">
-      <div class="spinner"></div><br>구글 시트에서 불러오는 중...
+
+    <!-- ══ TAB 1: SEARCH ═══════════════════════════════════════ -->
+    <div class="tab-content active" id="tab-search">
+
+      <div class="card">
+        <div class="sec-title">조회 조건 / Filter</div>
+        <div class="filter-grid">
+          <div class="filter-group">
+            <label>시작 날짜 / From</label>
+            <input type="date" id="f-from" />
+          </div>
+          <div class="filter-group">
+            <label>종료 날짜 / To</label>
+            <input type="date" id="f-to" />
+          </div>
+          <div class="filter-group">
+            <label>운전자 / Driver</label>
+            <select id="f-driver">
+              <option value="">전체 / All</option>
+              <option>Chung, Byeong Woo</option>
+              <option>Goag, Chang Bog</option>
+              <option>Kim, Sunggil</option>
+              <option>Kim, Tae Kyun</option>
+              <option>Lee, Eunho</option>
+              <option>Lee, Hakwoon</option>
+              <option>Lee, Jung Jae</option>
+              <option>Maing, Jou Hak</option>
+              <option>You, Kyo Sun</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>차량 / Vehicle</label>
+            <select id="f-vehicle">
+              <option value="">전체 / All</option>
+              <option>O25890</option><option>O25891</option><option>O29872</option>
+              <option>O24260</option><option>O25893</option><option>O25894</option>
+              <option>O25895</option><option>O25896</option><option>O24277</option>
+              <option>O24288</option><option>O24289</option><option>O24284</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>결함 여부 / Defect</label>
+            <select id="f-defect">
+              <option value="">전체 / All</option>
+              <option value="yes">결함 있음</option>
+              <option value="no">결함 없음</option>
+            </select>
+          </div>
+          <div class="filter-group" style="display:flex;gap:8px;align-items:flex-end;">
+            <button class="btn btn-dark" style="flex:1;" onclick="applyFilters()">조회</button>
+            <button class="btn btn-outline" style="flex:1;" onclick="resetFilters()">초기화</button>
+          </div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-outline btn-sm" onclick="setQuick('today')">오늘</button>
+          <button class="btn btn-outline btn-sm" onclick="setQuick('week')">최근 7일</button>
+          <button class="btn btn-outline btn-sm" onclick="setQuick('month')">이번 달</button>
+          <button class="btn btn-outline btn-sm" onclick="setQuick('lastmonth')">지난 달</button>
+        </div>
+      </div>
+
+      <div class="stats-row" id="stats-row" style="display:none;">
+        <div class="stat-card"><div class="val" id="st-total">0</div><div class="lbl">총 제출 건수</div></div>
+        <div class="stat-card red"><div class="val" id="st-defect">0</div><div class="lbl">결함 발견</div></div>
+        <div class="stat-card amber"><div class="val" id="st-pax">0</div><div class="lbl">승객 구역 문제</div></div>
+        <div class="stat-card"><div class="val" id="st-drivers">0</div><div class="lbl">참여 운전자</div></div>
+      </div>
+
+      <div class="card" id="result-card" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="sec-title" style="margin-bottom:0;" id="result-title">결과</div>
+          <button class="btn btn-outline btn-sm" onclick="exportCSV()">CSV 다운로드</button>
+        </div>
+        <div id="loading" class="empty" style="display:none;">
+          <div class="spinner"></div><br>불러오는 중...
+        </div>
+        <div id="table-wrap" class="table-wrap"></div>
+      </div>
     </div>
-    <div id="table-wrap" class="table-wrap"></div>
+
+    <!-- ══ TAB 2: MANUAL ENTRY ════════════════════════════════ -->
+    <div class="tab-content" id="tab-manual">
+      <div class="alert alert-warn">
+        ⚠️ 수동 입력은 운전자가 앱으로 제출하지 못한 경우에만 사용하세요. 관리자 입력 표시(Manual)가 기록됩니다.
+      </div>
+      <div id="manual-success" class="alert alert-ok" style="display:none;">✓ 저장되었습니다. 구글 시트에 기록됐습니다.</div>
+      <div id="manual-err" class="alert alert-err" style="display:none;"></div>
+
+      <div class="card">
+        <div class="sec-title">기본 정보 / Basic Info</div>
+        <div class="form-grid">
+          <div class="filter-group">
+            <label>날짜 <span style="color:var(--red-tx);">*</span></label>
+            <input type="date" id="m-date" />
+          </div>
+          <div class="filter-group">
+            <label>시각 <span style="color:var(--red-tx);">*</span></label>
+            <input type="time" id="m-time" />
+          </div>
+          <div class="filter-group">
+            <label>운전자 <span style="color:var(--red-tx);">*</span></label>
+            <select id="m-driver">
+              <option value="">선택하세요</option>
+              <option>Chung, Byeong Woo</option>
+              <option>Goag, Chang Bog</option>
+              <option>Kim, Sunggil</option>
+              <option>Kim, Tae Kyun</option>
+              <option>Lee, Eunho</option>
+              <option>Lee, Hakwoon</option>
+              <option>Lee, Jung Jae</option>
+              <option>Maing, Jou Hak</option>
+              <option>You, Kyo Sun</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>차량 <span style="color:var(--red-tx);">*</span></label>
+            <select id="m-vehicle">
+              <option value="">선택하세요</option>
+              <option>O25890</option><option>O25891</option><option>O29872</option>
+              <option>O24260</option><option>O25893</option><option>O25894</option>
+              <option>O25895</option><option>O25896</option><option>O24277</option>
+              <option>O24288</option><option>O24289</option><option>O24284</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>주행거리 / Odometer <span style="color:var(--red-tx);">*</span></label>
+            <input type="text" id="m-odo" placeholder="예: 45,230" inputmode="numeric" />
+          </div>
+          <div class="filter-group">
+            <label>점검 구분 / Trip Type <span style="color:var(--red-tx);">*</span></label>
+            <select id="m-trip">
+              <option value="">선택하세요</option>
+              <option value="Pre-Trip">출발 전 / Pre-Trip</option>
+              <option value="Post-Trip">귀환 후 / Post-Trip</option>
+              <option value="Both">출발+귀환 / Both</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="sec-title">차량 점검 항목 / DVIR Safety Items</div>
+        <div class="check-grid" id="m-dvir-items"></div>
+      </div>
+
+      <div class="card">
+        <div class="sec-title">결함 여부 / Defect</div>
+        <div class="yn-group" style="max-width:300px;">
+          <div class="yn n" id="m-def-no"  onclick="mSelDefect('no')">없음 / No</div>
+          <div class="yn y" id="m-def-yes" onclick="mSelDefect('yes')">있음 / Yes</div>
+        </div>
+        <div id="m-def-extra" style="display:none;margin-top:12px;">
+          <div class="form-grid">
+            <div class="filter-group">
+              <label>결함 내용 *</label>
+              <textarea id="m-def-desc" placeholder="결함을 구체적으로 설명하세요..."></textarea>
+            </div>
+            <div class="filter-group">
+              <label>보고 대상자 / Reported To</label>
+              <input type="text" id="m-def-to" placeholder="관리자 이름" />
+              <label style="margin-top:8px;">보고 시각 / Time</label>
+              <input type="text" id="m-def-time" placeholder="예: 08:45" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="m-pax-card">
+        <div class="sec-title">최종 승객 구역 점검 / Passenger Compartment Check</div>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Pre-Trip 선택 시 해당없음으로 자동 처리됩니다.</p>
+        <div id="m-pax-items"></div>
+        <div style="margin-top:14px;">
+          <label style="font-size:13px;font-weight:500;display:block;margin-bottom:8px;">승객·소지품·안전 문제 발견?</label>
+          <div class="yn-group" style="max-width:300px;">
+            <div class="yn n" id="m-pax-no"  onclick="mSelPax('no')">없음 / No</div>
+            <div class="yn y" id="m-pax-yes" onclick="mSelPax('yes')">있음 / Yes</div>
+          </div>
+          <div id="m-pax-extra" style="display:none;margin-top:10px;">
+            <textarea id="m-pax-desc" placeholder="발견된 사항을 기재하세요..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button class="btn btn-dark" style="flex:2;padding:14px;font-size:15px;" onclick="submitManual()">저장 / Save to Google Sheets</button>
+        <button class="btn btn-outline" style="flex:1;padding:14px;" onclick="resetManual()">초기화</button>
+      </div>
+    </div>
   </div>
 </div>
 
 <div class="print-area" id="print-area"></div>
 
 <script>
-// ★ index.html과 동일한 Apps Script URL
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyWBwZzTwhR3aZ1HVB2VI9y5S-Q-VVVACog5qVT9k4JBh28vk5a4eXHQHdSdDXWPrIrdg/exec';
+// ════════════════════════════════════════════════════════════
+// ★ 설정 — 비밀번호와 Apps Script URL을 여기서 변경하세요
+// ════════════════════════════════════════════════════════════
+const ADMIN_PASSWORD   = 'ohadc2026';  // ★ 원하는 비밀번호로 변경
+const APPS_SCRIPT_URL  = 'https://script.google.com/macros/s/AKfycbwESkB72659eQ9sQFAf6bhuAByoUkvqxIstWsLTZV_DH2KQ0Fy4pmVZnrGPtijB8YXl_A/exec';
 
+// ── Column index ─────────────────────────────────────────────
 const COL = {
   date:0,time:1,driver:2,vehicle:3,odometer:4,tripType:5,
   brakes:6,tires:7,lights:8,doors:9,belts:10,lift:11,
   fluid:12,firstaid:13,dashcam:14,interior:15,
   defectFound:16,defectDesc:17,defectReportedTo:18,defectTime:19,
   paxSeats:20,paxWheelchair:21,paxFloor:22,paxRear:23,paxNoPax:24,
-  paxIssueFound:25,paxIssueDesc:26
+  paxIssueFound:25,paxIssueDesc:26,entryType:27
 };
 
-const DVIR_LABELS = [
+const DVIR_ITEMS = [
+  {id:'brakes',   ko:'브레이크 / 조향장치',           en:'Brakes / Steering'},
+  {id:'tires',    ko:'타이어 / 바퀴',                  en:'Tires / Wheels'},
+  {id:'lights',   ko:'전조등 / 신호등 / 미러',         en:'Lights / Signals / Mirrors / Windshield'},
+  {id:'doors',    ko:'문 / 비상구 / 경적',              en:'Doors / Emergency Exits / Horn'},
+  {id:'belts',    ko:'안전벨트 / 구속장치',             en:'Seat Belts / Passenger Restraints'},
+  {id:'lift',     ko:'휠체어 리프트',                   en:'Wheelchair Lift / Securement'},
+  {id:'fluid',    ko:'오일누유 / 경고등',               en:'Fluid Leaks / Warning Lights'},
+  {id:'firstaid', ko:'응급처치 / 비상장비',             en:'First Aid / Emergency Equipment'},
+  {id:'dashcam',  ko:'대시캠 / Fairmatic / GPS',       en:'Dashcam / Fairmatic / GPS'},
+  {id:'interior', ko:'승객 구역 / 바닥 / 계단',        en:'Passenger Area / Floor / Steps'}
+];
+
+const PAX_ITEMS = [
+  {id:'paxSeats',      ko:'전체 좌석열 확인',     en:'All seating rows checked'},
+  {id:'paxWheelchair', ko:'휠체어 자리 확인',      en:'Wheelchair positions checked'},
+  {id:'paxFloor',      ko:'바닥 확인',             en:'Floor area checked'},
+  {id:'paxRear',       ko:'후방 구역 확인',         en:'Rear compartment checked'},
+  {id:'paxNoPax',      ko:'잔류 승객 없음 확인',   en:'No passenger left inside vehicle'}
+];
+
+const DVIR_LABELS_EN = [
   'Brakes / Steering','Tires / Wheels','Lights / Signals / Mirrors / Windshield',
   'Doors / Emergency Exits / Horn','Seat Belts / Passenger Restraints',
   'Wheelchair Lift / Securement Equipment','Fluid Leaks / Warning Lights / Unusual Noise',
@@ -192,18 +436,49 @@ const DVIR_LABELS = [
   'Passenger Area / Floor / Steps / General Condition'
 ];
 const DVIR_KEYS = ['brakes','tires','lights','doors','belts','lift','fluid','firstaid','dashcam','interior'];
-const PAX_LABELS = ['All seating rows checked','Wheelchair positions checked','Floor area checked','Rear compartment checked','No passenger left inside vehicle'];
-const PAX_KEYS   = ['paxSeats','paxWheelchair','paxFloor','paxRear','paxNoPax'];
+const PAX_LABELS_EN = ['All seating rows checked','Wheelchair positions checked','Floor area checked','Rear compartment checked','No passenger left inside vehicle'];
+const PAX_KEYS = ['paxSeats','paxWheelchair','paxFloor','paxRear','paxNoPax'];
 
 let allData = [];
 let filteredData = [];
+let mDvir = {};
+let mDefect = '';
+let mPaxChecks = {};
+let mPaxIssue = '';
 
-// ── Init ─────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  setQuick('month');
-  loadData();
-});
+// ── Login ─────────────────────────────────────────────────────
+function checkPw(){
+  const pw = document.getElementById('pw-input').value;
+  if(pw === ADMIN_PASSWORD){
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+    setQuick('month');
+    loadData();
+    buildManualForm();
+  } else {
+    const err = document.getElementById('login-err');
+    err.style.display = 'block';
+    err.textContent = '비밀번호가 틀렸습니다. / Incorrect password.';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-input').focus();
+  }
+}
+function logout(){
+  document.getElementById('login-overlay').style.display = 'flex';
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('pw-input').value = '';
+}
 
+// ── Tab switch ────────────────────────────────────────────────
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('active', ['search','manual'][i]===name);
+  });
+  document.getElementById('tab-search').classList.toggle('active', name==='search');
+  document.getElementById('tab-manual').classList.toggle('active', name==='manual');
+}
+
+// ── Quick date presets ────────────────────────────────────────
 function setQuick(p){
   const now = new Date();
   const pad = n => String(n).padStart(2,'0');
@@ -223,7 +498,6 @@ function setQuick(p){
     document.getElementById('f-to').value   = fmt(l);
   }
 }
-
 function resetFilters(){
   document.getElementById('f-driver').value  = '';
   document.getElementById('f-vehicle').value = '';
@@ -232,7 +506,7 @@ function resetFilters(){
   applyFilters();
 }
 
-// ── Load all data from Apps Script ───────────────────────────
+// ── Load data ─────────────────────────────────────────────────
 async function loadData(){
   const errEl = document.getElementById('err-box');
   errEl.style.display = 'none';
@@ -240,19 +514,17 @@ async function loadData(){
   document.getElementById('loading').style.display     = 'block';
   document.getElementById('table-wrap').innerHTML      = '';
   document.getElementById('stats-row').style.display   = 'none';
-
   try {
     const resp = await fetch(APPS_SCRIPT_URL + '?action=getAll');
     const json = await resp.json();
     if(json.result !== 'success') throw new Error(json.error || 'Server error');
     allData = json.data || [];
     applyFilters();
-  } catch(e) {
+  } catch(e){
     document.getElementById('loading').style.display = 'none';
     errEl.style.display = 'block';
     errEl.innerHTML = `구글 시트 연결 실패 — <strong>${e.message}</strong><br>
-      <span style="font-size:12px;">Apps Script가 배포되어 있고 "모든 사용자" 접근 권한이 설정됐는지 확인하세요. 
-      또한 Apps Script 코드에 getAll 함수가 추가됐는지 확인하세요 (아래 안내 참조).</span>`;
+      <span style="font-size:12px;">Apps Script URL과 doGet 함수를 확인하세요.</span>`;
   }
 }
 
@@ -266,13 +538,18 @@ function applyFilters(){
 
   filteredData = allData.filter(row => {
     if(from || to){
-      // row date format: MM/DD/YYYY
-      const p = String(row[COL.date]).split('/');
-      if(p.length === 3){
-        const rd = `${p[2]}-${p[0].padStart(2,'0')}-${p[1].padStart(2,'0')}`;
-        if(from && rd < from) return false;
-        if(to   && rd > to)   return false;
+      const raw = String(row[COL.date]);
+      let rd = '';
+      if(raw.includes('T')){
+        rd = raw.slice(0,10);
+      } else if(raw.includes('/')){
+        const p = raw.split('/');
+        if(p.length===3) rd = `${p[2]}-${p[0].padStart(2,'0')}-${p[1].padStart(2,'0')}`;
+      } else {
+        rd = raw;
       }
+      if(from && rd < from) return false;
+      if(to   && rd > to)   return false;
     }
     if(driver  && row[COL.driver]      !== driver)  return false;
     if(vehicle && row[COL.vehicle]     !== vehicle) return false;
@@ -294,42 +571,53 @@ function renderStats(){
   document.getElementById('stats-row').style.display = t > 0 ? 'grid' : 'none';
   const defCnt = filteredData.filter(r=>r[COL.defectFound]==='yes').length;
   document.getElementById('result-title').textContent =
-    `조회 결과 ${t}건${defCnt ? ' — 결함 ' + defCnt + '건 포함' : ''}`;
+    `조회 결과 ${t}건${defCnt?' — 결함 '+defCnt+'건 포함':''}`;
 }
 
 // ── Table ─────────────────────────────────────────────────────
 function renderTable(){
   document.getElementById('loading').style.display = 'none';
   const wrap = document.getElementById('table-wrap');
-
   if(!filteredData.length){
-    wrap.innerHTML = '<div class="empty">조회된 데이터가 없습니다.<br><span style="font-size:13px;">날짜 범위 또는 필터를 조정해보세요.</span></div>';
+    wrap.innerHTML = '<div class="empty">조회된 데이터가 없습니다.</div>';
     return;
   }
-
   const tripBadge = t =>
     t==='Pre-Trip'  ? '<span class="badge b-pre">Pre-Trip</span>'
     : t==='Post-Trip' ? '<span class="badge b-post">Post-Trip</span>'
     : '<span class="badge b-both">Both</span>';
-
-  const yesNo = (v,yTx,nTx) =>
-    v==='yes' ? `<span class="badge b-def">${yTx}</span>`
-    : `<span class="badge b-ok">${nTx}</span>`;
+  const yesNo = (v,y,n) =>
+    v==='yes' ? `<span class="badge b-def">${y}</span>`
+    : `<span class="badge b-ok">${n}</span>`;
+  const fmtDate = raw => {
+    if(!raw) return '';
+    const s = String(raw);
+    if(s.includes('T')) return s.slice(0,10).replace(/-/g,'/');
+    return s;
+  };
+  const fmtTime = raw => {
+    if(!raw) return '';
+    const s = String(raw);
+    if(s.includes('T')) return s.slice(11,16);
+    return s;
+  };
 
   const rows = filteredData.map((r,i) => {
-    const hasDef = r[COL.defectFound]==='yes';
-    const hasPax = r[COL.paxIssueFound]==='yes';
-    const cls = hasDef ? 'has-defect' : hasPax ? 'has-issue' : '';
+    const hasDef    = r[COL.defectFound]==='yes';
+    const hasPax    = r[COL.paxIssueFound]==='yes';
+    const isManual  = r[COL.entryType]==='manual';
+    const cls = hasDef ? 'has-defect' : hasPax ? 'has-issue' : isManual ? 'is-manual' : '';
     return `<tr class="${cls}">
-      <td style="white-space:nowrap;">${r[COL.date]||''}</td>
-      <td>${r[COL.time]||''}</td>
-      <td style="white-space:nowrap;">${r[COL.driver]||''}</td>
+      <td style="white-space:nowrap;">${fmtDate(r[COL.date])}</td>
+      <td>${fmtTime(r[COL.time])}</td>
+      <td style="white-space:nowrap;font-size:12px;">${r[COL.driver]||''}</td>
       <td><strong>${r[COL.vehicle]||''}</strong></td>
       <td>${r[COL.odometer]||''}</td>
       <td>${tripBadge(r[COL.tripType])}</td>
-      <td>${yesNo(r[COL.defectFound],'결함 있음','없음')}</td>
-      <td style="max-width:200px;font-size:12px;color:var(--red-tx);line-height:1.4;">${r[COL.defectDesc]||'—'}</td>
+      <td>${yesNo(r[COL.defectFound],'결함','없음')}</td>
+      <td style="max-width:180px;font-size:12px;color:var(--red-tx);line-height:1.4;">${r[COL.defectDesc]||'—'}</td>
       <td>${yesNo(r[COL.paxIssueFound],'있음','없음')}</td>
+      ${isManual ? '<td><span class="badge b-manual">수동입력</span></td>' : '<td></td>'}
       <td><button class="btn btn-green btn-sm" onclick="printRecord(${i})">인쇄</button></td>
     </tr>`;
   }).join('');
@@ -338,16 +626,200 @@ function renderTable(){
     <thead><tr>
       <th>날짜</th><th>시각</th><th>운전자</th><th>차량</th>
       <th>주행거리</th><th>구분</th><th>결함</th><th>결함 내용</th>
-      <th>승객 문제</th><th>인쇄</th>
+      <th>승객 문제</th><th>구분</th><th>인쇄</th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
 
-// ── Print ─────────────────────────────────────────────────────
+// ── Build manual entry form ───────────────────────────────────
+function buildManualForm(){
+  // DVIR items
+  const dc = document.getElementById('m-dvir-items');
+  dc.innerHTML = '';
+  DVIR_ITEMS.forEach(item => {
+    mDvir[item.id] = 'ok'; // default ok
+    const d = document.createElement('div');
+    d.className = 'check-item';
+    d.innerHTML = `<span style="font-size:13px;">${item.ko}</span>
+      <div class="tg-group">
+        <div class="tg ok sel" data-mid="${item.id}" onclick="mSelCheck('${item.id}','ok',this)">OK</div>
+        <div class="tg def"    data-mid="${item.id}" onclick="mSelCheck('${item.id}','defect',this)">결함</div>
+        <div class="tg na"     data-mid="${item.id}" onclick="mSelCheck('${item.id}','na',this)">N/A</div>
+      </div>`;
+    dc.appendChild(d);
+  });
+  // PAX items
+  const pc = document.getElementById('m-pax-items');
+  pc.innerHTML = '';
+  PAX_ITEMS.forEach(item => {
+    mPaxChecks[item.id] = 'ok';
+    const d = document.createElement('div');
+    d.className = 'check-item';
+    d.style.marginBottom = '6px';
+    d.innerHTML = `<span style="font-size:13px;">${item.ko}</span>
+      <div class="tg-group">
+        <div class="tg ok sel" data-mpad="${item.id}" onclick="mSelPaxItem('${item.id}','ok',this)">완료</div>
+        <div class="tg def"    data-mpad="${item.id}" onclick="mSelPaxItem('${item.id}','issue',this)">문제</div>
+      </div>`;
+    pc.appendChild(d);
+  });
+  // Set default date/time
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('m-date').value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  document.getElementById('m-time').value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
+
+function mSelCheck(id, val, el){
+  mDvir[id] = val;
+  document.querySelectorAll(`[data-mid="${id}"]`).forEach(t=>t.classList.remove('sel'));
+  el.classList.add('sel');
+  if(val==='defect') mSelDefect('yes');
+}
+function mSelDefect(v){
+  mDefect = v;
+  document.getElementById('m-def-no').classList.toggle('sel',v==='no');
+  document.getElementById('m-def-yes').classList.toggle('sel',v==='yes');
+  document.getElementById('m-def-extra').style.display = v==='yes' ? 'block' : 'none';
+}
+function mSelPaxItem(id, val, el){
+  mPaxChecks[id] = val;
+  document.querySelectorAll(`[data-mpad="${id}"]`).forEach(t=>t.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function mSelPax(v){
+  mPaxIssue = v;
+  document.getElementById('m-pax-no').classList.toggle('sel',v==='no');
+  document.getElementById('m-pax-yes').classList.toggle('sel',v==='yes');
+  document.getElementById('m-pax-extra').style.display = v==='yes' ? 'block' : 'none';
+}
+
+// ── Submit manual entry ───────────────────────────────────────
+async function submitManual(){
+  const errEl = document.getElementById('manual-err');
+  const okEl  = document.getElementById('manual-success');
+  errEl.style.display = 'none';
+  okEl.style.display  = 'none';
+
+  const date    = document.getElementById('m-date').value;
+  const time    = document.getElementById('m-time').value;
+  const driver  = document.getElementById('m-driver').value;
+  const vehicle = document.getElementById('m-vehicle').value;
+  const odo     = document.getElementById('m-odo').value.trim();
+  const trip    = document.getElementById('m-trip').value;
+
+  if(!date||!time||!driver||!vehicle||!odo||!trip){
+    errEl.style.display = 'block';
+    errEl.textContent = '필수 항목을 모두 입력해주세요. (날짜, 시각, 운전자, 차량, 주행거리, 점검 구분)';
+    return;
+  }
+  if(!mDefect){
+    errEl.style.display = 'block';
+    errEl.textContent = '결함 여부를 선택해주세요.';
+    return;
+  }
+  if(mDefect==='yes' && !document.getElementById('m-def-desc').value.trim()){
+    errEl.style.display = 'block';
+    errEl.textContent = '결함 내용을 기재해주세요.';
+    return;
+  }
+
+  // Format date MM/DD/YYYY
+  const [y,m,d] = date.split('-');
+  const fmtDate = `${m}/${d}/${y}`;
+  const isPre = trip === 'Pre-Trip';
+
+  const row = {
+    date: fmtDate, time, driver, vehicle,
+    odometer: odo, tripType: trip,
+    brakes:   mDvir.brakes,   tires:    mDvir.tires,
+    lights:   mDvir.lights,   doors:    mDvir.doors,
+    belts:    mDvir.belts,    lift:     mDvir.lift,
+    fluid:    mDvir.fluid,    firstaid: mDvir.firstaid,
+    dashcam:  mDvir.dashcam,  interior: mDvir.interior,
+    defectFound:      mDefect,
+    defectDesc:       mDefect==='yes' ? document.getElementById('m-def-desc').value.trim() : '',
+    defectReportedTo: mDefect==='yes' ? document.getElementById('m-def-to').value.trim()   : '',
+    defectTime:       mDefect==='yes' ? document.getElementById('m-def-time').value.trim() : '',
+    paxSeats:      isPre ? 'N/A' : (mPaxChecks.paxSeats      || 'ok'),
+    paxWheelchair: isPre ? 'N/A' : (mPaxChecks.paxWheelchair || 'ok'),
+    paxFloor:      isPre ? 'N/A' : (mPaxChecks.paxFloor      || 'ok'),
+    paxRear:       isPre ? 'N/A' : (mPaxChecks.paxRear       || 'ok'),
+    paxNoPax:      isPre ? 'N/A' : (mPaxChecks.paxNoPax      || 'ok'),
+    paxIssueFound: isPre ? 'N/A' : (mPaxIssue || 'no'),
+    paxIssueDesc:  mPaxIssue==='yes' ? document.getElementById('m-pax-desc').value.trim() : '',
+    entryType: 'manual'
+  };
+
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '저장 중...';
+
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method:'POST', mode:'no-cors', body:JSON.stringify(row)
+    });
+    okEl.style.display = 'block';
+    okEl.textContent = `✓ ${driver} / ${vehicle} / ${fmtDate} 데이터가 저장되었습니다.`;
+    resetManual();
+    // Reload data
+    setTimeout(()=>loadData(), 1500);
+  } catch(e){
+    errEl.style.display = 'block';
+    errEl.textContent = '저장 실패: ' + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '저장 / Save to Google Sheets';
+  }
+}
+
+function resetManual(){
+  document.getElementById('m-driver').value  = '';
+  document.getElementById('m-vehicle').value = '';
+  document.getElementById('m-odo').value     = '';
+  document.getElementById('m-trip').value    = '';
+  document.getElementById('m-def-desc').value = '';
+  document.getElementById('m-def-to').value  = '';
+  document.getElementById('m-def-time').value = '';
+  document.getElementById('m-pax-desc').value = '';
+  document.getElementById('m-def-extra').style.display = 'none';
+  document.getElementById('m-pax-extra').style.display = 'none';
+  mDefect = ''; mPaxIssue = '';
+  document.getElementById('m-def-no').classList.remove('sel');
+  document.getElementById('m-def-yes').classList.remove('sel');
+  document.getElementById('m-pax-no').classList.remove('sel');
+  document.getElementById('m-pax-yes').classList.remove('sel');
+  // Reset checks to OK
+  DVIR_ITEMS.forEach(item => {
+    mDvir[item.id] = 'ok';
+    document.querySelectorAll(`[data-mid="${item.id}"]`).forEach(t=>t.classList.remove('sel'));
+    const okBtn = document.querySelector(`.tg.ok[data-mid="${item.id}"]`);
+    if(okBtn) okBtn.classList.add('sel');
+  });
+  PAX_ITEMS.forEach(item => {
+    mPaxChecks[item.id] = 'ok';
+    document.querySelectorAll(`[data-mpad="${item.id}"]`).forEach(t=>t.classList.remove('sel'));
+    const okBtn = document.querySelector(`.tg.ok[data-mpad="${item.id}"]`);
+    if(okBtn) okBtn.classList.add('sel');
+  });
+}
+
+// ── Print record ──────────────────────────────────────────────
 function printRecord(idx){
   const r = filteredData[idx];
   if(!r) return;
+
+  const fmtDate = raw => {
+    const s = String(raw||'');
+    if(s.includes('T')) return s.slice(0,10).replace(/-/g,'/');
+    return s;
+  };
+  const fmtTime = raw => {
+    const s = String(raw||'');
+    if(s.includes('T')) return s.slice(11,16);
+    return s;
+  };
 
   const chk = (v,t) => v===t
     ? '<span style="font-size:14px;font-weight:700;color:#1a5c1a;">&#10003;</span>'
@@ -362,7 +834,7 @@ function printRecord(idx){
   };
 
   const dvirRows = DVIR_KEYS.map((k,i) => `<tr>
-    ${cell(DVIR_LABELS[i])}
+    ${cell(DVIR_LABELS_EN[i])}
     <td style="text-align:center;border:1px solid #bbb;">${chk(r[COL[k]],'ok')}</td>
     <td style="text-align:center;border:1px solid #bbb;">${chk(r[COL[k]],'defect')}</td>
     <td style="text-align:center;border:1px solid #bbb;">${chk(r[COL[k]],'na')}</td>
@@ -377,9 +849,7 @@ function printRecord(idx){
       <tr>${cell(r[COL.defectDesc]||'—')}${cell(r[COL.defectReportedTo]||'—')}${cell(r[COL.defectTime]||'—')}</tr>
     </table>` : '';
 
-  const paxOk = (k) => chk(r[COL[k]],'ok');
   const isPre = r[COL.tripType]==='Pre-Trip';
-
   const paxSection = !isPre ? `
     <div style="border-top:2px dashed #ccc;margin:18px 0 14px;"></div>
     <h2 style="font-size:11px;font-weight:700;letter-spacing:0.03em;margin-bottom:8px;">FORM A-2. FINAL PASSENGER COMPARTMENT CHECK</h2>
@@ -387,32 +857,32 @@ function printRecord(idx){
       <tr style="background:#f0f0f0;">
         ${th('Date','22%')}${th('Vehicle No.','18%')}${th('Driver Name','35%')}${th('Route / Assignment','25%')}
       </tr>
-      <tr>${cell(r[COL.date])}${cell(r[COL.vehicle])}${cell(r[COL.driver])}${cell('—')}</tr>
+      <tr>${cell(fmtDate(r[COL.date]))}${cell(r[COL.vehicle])}${cell(r[COL.driver])}${cell('—')}</tr>
     </table>
     <p style="font-size:9px;font-style:italic;color:#555;margin:4px 0 8px;">
       This check must be completed after the final passenger drop-off or final route.
     </p>
     <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
       <tr style="background:#f0f0f0;">${th('Check Item','72%')}${th('Completed')}</tr>
-      ${PAX_KEYS.map((k,i)=>`<tr>${cell(PAX_LABELS[i])}<td style="text-align:center;border:1px solid #bbb;">${paxOk(k)}</td></tr>`).join('')}
+      ${PAX_KEYS.map((k,i)=>`<tr>${cell(PAX_LABELS_EN[i])}<td style="text-align:center;border:1px solid #bbb;">${chk(r[COL[k]],'ok')}</td></tr>`).join('')}
       <tr>${cell('Passenger belongings or safety concerns reported, if any')}
         <td style="text-align:center;border:1px solid #bbb;">
           ${r[COL.paxIssueFound]==='yes'
-            ? '<span style="font-size:14px;font-weight:700;color:#1a5c1a;">&#10003;</span>'
-            : '<span style="font-size:11px;color:#aaa;">&#9744;</span>'}
+            ?'<span style="font-size:14px;font-weight:700;color:#1a5c1a;">&#10003;</span>'
+            :'<span style="font-size:11px;color:#aaa;">&#9744;</span>'}
         </td></tr>
     </table>
     <p style="font-size:10px;margin-bottom:6px;">
       <strong>Any passenger, belonging, or safety concern found?</strong>&nbsp;
       ${r[COL.paxIssueFound]==='no'
-        ? '<strong style="color:#1a5c1a;">&#10003; No</strong> &nbsp; <span style="color:#aaa;">&#9744; Yes</span>'
-        : '<span style="color:#aaa;">&#9744; No</span> &nbsp; <strong style="color:#8b1a1a;">&#10003; Yes</strong>'}
+        ?'<strong style="color:#1a5c1a;">&#10003; No</strong> &nbsp; <span style="color:#aaa;">&#9744; Yes</span>'
+        :'<span style="color:#aaa;">&#9744; No</span> &nbsp; <strong style="color:#8b1a1a;">&#10003; Yes</strong>'}
     </p>
     ${r[COL.paxIssueFound]==='yes'
-      ? `<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+      ?`<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
           <tr style="background:#fff0f0;">${th('If yes, describe and report to management')}</tr>
           <tr>${cell(r[COL.paxIssueDesc]||'—')}</tr>
-        </table>` : ''}
+        </table>`:''}
     <p style="font-size:9px;font-style:italic;color:#555;margin-bottom:12px;">
       I certify that I completed a physical passenger compartment check after the final passenger drop-off or route completion.
     </p>
@@ -425,9 +895,11 @@ function printRecord(idx){
       <div>
         <p style="font-size:9px;color:#666;text-transform:uppercase;margin-bottom:6px;">Date / Time</p>
         <div style="border-bottom:1px solid #333;height:28px;"></div>
-        <p style="font-size:9px;color:#888;margin-top:3px;">${r[COL.date]} ${r[COL.time]}</p>
+        <p style="font-size:9px;color:#888;margin-top:3px;">${fmtDate(r[COL.date])} ${fmtTime(r[COL.time])}</p>
       </div>
     </div>` : '';
+
+  const isManual = r[COL.entryType]==='manual';
 
   document.getElementById('print-area').innerHTML = `
     <div style="font-family:Arial,Helvetica,sans-serif;color:#111;font-size:10px;max-width:740px;">
@@ -436,7 +908,9 @@ function printRecord(idx){
           APPENDIX A. CORE FLEET SAFETY ROUTINE FORMS
         </p>
         <h1 style="font-size:14px;font-weight:700;color:#111;margin-bottom:2px;">Our Home Adult Day Care LLC</h1>
-        <p style="font-size:9px;color:#555;">Adult Day Care / Adult Medical Day Care Transportation Program</p>
+        <p style="font-size:9px;color:#555;">Adult Day Care / Adult Medical Day Care Transportation Program
+          ${isManual?'&nbsp;|&nbsp;<strong style="color:#3a3a9a;">[Manual Entry by Admin]</strong>':''}
+        </p>
       </div>
       <h2 style="font-size:11px;font-weight:700;letter-spacing:0.03em;margin-bottom:8px;">
         FORM A-1. DAILY VEHICLE INSPECTION REPORT / DVIR
@@ -445,7 +919,7 @@ function printRecord(idx){
         <tr style="background:#f0f0f0;">
           ${th('Date','20%')}${th('Vehicle No.','16%')}${th('Driver Name','34%')}${th('Odometer','30%')}
         </tr>
-        <tr>${cell(r[COL.date])}${cell(r[COL.vehicle])}${cell(r[COL.driver])}${cell(r[COL.odometer])}</tr>
+        <tr>${cell(fmtDate(r[COL.date]))}${cell(r[COL.vehicle])}${cell(r[COL.driver])}${cell(r[COL.odometer])}</tr>
       </table>
       <p style="font-size:10px;margin-bottom:10px;">
         <strong>Inspection Type:</strong> &nbsp; ${tripMark[r[COL.tripType]]||r[COL.tripType]}
@@ -458,8 +932,8 @@ function printRecord(idx){
       <p style="font-size:10px;margin-bottom:6px;">
         <strong>Defect found?</strong> &nbsp;
         ${r[COL.defectFound]==='no'
-          ? '<strong style="color:#1a5c1a;">&#10003; No</strong> &nbsp; <span style="color:#aaa;">&#9744; Yes</span>'
-          : '<span style="color:#aaa;">&#9744; No</span> &nbsp; <strong style="color:#8b1a1a;">&#10003; Yes</strong>'}
+          ?'<strong style="color:#1a5c1a;">&#10003; No</strong> &nbsp; <span style="color:#aaa;">&#9744; Yes</span>'
+          :'<span style="color:#aaa;">&#9744; No</span> &nbsp; <strong style="color:#8b1a1a;">&#10003; Yes</strong>'}
       </p>
       ${defBlock}
       <p style="font-size:9px;font-style:italic;color:#555;margin-bottom:12px;">
@@ -475,7 +949,7 @@ function printRecord(idx){
         <div>
           <p style="font-size:9px;color:#666;text-transform:uppercase;margin-bottom:6px;">Date / Time</p>
           <div style="border-bottom:1px solid #333;height:28px;"></div>
-          <p style="font-size:9px;color:#888;margin-top:3px;">${r[COL.date]} ${r[COL.time]}</p>
+          <p style="font-size:9px;color:#888;margin-top:3px;">${fmtDate(r[COL.date])} ${fmtTime(r[COL.time])}</p>
         </div>
       </div>
       <div style="border:0.5px solid #ccc;padding:10px 12px;margin-bottom:16px;background:#fafafa;">
@@ -510,6 +984,7 @@ function printRecord(idx){
         Our Home Adult Day Care LLC &nbsp;|&nbsp; Transportation Safety Program &nbsp;|&nbsp;
         Vehicle: ${r[COL.vehicle]} &nbsp;|&nbsp; Retain per Records Retention Policy &nbsp;|&nbsp;
         Printed by Admin: ${new Date().toLocaleDateString('en-US')} ${new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}
+        ${isManual?' &nbsp;|&nbsp; [Manual Entry]':''}
       </p>
     </div>`;
 
@@ -522,9 +997,9 @@ function exportCSV(){
   const headers = ['Date','Time','Driver','Vehicle','Odometer','TripType',
     'Brakes','Tires','Lights','Doors','Belts','Lift','Fluid','FirstAid','Dashcam','Interior',
     'DefectFound','DefectDesc','ReportedTo','DefectTime',
-    'PaxSeats','PaxWheelchair','PaxFloor','PaxRear','PaxNoPax','PaxIssueFound','PaxIssueDesc'];
+    'PaxSeats','PaxWheelchair','PaxFloor','PaxRear','PaxNoPax','PaxIssueFound','PaxIssueDesc','EntryType'];
   const csv = [headers.join(','),
-    ...filteredData.map(r => r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(','))
+    ...filteredData.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(','))
   ].join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
