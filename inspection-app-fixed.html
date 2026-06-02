@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Our Home DVIR">
+<meta name="theme-color" content="#ffffff">
+<title>Our Home Adult Day Care — Daily Inspection</title>
+<style>
+  /* ── Reset & Base ─────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f5f7;
+    --bg3: #ebebed;
+    --text: #111111;
+    --text2: #6e6e73;
+    --text3: #aeaeb2;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.22);
+    --green-bg: #e6f4e6; --green-bd: #5a9e5a; --green-tx: #1a5c1a;
+    --red-bg: #fde8e8;   --red-bd: #e08080;   --red-tx: #8b1a1a;
+    --warn-bg: #fef3e2;  --warn-bd: #d4930a;  --warn-tx: #6b4200;
+    --radius: 12px; --radius-sm: 8px;
+    --font: -apple-system, 'Noto Sans KR', BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  html, body { height: 100%; background: var(--bg2); font-family: var(--font); color: var(--text); -webkit-tap-highlight-color: transparent; }
+
+  /* ── Layout ───────────────────────────────────── */
+  .app { max-width: 480px; margin: 0 auto; padding: 0 0 40px; min-height: 100vh; background: var(--bg2); }
+  .screen { display: none; padding: 16px; }
+  .screen.active { display: block; }
+
+  /* ── Header ───────────────────────────────────── */
+  .app-header { background: var(--bg); padding: 20px 16px 14px; text-align: center; border-bottom: 0.5px solid var(--border); position: sticky; top: 0; z-index: 10; }
+  .app-header h1 { font-size: 16px; font-weight: 600; color: var(--text); }
+  .app-header p  { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+  /* ── Progress ─────────────────────────────────── */
+  .progress-wrap { padding: 14px 16px 0; }
+  .progress-bar { height: 3px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--text); border-radius: 2px; transition: width 0.35s ease; }
+  .step-info { font-size: 12px; color: var(--text2); margin-top: 6px; margin-bottom: 14px; }
+
+  /* ── Cards ────────────────────────────────────── */
+  .card { background: var(--bg); border-radius: var(--radius); border: 0.5px solid var(--border); padding: 14px 16px; margin-bottom: 12px; }
+
+  /* ── Labels ───────────────────────────────────── */
+  .lbl { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 8px; display: block; }
+  .lbl-sub { font-size: 11px; color: var(--text3); font-weight: 400; margin-left: 4px; }
+
+  /* ── Form Controls ────────────────────────────── */
+  select, input[type="text"] {
+    width: 100%; padding: 11px 14px; font-size: 16px;
+    border: 0.5px solid var(--border2); border-radius: var(--radius-sm);
+    background: var(--bg2); color: var(--text);
+    -webkit-appearance: none; appearance: none;
+    font-family: var(--font);
+  }
+  select:focus, input:focus { outline: none; border-color: #333; background: var(--bg); }
+
+  /* ── Trip Type Buttons ────────────────────────── */
+  .trip-group { display: flex; gap: 8px; }
+  .trip-btn {
+    flex: 1; padding: 12px 4px; text-align: center; font-size: 14px; font-weight: 500;
+    border: 0.5px solid var(--border2); border-radius: var(--radius-sm);
+    background: var(--bg2); color: var(--text2); cursor: pointer; user-select: none;
+    line-height: 1.4; transition: all 0.15s;
+  }
+  .trip-btn .sub { font-size: 10px; color: var(--text3); font-weight: 400; display: block; }
+  .trip-btn.sel { background: var(--text); color: #fff; border-color: var(--text); }
+  .trip-btn.sel .sub { color: rgba(255,255,255,0.65); }
+
+  /* ── Trip Note ────────────────────────────────── */
+  .trip-note { display: none; margin-top: 10px; padding: 10px 12px; background: var(--bg2); border-radius: var(--radius-sm); font-size: 12px; color: var(--text2); line-height: 1.6; }
+  .trip-note strong { color: var(--text); }
+  .trip-note.show { display: block; }
+
+  /* ── Check Rows ───────────────────────────────── */
+  .check-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 0.5px solid var(--border); }
+  .check-row:last-child { border-bottom: none; }
+  .check-label { font-size: 14px; color: var(--text); flex: 1; padding-right: 10px; line-height: 1.4; }
+  .check-label-en { font-size: 10px; color: var(--text3); display: block; margin-top: 1px; }
+  .tg-group { display: flex; gap: 5px; flex-shrink: 0; }
+  .tg {
+    padding: 6px 10px; font-size: 13px; font-weight: 500;
+    border: 0.5px solid var(--border2); border-radius: 20px;
+    cursor: pointer; background: var(--bg2); color: var(--text2);
+    user-select: none; white-space: nowrap; transition: all 0.12s;
+    min-width: 44px; text-align: center;
+  }
+  .tg.ok.sel  { background: var(--green-bg); border-color: var(--green-bd); color: var(--green-tx); }
+  .tg.def.sel { background: var(--red-bg);   border-color: var(--red-bd);   color: var(--red-tx); }
+  .tg.na.sel  { background: var(--bg3); border-color: var(--border2); color: var(--text2); }
+
+  /* ── Yes / No ─────────────────────────────────── */
+  .yn-group { display: flex; gap: 10px; }
+  .yn {
+    flex: 1; padding: 11px; text-align: center; font-size: 15px; font-weight: 500;
+    border: 0.5px solid var(--border2); border-radius: var(--radius-sm);
+    cursor: pointer; background: var(--bg2); color: var(--text2); transition: all 0.12s;
+  }
+  .yn.y.sel { background: var(--red-bg);   border-color: var(--red-bd);   color: var(--red-tx); }
+  .yn.n.sel { background: var(--green-bg); border-color: var(--green-bd); color: var(--green-tx); }
+
+  /* ── Extra fields ─────────────────────────────── */
+  .extra { display: none; margin-top: 10px; }
+  .extra.show { display: block; }
+  .extra textarea {
+    width: 100%; padding: 10px 12px; font-size: 15px;
+    border: 0.5px solid var(--red-bd); border-radius: var(--radius-sm);
+    background: var(--bg); color: var(--text); resize: none; height: 72px;
+    font-family: var(--font); line-height: 1.5;
+  }
+  .extra textarea:focus { outline: none; }
+  .extra input { margin-top: 8px; }
+  .field-label { font-size: 12px; color: var(--text2); margin-bottom: 5px; margin-top: 10px; display: block; }
+
+  /* ── Alerts ───────────────────────────────────── */
+  .alert { padding: 12px 14px; border-radius: var(--radius-sm); font-size: 14px; margin-bottom: 12px; line-height: 1.6; }
+  .alert-warn { background: var(--warn-bg); color: var(--warn-tx); border: 0.5px solid var(--warn-bd); }
+  .alert-ok   { background: var(--green-bg); color: var(--green-tx); border: 0.5px solid var(--green-bd); }
+  .alert-err  { background: var(--red-bg); color: var(--red-tx); border: 0.5px solid var(--red-bd); }
+  .alert .sub { font-size: 11px; margin-top: 2px; opacity: 0.75; }
+
+  /* ── Buttons ──────────────────────────────────── */
+  .btn-primary {
+    width: 100%; padding: 15px; font-size: 16px; font-weight: 600;
+    background: var(--text); color: #fff; border: none; border-radius: var(--radius);
+    cursor: pointer; margin-top: 8px; font-family: var(--font);
+    -webkit-appearance: none; transition: opacity 0.15s;
+  }
+  .btn-primary:active { opacity: 0.75; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-secondary {
+    width: 100%; padding: 13px; font-size: 15px; font-weight: 500;
+    background: var(--bg2); color: var(--text); border: 0.5px solid var(--border2);
+    border-radius: var(--radius); cursor: pointer; margin-top: 8px; font-family: var(--font);
+    -webkit-appearance: none;
+  }
+
+  /* ── Summary Rows ─────────────────────────────── */
+  .sum-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 0.5px solid var(--border); font-size: 14px; }
+  .sum-row:last-child { border-bottom: none; }
+  .badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600; flex-shrink: 0; margin-left: 8px; }
+  .b-ok  { background: var(--green-bg); color: var(--green-tx); border: 0.5px solid var(--green-bd); }
+  .b-def { background: var(--red-bg);   color: var(--red-tx);   border: 0.5px solid var(--red-bd); }
+  .b-na  { background: var(--bg3); color: var(--text2); }
+
+  /* ── Section Title ────────────────────────────── */
+  .sec-title { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+
+  /* ── Spinner ──────────────────────────────────── */
+  .spinner-wrap { text-align: center; padding: 30px 0 10px; }
+  .spinner {
+    width: 32px; height: 32px; border: 3px solid var(--bg3);
+    border-top-color: var(--text); border-radius: 50%;
+    animation: spin 0.75s linear infinite; display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner-label { font-size: 14px; color: var(--text2); margin-top: 10px; }
+
+  /* ── Other name input ─────────────────────────── */
+  #other-name-wrap { display: none; margin-top: 8px; }
+
+  /* ── Print ────────────────────────────────────── */
+  .print-area { display: none; }
+  @media print {
+    body, html { background: white !important; }
+    .app { display: none !important; }
+    .print-area { display: block !important; font-family: Arial, Helvetica, sans-serif; color: #000; font-size: 10px; padding: 0; max-width: 100%; }
+    @page { margin: 14mm 13mm; size: letter; }
+  }
+
+  /* ── Misc ─────────────────────────────────────── */
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 12px 0; }
+  .meta-text { font-size: 13px; color: var(--text2); margin-bottom: 4px; }
+  .issue-box { margin-top: 10px; padding: 10px 12px; background: var(--red-bg); border-radius: var(--radius-sm); font-size: 13px; color: var(--red-tx); line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ═══ SCREEN: LOGIN ════════════════════════════════════════════ -->
+  <div class="screen active" id="s-login">
+    <div class="app-header">
+      <h1>Our Home Adult Day Care LLC</h1>
+      <p>일일 차량 점검 &nbsp;·&nbsp; Daily Vehicle Inspection</p>
+    </div>
+    <div style="padding:16px;">
+      <div class="card">
+        <span class="lbl">운전자 선택 <span class="lbl-sub">Select Driver</span></span>
+        <select id="drv-sel" onchange="onDriverChange()">
+          <option value="">— 이름을 선택하세요 —</option>
+          <option value="Chung, Byeong Woo">Chung, Byeong Woo (정병우)</option>
+          <option value="Goag, Chang Bog">Goag, Chang Bog (곽창복)</option>
+          <option value="Kim, Sunggil">Kim, Sunggil (김성길)</option>
+          <option value="Kim, Tae Kyun">Kim, Tae Kyun (김태균)</option>
+          <option value="Lee, Eunho">Lee, Eunho (이은호)</option>
+          <option value="Lee, Hakwoon">Lee, Hakwoon (이학운)</option>
+          <option value="Lee, Jung Jae">Lee, Jung Jae (이정재)</option>
+          <option value="Maing, Jou Hak">Maing, Jou Hak (맹주학)</option>
+          <option value="You, Kyo Sun">You, Kyo Sun (유교선)</option>
+          <option value="OTHER">기타 / Other</option>
+        </select>
+        <div id="other-name-wrap">
+          <input type="text" id="other-name" placeholder="이름 입력 / Enter full name" />
+        </div>
+      </div>
+
+      <div class="card" id="veh-card" style="display:none">
+        <span class="lbl">차량 선택 <span class="lbl-sub">Select Vehicle</span></span>
+        <select id="veh-sel">
+          <option value="O25890">O25890 — 2018 Champion Bus (Champion)</option>
+          <option value="O25891">O25891 — 2018 Champion Bus (Econoline)</option>
+          <option value="O29872">O29872 — 2019 Ford Bus (Grey)</option>
+          <option value="O24260">O24260 — 2018 Champion Bus (Omnibus)</option>
+          <option value="O25893">O25893 — 2018 Champion Bus (Omnibus)</option>
+          <option value="O25894">O25894 — 2018 Champion Bus (Omnibus)</option>
+          <option value="O25895">O25895 — 2018 Champion Bus (Omnibus)</option>
+          <option value="O25896">O25896 — 2018 Champion Bus (Omnibus)</option>
+          <option value="O24277">O24277 — 2018 Ford Transit (Wagon)</option>
+          <option value="O24288">O24288 — 2022 Ford E-Transit Van (Electric)</option>
+          <option value="O24289">O24289 — 2022 Ford E-Transit Van (Electric)</option>
+          <option value="O24284">O24284 — 2022 Ford E-Transit Van (Electric)</option>
+        </select>
+      </div>
+
+      <div class="card" id="odo-card" style="display:none">
+        <span class="lbl">주행거리 <span class="lbl-sub">Odometer Reading</span></span>
+        <input type="text" id="odo" placeholder="예: 45,230" inputmode="numeric" />
+      </div>
+
+      <div class="card" id="trip-card" style="display:none">
+        <span class="lbl">점검 구분 <span class="lbl-sub">Inspection Type</span></span>
+        <div class="trip-group">
+          <div class="trip-btn" id="tb-pre"  onclick="selTrip('pre')">출발 전<span class="sub">Pre-Trip</span></div>
+          <div class="trip-btn" id="tb-post" onclick="selTrip('post')">귀환 후<span class="sub">Post-Trip</span></div>
+          <div class="trip-btn" id="tb-both" onclick="selTrip('both')">출발+귀환<span class="sub">Both</span></div>
+        </div>
+        <div class="trip-note" id="trip-note"></div>
+      </div>
+
+      <button class="btn-primary" id="start-btn" style="display:none" onclick="startForm()">점검 시작 / Begin Inspection →</button>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: DVIR ════════════════════════════════════════════ -->
+  <div class="screen" id="s-dvir">
+    <div class="app-header">
+      <h1>차량 점검 / Vehicle Inspection</h1>
+      <p>FORM A-1 — DVIR</p>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="prog-dvir" style="width:40%"></div></div>
+      <div class="step-info" id="step-lbl-dvir">1단계 — 차량 안전 점검</div>
+    </div>
+    <div style="padding:0 16px;">
+      <div class="card">
+        <div class="sec-title">안전 점검 항목 / Safety Items</div>
+        <div id="dvir-items"></div>
+      </div>
+      <div class="card">
+        <span class="lbl">결함 발견됨? <span class="lbl-sub">Defect found?</span></span>
+        <div class="yn-group">
+          <div class="yn n" id="dn-no"  onclick="selDefect('no')">없음 / No</div>
+          <div class="yn y" id="dn-yes" onclick="selDefect('yes')">있음 / Yes</div>
+        </div>
+        <div class="extra" id="def-extra">
+          <span class="field-label">결함 내용 / Defect Description *</span>
+          <textarea id="def-txt" placeholder="결함을 구체적으로 설명하세요..."></textarea>
+          <span class="field-label">보고 대상자 / Reported To</span>
+          <input type="text" id="def-to" placeholder="관리자 이름 / Manager name" />
+          <span class="field-label">보고 시각 / Time Reported</span>
+          <input type="text" id="def-time" placeholder="예: 08:45" inputmode="numeric" />
+        </div>
+      </div>
+      <button class="btn-primary" onclick="dvirNext()">다음 / Next →</button>
+      <button class="btn-secondary" onclick="goTo('login')">← 처음으로</button>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: PASSENGER CHECK ════════════════════════════════ -->
+  <div class="screen" id="s-pax">
+    <div class="app-header">
+      <h1>승객 구역 점검</h1>
+      <p>FORM A-2 — Final Passenger Compartment Check</p>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" style="width:75%"></div></div>
+      <div class="step-info">2단계 — 최종 승객 구역 점검</div>
+    </div>
+    <div style="padding:0 16px;">
+      <div class="alert alert-warn">
+        마지막 승객 하차 후 또는 운행 종료 시 작성하세요.
+        <div class="sub">Complete after final passenger drop-off or final route.</div>
+      </div>
+      <div class="card">
+        <div class="sec-title">구역 확인 항목 / Check Items</div>
+        <div id="pax-items"></div>
+      </div>
+      <div class="card">
+        <span class="lbl">승객·소지품·안전 문제 발견? <span class="lbl-sub">Any concern found?</span></span>
+        <div class="yn-group">
+          <div class="yn n" id="pn-no"  onclick="selPaxIssue('no')">없음 / No</div>
+          <div class="yn y" id="pn-yes" onclick="selPaxIssue('yes')">있음 / Yes</div>
+        </div>
+        <div class="extra" id="pax-extra">
+          <span class="field-label">발견 내용 / Describe finding *</span>
+          <textarea id="pax-txt" placeholder="발견된 사항을 구체적으로 기재하세요..."></textarea>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="goSummary()">검토 후 제출 / Review & Submit →</button>
+      <button class="btn-secondary" onclick="goTo('dvir')">← 이전 / Back</button>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: SUMMARY ═════════════════════════════════════════ -->
+  <div class="screen" id="s-summary">
+    <div class="app-header">
+      <h1>제출 전 최종 확인</h1>
+      <p id="sum-meta"></p>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+    </div>
+    <div style="padding:0 16px;">
+      <div class="card">
+        <div class="sec-title">차량 점검 요약 / DVIR Summary</div>
+        <div id="sum-dvir"></div>
+      </div>
+      <div class="card" id="sum-pax-card">
+        <div class="sec-title">승객 구역 / Compartment Check</div>
+        <div id="sum-pax"></div>
+      </div>
+      <div id="sum-warn" class="alert alert-warn" style="display:none;"></div>
+      <button class="btn-primary" onclick="submitForm()">✓ 제출 완료 / Submit</button>
+      <button class="btn-secondary" onclick="goBackFromSummary()">← 수정하기 / Edit</button>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: SUBMITTING ══════════════════════════════════════ -->
+  <div class="screen" id="s-submitting">
+    <div style="padding:40px 16px; text-align:center;">
+      <div class="spinner-wrap">
+        <div class="spinner"></div>
+        <p class="spinner-label">구글 시트에 저장 중...<br><span style="font-size:12px;opacity:0.7;">Saving to Google Sheets</span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: DONE ════════════════════════════════════════════ -->
+  <div class="screen" id="s-done">
+    <div class="app-header">
+      <h1>✓ 제출 완료</h1>
+      <p id="done-time"></p>
+    </div>
+    <div style="padding:16px;">
+      <div class="alert alert-ok" id="done-status">점검 보고서가 정상적으로 제출되었습니다.<br><span style="font-size:12px;">Report submitted successfully.</span></div>
+      <div id="sheets-status" class="alert" style="display:none;"></div>
+      <div class="card" id="done-issue-card" style="display:none;">
+        <div class="sec-title" style="color:var(--red-tx);">결함 / 문제 발견 — Issues Reported</div>
+        <p id="done-issue-msg" style="font-size:14px;line-height:1.7;white-space:pre-line;color:var(--text);"></p>
+      </div>
+      <button class="btn-primary" onclick="printReport()">🖨 인쇄 / Print & Save PDF</button>
+      <button class="btn-secondary" onclick="resetAll()">새 보고서 / New Report</button>
+    </div>
+  </div>
+
+</div><!-- /.app -->
+
+<!-- ════ PRINT OUTPUT ═════════════════════════════════════════════ -->
+<div class="print-area" id="print-out"></div>
+
+<!-- ════ SCRIPT ══════════════════════════════════════════════════ -->
+<script>
+// ─── CONFIG: Google Apps Script URL ──────────────────────────────
+// ★ Apps Script 배포 후 받은 URL로 교체하세요
+// ★ Replace with your deployed Apps Script Web App URL
+// ★ 배포 방법: Apps Script 편집기 → 배포 → 새 배포 → 웹 앱 → URL 복사
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwYqAWK455AH35WPKbMoBhzJrKwBVjrpqnWhpydzF1PTxngRZCE4UDHdbcGRAxp4Qh9Uw/exec';
+
+// ─── Vehicle descriptions ─────────────────────────────────────────
+const VEHICLES = {
+  'O25890':'2018 Champion Bus — Champion (White, Bus, 23 NP, Gas)',
+  'O25891':'2018 Champion Bus — Econoline (White, Bus, 23 NP, Gas)',
+  'O29872':'2019 Ford — Grey Bus (14 NP, Gas)',
+  'O24260':'2018 Champion Bus — Omnibus (White, Bus, 14 NP, Gas)',
+  'O25893':'2018 Champion Bus — Omnibus (White, Bus, 14 NP, Gas)',
+  'O25894':'2018 Champion Bus — Omnibus (White, Bus, 14 NP, Gas)',
+  'O25895':'2018 Champion Bus — Omnibus (White, Bus, 14 NP, Gas)',
+  'O25896':'2018 Champion Bus — Omnibus (White, Bus, 14 NP, Gas)',
+  'O24277':'2018 Ford Transit (White, Wagon, 12 NP, Gas)',
+  'O24288':'2022 Ford Omnibus/E-Transit (White, Van, 14 NP, Electric)',
+  'O24289':'2022 Ford Omnibus/E-Transit (White, Van, 14 NP, Electric)',
+  'O24284':'2022 Ford Omnibus/E-Transit (White, Van, 14 NP, Electric)'
+};
+
+// ─── Inspection items ─────────────────────────────────────────────
+const DVIR_ITEMS = [
+  {id:'brakes',   ko:'브레이크 / 조향장치',           en:'Brakes / Steering'},
+  {id:'tires',    ko:'타이어 / 바퀴',                  en:'Tires / Wheels'},
+  {id:'lights',   ko:'전조등 / 신호등 / 미러 / 앞유리', en:'Lights / Signals / Mirrors / Windshield'},
+  {id:'doors',    ko:'문 / 비상구 / 경적',              en:'Doors / Emergency Exits / Horn'},
+  {id:'belts',    ko:'안전벨트 / 승객 구속장치',       en:'Seat Belts / Passenger Restraints'},
+  {id:'lift',     ko:'휠체어 리프트 / 고정장치',       en:'Wheelchair Lift / Securement Equipment'},
+  {id:'fluid',    ko:'오일누유 / 경고등 / 이상소음',   en:'Fluid Leaks / Warning Lights / Unusual Noise'},
+  {id:'firstaid', ko:'응급처치 / 비상장비',             en:'First Aid / Emergency Equipment'},
+  {id:'dashcam',  ko:'대시캠 / Fairmatic / GPS 작동',  en:'Dashcam / Fairmatic / GPS Active & Not Blocked'},
+  {id:'interior', ko:'승객 구역 / 바닥 / 계단',        en:'Passenger Area / Floor / Steps / General Condition'}
+];
+
+const PAX_ITEMS = [
+  {id:'seats',      ko:'전체 좌석열 확인',      en:'All seating rows checked'},
+  {id:'wheelchair', ko:'휠체어 자리 확인',       en:'Wheelchair positions checked'},
+  {id:'floor',      ko:'바닥 확인',              en:'Floor area checked'},
+  {id:'rear',       ko:'후방 구역 확인',          en:'Rear compartment checked'},
+  {id:'nopax',      ko:'잔류 승객 없음 확인',    en:'No passenger left inside vehicle'}
+];
+
+// ─── State ────────────────────────────────────────────────────────
+let S = {};
+let tripSel = '';
+
+function resetState(){
+  S = {driver:'',vehicle:'',trip:'',odo:'',dvir:{},defect:'',defTxt:'',defTo:'',defTime:'',pax:{},paxIssue:'',paxTxt:''};
+  tripSel = '';
+}
+resetState();
+
+// ─── Navigation ───────────────────────────────────────────────────
+function goTo(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s-'+id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ─── Driver change ────────────────────────────────────────────────
+function onDriverChange(){
+  const v = document.getElementById('drv-sel').value;
+  document.getElementById('other-name-wrap').style.display = v==='OTHER' ? 'block' : 'none';
+  const vis = v !== '';
+  ['veh-card','odo-card','trip-card'].forEach(id=>document.getElementById(id).style.display=vis?'block':'none');
+  document.getElementById('start-btn').style.display = vis ? 'block' : 'none';
+}
+
+// ─── Trip type ────────────────────────────────────────────────────
+function selTrip(t){
+  tripSel = t;
+  ['pre','post','both'].forEach(x=>document.getElementById('tb-'+x).classList.toggle('sel',x===t));
+  const note = document.getElementById('trip-note');
+  note.classList.add('show');
+  if(t==='pre'){
+    note.innerHTML='<strong>출발 전만 (Pre-Trip only)</strong><br>차량 점검(DVIR)만 작성합니다. 승객 구역 점검은 불필요합니다.';
+  } else if(t==='post'){
+    note.innerHTML='<strong>귀환 후 (Post-Trip)</strong><br>차량 점검 + 최종 승객 구역 점검 모두 작성합니다.';
+  } else {
+    note.innerHTML='<strong>출발 전 + 귀환 후 (Both)</strong><br>차량 점검 + 최종 승객 구역 점검 모두 작성합니다.';
+  }
+}
+
+function getDriverName(){
+  const v = document.getElementById('drv-sel').value;
+  return v==='OTHER' ? (document.getElementById('other-name').value.trim()||'') : v;
+}
+
+// ─── Start ────────────────────────────────────────────────────────
+function startForm(){
+  const drv = getDriverName();
+  if(!drv){ alert('운전자 이름을 선택하거나 입력해주세요.'); return; }
+  if(!tripSel){ alert('점검 구분을 선택해주세요.'); return; }
+  const odo = document.getElementById('odo').value.trim();
+  if(!odo){ alert('주행거리를 입력해주세요.'); return; }
+  S.driver  = drv;
+  S.vehicle = document.getElementById('veh-sel').value;
+  S.trip    = tripSel;
+  S.odo     = odo;
+  buildDVIR();
+  const isPre = tripSel==='pre';
+  document.getElementById('prog-dvir').style.width = isPre ? '50%' : '40%';
+  document.getElementById('step-lbl-dvir').textContent = isPre
+    ? '1/1단계 — 차량 점검 (DVIR)' : '1/2단계 — 차량 점검 (DVIR)';
+  goTo('dvir');
+}
+
+// ─── Build DVIR ───────────────────────────────────────────────────
+function buildDVIR(){
+  const c = document.getElementById('dvir-items');
+  c.innerHTML = '';
+  DVIR_ITEMS.forEach(item=>{
+    S.dvir[item.id] = '';
+    const r = document.createElement('div');
+    r.className = 'check-row';
+    r.innerHTML = `
+      <span class="check-label">${item.ko}
+        <span class="check-label-en">${item.en}</span>
+      </span>
+      <div class="tg-group">
+        <div class="tg ok"  data-id="${item.id}" onclick="selCheck('${item.id}','ok',this)">OK</div>
+        <div class="tg def" data-id="${item.id}" onclick="selCheck('${item.id}','defect',this)">결함</div>
+        <div class="tg na"  data-id="${item.id}" onclick="selCheck('${item.id}','na',this)">N/A</div>
+      </div>`;
+    c.appendChild(r);
+  });
+  // reset defect fields
+  document.getElementById('dn-no').classList.remove('sel');
+  document.getElementById('dn-yes').classList.remove('sel');
+  document.getElementById('def-extra').classList.remove('show');
+  S.defect=''; S.defTxt=''; S.defTo=''; S.defTime='';
+  document.getElementById('def-txt').value='';
+  document.getElementById('def-to').value='';
+  document.getElementById('def-time').value='';
+}
+
+function selCheck(id,val,el){
+  S.dvir[id] = val;
+  document.querySelectorAll(`[data-id="${id}"]`).forEach(t=>t.classList.remove('sel'));
+  el.classList.add('sel');
+  if(val==='defect') selDefect('yes');
+}
+
+function selDefect(v){
+  S.defect = v;
+  document.getElementById('dn-no').classList.toggle('sel',v==='no');
+  document.getElementById('dn-yes').classList.toggle('sel',v==='yes');
+  document.getElementById('def-extra').classList.toggle('show',v==='yes');
+}
+
+function dvirNext(){
+  if(!DVIR_ITEMS.every(i=>S.dvir[i.id])){ alert('모든 항목을 점검해주세요.\nPlease check all items.'); return; }
+  if(!S.defect){ alert('결함 여부를 선택해주세요.'); return; }
+  if(S.defect==='yes'){
+    const t = document.getElementById('def-txt').value.trim();
+    if(!t){ alert('결함 내용을 기재해주세요.'); return; }
+    S.defTxt  = t;
+    S.defTo   = document.getElementById('def-to').value.trim();
+    S.defTime = document.getElementById('def-time').value.trim();
+  }
+  if(S.trip==='pre'){ buildSummaryView(); goTo('summary'); }
+  else { buildPax(); goTo('pax'); }
+}
+
+// ─── Build Passenger Check ────────────────────────────────────────
+function buildPax(){
+  const c = document.getElementById('pax-items');
+  c.innerHTML = '';
+  PAX_ITEMS.forEach(item=>{
+    S.pax[item.id] = '';
+    const r = document.createElement('div');
+    r.className = 'check-row';
+    r.innerHTML = `
+      <span class="check-label">${item.ko}
+        <span class="check-label-en">${item.en}</span>
+      </span>
+      <div class="tg-group">
+        <div class="tg ok"  data-pid="${item.id}" onclick="selPaxItem('${item.id}','ok',this)">완료</div>
+        <div class="tg def" data-pid="${item.id}" onclick="selPaxItem('${item.id}','issue',this)">문제</div>
+      </div>`;
+    c.appendChild(r);
+  });
+  document.getElementById('pn-no').classList.remove('sel');
+  document.getElementById('pn-yes').classList.remove('sel');
+  document.getElementById('pax-extra').classList.remove('show');
+  S.paxIssue=''; S.paxTxt='';
+  document.getElementById('pax-txt').value='';
+}
+
+function selPaxItem(id,val,el){
+  S.pax[id] = val;
+  document.querySelectorAll(`[data-pid="${id}"]`).forEach(t=>t.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+function selPaxIssue(v){
+  S.paxIssue = v;
+  document.getElementById('pn-no').classList.toggle('sel',v==='no');
+  document.getElementById('pn-yes').classList.toggle('sel',v==='yes');
+  document.getElementById('pax-extra').classList.toggle('show',v==='yes');
+}
+
+function goSummary(){
+  if(!PAX_ITEMS.every(i=>S.pax[i.id])){ alert('모든 항목을 확인해주세요.'); return; }
+  if(!S.paxIssue){ alert('문제 여부를 선택해주세요.'); return; }
+  if(S.paxIssue==='yes' && !document.getElementById('pax-txt').value.trim()){ alert('발견 내용을 기재해주세요.'); return; }
+  S.paxTxt = document.getElementById('pax-txt').value.trim();
+  buildSummaryView();
+  goTo('summary');
+}
+
+function goBackFromSummary(){ goTo(S.trip==='pre' ? 'dvir' : 'pax'); }
+
+// ─── Summary ──────────────────────────────────────────────────────
+function buildSummaryView(){
+  const tm = {pre:'Pre-Trip',post:'Post-Trip',both:'Both (Pre & Post)'};
+  const now = new Date();
+  document.getElementById('sum-meta').textContent =
+    `${S.driver} | ${S.vehicle} | ${tm[S.trip]} | ${now.toLocaleDateString('en-US')}`;
+
+  const dd = document.getElementById('sum-dvir');
+  dd.innerHTML = '';
+  DVIR_ITEMS.forEach(i=>{
+    const v = S.dvir[i.id];
+    const b = v==='ok'  ? `<span class="badge b-ok">OK</span>`
+            : v==='defect' ? `<span class="badge b-def">결함</span>`
+            : `<span class="badge b-na">N/A</span>`;
+    dd.innerHTML += `<div class="sum-row"><span>${i.ko}</span>${b}</div>`;
+  });
+  if(S.defect==='yes'){
+    dd.innerHTML += `<div class="issue-box">결함: ${S.defTxt}${S.defTo?' — 보고: '+S.defTo:''}${S.defTime?' ('+S.defTime+')':''}</div>`;
+  }
+
+  const pc = document.getElementById('sum-pax-card');
+  if(S.trip==='pre'){
+    pc.style.display = 'none';
+  } else {
+    pc.style.display = 'block';
+    const pd = document.getElementById('sum-pax');
+    pd.innerHTML = '';
+    PAX_ITEMS.forEach(i=>{
+      const v = S.pax[i.id];
+      const b = v==='ok' ? `<span class="badge b-ok">완료</span>` : `<span class="badge b-def">문제</span>`;
+      pd.innerHTML += `<div class="sum-row"><span>${i.ko}</span>${b}</div>`;
+    });
+    if(S.paxIssue==='yes'){
+      pd.innerHTML += `<div class="issue-box">문제: ${S.paxTxt}</div>`;
+    }
+  }
+
+  const w = document.getElementById('sum-warn');
+  if(S.defect==='yes' || S.paxIssue==='yes'){
+    w.style.display = 'block';
+    w.textContent = '결함 또는 문제가 발견되었습니다. 제출 후 즉시 관리자에게 보고하세요.';
+  } else {
+    w.style.display = 'none';
+  }
+}
+
+// ─── Submit ───────────────────────────────────────────────────────
+function submitForm(){
+  goTo('submitting');
+  generatePrint();
+  sendToSheets();
+}
+
+async function sendToSheets(){
+  const now = new Date();
+  const ds  = now.toLocaleDateString('en-US',{year:'numeric',month:'2-digit',day:'2-digit'});
+  const ts  = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+  const tm  = {pre:'Pre-Trip',post:'Post-Trip',both:'Both'};
+
+  // Build flat row object for Google Sheets
+  const row = {
+    date:       ds,
+    time:       ts,
+    driver:     S.driver,
+    vehicle:    S.vehicle,
+    odometer:   S.odo,
+    tripType:   tm[S.trip],
+    // DVIR items
+    brakes:     S.dvir.brakes,
+    tires:      S.dvir.tires,
+    lights:     S.dvir.lights,
+    doors:      S.dvir.doors,
+    belts:      S.dvir.belts,
+    lift:       S.dvir.lift,
+    fluid:      S.dvir.fluid,
+    firstaid:   S.dvir.firstaid,
+    dashcam:    S.dvir.dashcam,
+    interior:   S.dvir.interior,
+    // Defect
+    defectFound:      S.defect,
+    defectDesc:       S.defTxt,
+    defectReportedTo: S.defTo,
+    defectTime:       S.defTime,
+    // Passenger check
+    paxSeats:       S.trip!=='pre' ? (S.pax.seats||'N/A')      : 'N/A',
+    paxWheelchair:  S.trip!=='pre' ? (S.pax.wheelchair||'N/A') : 'N/A',
+    paxFloor:       S.trip!=='pre' ? (S.pax.floor||'N/A')      : 'N/A',
+    paxRear:        S.trip!=='pre' ? (S.pax.rear||'N/A')       : 'N/A',
+    paxNoPax:       S.trip!=='pre' ? (S.pax.nopax||'N/A')      : 'N/A',
+    paxIssueFound:  S.trip!=='pre' ? S.paxIssue                : 'N/A',
+    paxIssueDesc:   S.paxTxt || ''
+  };
+
+  const now2 = new Date();
+  document.getElementById('done-time').textContent =
+    now2.toLocaleDateString('en-US') + ' ' + now2.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+
+  // Show issues on done screen
+  const msgs = [];
+  if(S.defect==='yes') msgs.push('Vehicle defect: ' + S.defTxt);
+  if(S.paxIssue==='yes') msgs.push('Passenger compartment issue: ' + S.paxTxt);
+  const ic = document.getElementById('done-issue-card');
+  if(msgs.length){ ic.style.display='block'; document.getElementById('done-issue-msg').textContent=msgs.join('\n'); }
+  else ic.style.display='none';
+
+  // POST to Apps Script
+  // no-cors 모드: 모바일 브라우저 CORS 오류 방지
+  // no-cors mode: prevents CORS errors on mobile browsers
+  // 응답을 읽을 수 없으므로 5초 타임아웃 후 성공으로 간주
+  const ss = document.getElementById('sheets-status');
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify(row),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    // no-cors 에서는 응답 본문을 읽을 수 없지만 오류 없이 완료되면 성공
+    ss.className = 'alert alert-ok';
+    ss.style.display = 'block';
+    ss.textContent = '구글 시트에 저장되었습니다. Google Sheets saved ✓';
+  } catch(e){
+    ss.className = 'alert alert-err';
+    ss.style.display = 'block';
+    if(e.name === 'AbortError'){
+      ss.innerHTML = '저장 시간 초과 — 인터넷 연결을 확인하세요.<br><span style="font-size:12px;">Save timed out. Check your internet connection.</span>';
+    } else {
+      ss.innerHTML = '구글 시트 저장 실패 — 인쇄본을 보관하세요.<br><span style="font-size:12px;">Sheets save failed. Please keep the printed copy. (' + e.message + ')</span>';
+    }
+  }
+
+  goTo('done');
+}
+
+// ─── Generate Print HTML ──────────────────────────────────────────
+function generatePrint(){
+  const now = new Date();
+  const ds  = now.toLocaleDateString('en-US',{year:'numeric',month:'2-digit',day:'2-digit'});
+  const ts  = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  const tm  = {
+    pre:  '<strong>&#10003; Pre-Trip</strong> &nbsp; &#9744; Post-Trip &nbsp; &#9744; Both',
+    post: '&#9744; Pre-Trip &nbsp; <strong>&#10003; Post-Trip</strong> &nbsp; &#9744; Both',
+    both: '&#9744; Pre-Trip &nbsp; &#9744; Post-Trip &nbsp; <strong>&#10003; Both</strong>'
+  };
+
+  const cell  = (t,s='') => `<td style="padding:4px 6px;border:1px solid #bbb;font-size:${s||'10px'}">${t}</td>`;
+  const th    = (t,w='') => `<th style="text-align:left;padding:4px 6px;border:1px solid #bbb;background:#f0f0f0;font-size:9px;${w?'width:'+w:''}">${t}</th>`;
+  const chk   = (v,t) => v===t
+    ? '<span style="font-size:14px;font-weight:700;color:#1a5c1a;">&#10003;</span>'
+    : '<span style="font-size:11px;color:#aaa;">&#9744;</span>';
+
+  const dvirRows = DVIR_ITEMS.map(i=>`
+    <tr>
+      ${cell(i.en,'10px')}
+      <td style="text-align:center;border:1px solid #bbb;font-size:13px;">${chk(S.dvir[i.id],'ok')}</td>
+      <td style="text-align:center;border:1px solid #bbb;font-size:13px;">${chk(S.dvir[i.id],'defect')}</td>
+      <td style="text-align:center;border:1px solid #bbb;font-size:13px;">${chk(S.dvir[i.id],'na')}</td>
+    </tr>`).join('');
+
+  const defectBlock = S.defect==='yes' ? `
+    <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+      <tr style="background:#fff0f0;">
+        ${th('If yes, describe defect and report immediately to management','50%')}
+        ${th('Reported To','25%')}
+        ${th('Time Reported','25%')}
+      </tr>
+      <tr>
+        ${cell(S.defTxt)}
+        ${cell(S.defTo||'—')}
+        ${cell(S.defTime||'—')}
+      </tr>
+    </table>` : '';
+
+  const paxSection = S.trip !== 'pre' ? `
+    <div style="border-top:2px dashed #ccc;margin:18px 0 14px;"></div>
+    <h2 style="font-size:11px;font-weight:700;letter-spacing:0.03em;margin-bottom:8px;">FORM A-2. FINAL PASSENGER COMPARTMENT CHECK</h2>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
+      <tr style="background:#f0f0f0;">
+        ${th('Date','22%')} ${th('Vehicle No.','18%')} ${th('Driver Name','35%')} ${th('Route / Assignment','25%')}
+      </tr>
+      <tr>${cell(ds)}${cell(S.vehicle)}${cell(S.driver)}${cell('—')}</tr>
+    </table>
+    <p style="font-size:9px;font-style:italic;color:#555;margin:4px 0 8px;">
+      This check must be completed after the final passenger drop-off or final route.
+    </p>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
+      <tr style="background:#f0f0f0;">
+        ${th('Check Item','72%')}
+        ${th('Completed','')}
+      </tr>
+      ${PAX_ITEMS.map(i=>`<tr>${cell(i.en)}<td style="text-align:center;border:1px solid #bbb;font-size:13px;">${chk(S.pax[i.id],'ok')}</td></tr>`).join('')}
+      <tr>${cell('Passenger belongings or safety concerns reported, if any')}
+        <td style="text-align:center;border:1px solid #bbb;">
+          ${S.paxIssue==='yes'
+            ? '<span style="font-size:14px;font-weight:700;color:#1a5c1a;">&#10003;</span>'
+            : '<span style="font-size:11px;color:#aaa;">&#9744;</span>'}
+        </td></tr>
+    </table>
+    <p style="font-size:10px;margin-bottom:6px;">
+      <strong>Any passenger, belonging, or safety concern found?</strong>&nbsp;
+      ${S.paxIssue==='no'
+        ? '<strong style="color:#1a5c1a;">&#10003; No</strong> &nbsp; <span style="color:#aaa;">&#9744; Yes</span>'
+        : '<span style="color:#aaa;">&#9744; No</span> &nbsp; <strong style="color:#8b1a1a;">&#10003; Yes</strong>'}
+    </p>
+    ${S.paxIssue==='yes'?`<table style="width:100%;border-collapse:collapse;margin-bottom:8px;"><tr style="background:#fff0f0;">${th('If yes, describe and report to management')}</tr><tr>${cell(S.paxTxt)}</tr></table>`:''}
+    <p style="font-size:9px;font-style:italic;color:#555;margin-bottom:12px;">
+      I certify that I completed a physical passenger compartment check after the final passenger drop-off or route completion.
+    </p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:8px;">
+      <div>
+        <p style="font-size:9px;color:#666;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Driver Signature</p>
+        <div style="border-bottom:1px solid #333;height:28px;"></div>
+        <p style="font-size:9px;color:#888;margin-top:3px;">${S.driver}</p>
+      </div>
+      <div>
+        <p style="font-size:9px;color:#666;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Date / Time</p>
+        <div style="border-bottom:1px solid #333;height:28px;"></div>
+        <p style="font-size:9px;color:#888;margin-top:3px;">${ds} &nbsp; ${ts}</p>
+      </div>
+    </div>` : '';
+
+  document.getElementById('print-out').innerHTML = `
+    <div style="font-family:Arial,Helvetica,sans-serif;color:#111;font-size:10px;max-width:740px;">
+
+      <div style="border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:12px;">
+        <p style="font-size:8px;color:#555;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.04em;">
+          APPENDIX A. CORE FLEET SAFETY ROUTINE FORMS
+        </p>
+        <h1 style="font-size:14px;font-weight:700;color:#111;margin-bottom:2px;">Our Home Adult Day Care LLC</h1>
+        <p style="font-size:9px;color:#555;">Adult Day Care / Adult Medical Day Care Transportation Program</p>
+      </div>
+
+      <h2 style="font-size:11px;font-weight:700;letter-spacing:0.03em;margin-bottom:8px;">
+        FORM A-1. DAILY VEHICLE INSPECTION REPORT / DVIR
+      </h2>
+
+      <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+        <tr style="background:#f0f0f0;">
+          ${th('Date','20%')} ${th('Vehicle No.','16%')} ${th('Driver Name','34%')} ${th('Odometer','30%')}
+        </tr>
+        <tr>${cell(ds)}${cell(S.vehicle)}${cell(S.driver)}${cell(S.odo)}</tr>
+      </table>
+
+      <p style="font-size:10px;margin-bottom:10px;">
+        <strong>Inspection Type:</strong> &nbsp; ${tm[S.trip]}
+      </p>
+
+      <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">
+        Driver Section
+      </p>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+        <tr style="background:#f0f0f0;">
+          ${th('Safety Item','54%')}
+          ${th('OK','')} ${th('Defect','')} ${th('N/A','')}
+        </tr>
+        ${dvirRows}
+      </table>
+
+      <p style="font-size:10px;margin-bottom:6px;">
+        <strong>Defect found?</strong> &nbsp;
+        ${S.defect==='no'
+          ? '<strong style="color:#1a5c1a;">&#10003; No</strong> &nbsp; <span style="color:#aaa;">&#9744; Yes</span>'
+          : '<span style="color:#aaa;">&#9744; No</span> &nbsp; <strong style="color:#8b1a1a;">&#10003; Yes</strong>'}
+      </p>
+      ${defectBlock}
+
+      <p style="font-size:9px;font-style:italic;color:#555;margin-bottom:12px;">
+        I certify that I inspected the vehicle and reported any known defect, damage, unsafe condition,
+        missing equipment, warning light, unusual noise, or safety concern.
+      </p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:14px;">
+        <div>
+          <p style="font-size:9px;color:#666;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Driver Signature</p>
+          <div style="border-bottom:1px solid #333;height:28px;"></div>
+          <p style="font-size:9px;color:#888;margin-top:3px;">${S.driver}</p>
+        </div>
+        <div>
+          <p style="font-size:9px;color:#666;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Date / Time</p>
+          <div style="border-bottom:1px solid #333;height:28px;"></div>
+          <p style="font-size:9px;color:#888;margin-top:3px;">${ds} &nbsp; ${ts}</p>
+        </div>
+      </div>
+
+      <div style="border:0.5px solid #ccc;padding:10px 12px;margin-bottom:16px;background:#fafafa;">
+        <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;color:#444;">
+          Management Section — Complete only if a defect, damage, or safety concern is reported.
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:10px;">
+          <div>
+            <p style="font-size:9px;color:#666;margin-bottom:4px;">Reviewed By</p>
+            <div style="border-bottom:1px solid #aaa;height:22px;"></div>
+          </div>
+          <div>
+            <p style="font-size:9px;color:#666;margin-bottom:4px;">Date / Time</p>
+            <div style="border-bottom:1px solid #aaa;height:22px;"></div>
+          </div>
+        </div>
+        <p style="font-size:9px;color:#555;margin-bottom:5px;">
+          Management Decision: &nbsp;
+          &#9744; Vehicle cleared for service &nbsp; &#9744; Vehicle removed from service &nbsp; &#9744; Vehicle sent for repair
+        </p>
+        <p style="font-size:9px;color:#555;margin-bottom:5px;">
+          Return to service approved? &nbsp; &#9744; Yes &nbsp; &#9744; No &nbsp; &#9744; N/A
+        </p>
+        <p style="font-size:9px;color:#555;">
+          Follow-Up / Repair Notes: &nbsp;__________________________________________
+        </p>
+        <div style="margin-top:10px;">
+          <p style="font-size:9px;color:#666;margin-bottom:4px;">Management Signature</p>
+          <div style="border-bottom:1px solid #aaa;height:22px;width:50%;"></div>
+          <p style="font-size:9px;color:#666;margin-top:8px;margin-bottom:4px;">Date / Time</p>
+          <div style="border-bottom:1px solid #aaa;height:22px;width:50%;"></div>
+        </div>
+      </div>
+
+      ${paxSection}
+
+      <p style="font-size:8px;color:#999;border-top:0.5px solid #ccc;padding-top:8px;margin-top:16px;">
+        Our Home Adult Day Care LLC &nbsp;|&nbsp; Transportation Safety Program &nbsp;|&nbsp;
+        Vehicle: ${S.vehicle} — ${VEHICLES[S.vehicle]||''} &nbsp;|&nbsp;
+        Retain per Records Retention Policy &nbsp;|&nbsp; Printed: ${ds} ${ts}
+      </p>
+    </div>`;
+}
+
+function printReport(){ window.print(); }
+
+// ─── Reset ────────────────────────────────────────────────────────
+function resetAll(){
+  resetState();
+  document.getElementById('drv-sel').value = '';
+  document.getElementById('other-name').value = '';
+  document.getElementById('other-name-wrap').style.display = 'none';
+  document.getElementById('odo').value = '';
+  ['veh-card','odo-card','trip-card'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('start-btn').style.display = 'none';
+  ['pre','post','both'].forEach(x=>document.getElementById('tb-'+x).classList.remove('sel'));
+  document.getElementById('trip-note').classList.remove('show');
+  document.getElementById('sheets-status').style.display = 'none';
+  goTo('login');
+}
+</script>
+</body>
+</html>
