@@ -826,12 +826,11 @@ function buildDVIR(){
       ? `<div class="tg na" data-id="${item.id}" onclick="selCheck('${item.id}','na',this)">해당없음</div>`
       : '';
     r.innerHTML=`<span class="check-label">${item.ko}
-        <span class="check-label-en">${item.en}</span></span>
-      <div class="toggle-wrap" id="tw-${item.id}">
-        <div class="tg ok sel" data-id="${item.id}" onclick="selCheck('${item.id}','ok',this)">✓ 이상없음</div>
-        <div class="tg def"    data-id="${item.id}" onclick="selCheck('${item.id}','defect',this)">⚠ 이상있음</div>
-        ${naBtn}
-      </div>`;
+       <span class="check-label-en">${item.en}</span></span>
+     <div class="toggle-wrap">
+       <div class="tg ok sel" data-pid="${item.id}" onclick="selPaxItem('${item.id}','ok',this)">✓ 이상없음</div>
+       <div class="tg def" data-pid="${item.id}" onclick="selPaxItem('${item.id}','issue',this)">⚠ 이상있음</div>
+     </div>`;
     c.appendChild(r);
   });
   ['dn-no','dn-yes'].forEach(id=>document.getElementById(id).classList.remove('sel'));
@@ -881,19 +880,19 @@ function dvirNext(){
 
 // ── Passenger ─────────────────────────────────────────────
 function buildPax(){
-  const c = document.getElementById('pax-items');
-  c.innerHTML = '';
+  const c=document.getElementById('pax-items');
+  c.innerHTML='';
 
-  PAX_ITEMS.forEach(item => {
+  PAX_ITEMS.forEach(item=>{
     // 기본값: 이상없음
-    S.pax[item.id] = 'ok';
+    S.pax[item.id]='ok';
 
-    const r = document.createElement('div');
-    r.className = 'check-row';
+    const r=document.createElement('div');
+    r.className='check-row';
 
-    r.innerHTML = `<span class="check-label">${item.ko}
+    r.innerHTML=`<span class="check-label">${item.ko}
         <span class="check-label-en">${item.en}</span></span>
-      <div class="toggle-wrap" id="pw-${item.id}">
+      <div class="toggle-wrap">
         <div class="tg ok sel" data-pid="${item.id}" onclick="selPaxItem('${item.id}','ok',this)">✓ 이상없음</div>
         <div class="tg def" data-pid="${item.id}" onclick="selPaxItem('${item.id}','issue',this)">⚠ 이상있음</div>
       </div>`;
@@ -901,14 +900,14 @@ function buildPax(){
     c.appendChild(r);
   });
 
-  // 승객·소지품·안전 문제 발견 여부도 기본값: 없음
-  S.paxIssue = 'no';
-  S.paxTxt = '';
+  // 전체 문제 여부도 기본값: 없음
+  S.paxIssue='no';
+  S.paxTxt='';
 
   document.getElementById('pn-no').classList.add('sel');
   document.getElementById('pn-yes').classList.remove('sel');
   document.getElementById('pax-extra').classList.remove('show');
-  document.getElementById('pax-txt').value = '';
+  document.getElementById('pax-txt').value='';
 }
 function selPaxItem(id,val,el){
   S.pax[id] = val;
