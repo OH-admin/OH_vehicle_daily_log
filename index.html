@@ -729,8 +729,13 @@ function submitForm(){
 
 async function sendToSheets(){
   const now = new Date();
-  const ds  = now.toLocaleDateString('en-US',{year:'numeric',month:'2-digit',day:'2-digit'});
-  const ts  = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+  // ★ 시간 기준을 무조건 뉴욕(동부 표준시)으로 고정
+  const optDate = { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' };
+  const optTime = { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false };
+  
+  const ds = new Intl.DateTimeFormat('en-US', optDate).format(now);
+  const ts = new Intl.DateTimeFormat('en-US', optTime).format(now);
+  //...
   const tm  = {pre:'Pre-Trip',post:'Post-Trip',both:'Both', fuel:'Fuel Log'};
 
   const isFuel = S.trip === 'fuel';
@@ -814,8 +819,12 @@ async function sendToSheets(){
 // ─── Generate Print HTML ──────────────────────────────────────────
 function generatePrint(){
   const now = new Date();
-  const ds  = now.toLocaleDateString('en-US',{year:'numeric',month:'2-digit',day:'2-digit'});
-  const ts  = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  // ★ 시간 기준을 무조건 뉴욕(동부 표준시)으로 고정
+  const optDate = { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' };
+  const optTime = { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false };
+  
+  const ds = new Intl.DateTimeFormat('en-US', optDate).format(now);
+  const ts = new Intl.DateTimeFormat('en-US', optTime).format(now);
   
   // 주유(Fuel Log) 전용 인쇄 화면
   if(S.trip === 'fuel') {
