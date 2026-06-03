@@ -590,34 +590,42 @@ function getDisplayDateTime(row){
   if(d) return `${d} ET`;
   return '';
 }
-   
-// Apps Script returns dates as "yyyy-MM-dd" strings already (after our doGet fix)
-// but guard against ISO strings or the 1899 Google Sheets time bug
+
+// ── Date / time helpers ──────────────────────────────────
+
 function fmtDate(raw){
   if(!raw && raw!==0) return '';
+
   const s = String(raw);
-  // ISO date-time
-  if(s.match(/^\d{4}-\d{2}-\d{2}T/)) return s.slice(0,10);
-  // Already formatted yyyy-MM-dd or MM/dd/yyyy
-  if(s.match(/^\d{4}-\d{2}-\d{2}$/)) return s;
-  if(s.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-    const [m,d,y] = s.split('/');
-    return `${y}-${m}-${d}`;
+
+  if(/^\d{4}-\d{2}-\d{2}T/.test(s)){
+    return s.slice(0,10);
   }
+
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)){
+    return s;
+  }
+
+  if(/^\d{2}\/\d{2}\/\d{4}$/.test(s)){
+    const parts = s.split('/');
+    return parts[2] + '-' + parts[0] + '-' + parts[1];
+  }
+
   return s;
 }
+
 function fmtTime(raw){
   if(!raw && raw!==0) return '';
 
   const s = String(raw);
 
-  // Google Sheets / Apps Script ISO time value
   if(
     s.includes('1899-12-30T') ||
     s.includes('1899-12-31T') ||
     /^\d{4}-\d{2}-\d{2}T/.test(s)
   ){
     const d = new Date(s);
+
     if(!isNaN(d.getTime())){
       return new Intl.DateTimeFormat('en-US', {
         timeZone: 'America/New_York',
@@ -628,31 +636,40 @@ function fmtTime(raw){
     }
   }
 
-  // Already HH:mm or HH:mm:ss
   if(/^\d{1,2}:\d{2}/.test(s)){
     const parts = s.split(':');
     return String(parts[0]).padStart(2,'0') + ':' + parts[1];
   }
 
-
   return s;
 }
-// For sorting: combine date+time into comparable string
+
 function sortKey(r){
   const d = fmtDate(r[COL.date]);
   const t = fmtTime(r[COL.time]) || '00:00';
   return d + 'T' + t;
 }
-// Display format: yyyy-MM-dd → MM/dd/yyyy
+
 function dispDate(raw){
   const s = fmtDate(raw);
-  if(s.match(/^\d{4}-\d{2}-\d{2}$/)){
-    const [y,m,d] = s.split('-');
-    return `${m}/${d}/${y}`;
+
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)){
+    const parts = s.split('-');
+    return parts[1] + '/' + parts[2] + '/' + parts[0];
   }
+
   return s;
 }
 
+function getDisplayDateTime(row){
+  const d = dispDate(row[COL.date]);
+  const t = fmtTime(row[COL.time]);
+
+  if(d && t) return d + ' ' + t + ' ET';
+  if(d) return d + ' ET';
+  return '';
+}
+   
 // ── Load ─────────────────────────────────────────────────
 async function loadData(){
   document.getElementById('loading-state').style.display='block';
