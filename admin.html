@@ -67,7 +67,7 @@ body { font-family:var(--font); background:var(--bg2); color:var(--text); }
 /* ── Filters ── */
 .filter-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; align-items:end; }
 .filter-group label { font-size:12px; color:var(--text2); display:block; margin-bottom:5px; }
-select, input[type="date"], input[type="text"], input[type="password"], input[type="time"] {
+select, input[type="date"], input[type="text"], input[type="password"], input[type="time"], input[type="number"] {
   width:100%; padding:9px 12px; font-size:14px;
   border:0.5px solid var(--border2); border-radius:var(--radius-sm);
   background:var(--bg2); color:var(--text); font-family:var(--font);
@@ -100,6 +100,7 @@ textarea:focus { outline:none; border-color:#333; background:var(--bg); }
 .stat-card .lbl { font-size:11px; color:var(--text2); margin-top:4px; }
 .stat-card.red   .val { color:var(--red-tx); }
 .stat-card.amber .val { color:var(--warn-tx); }
+.stat-card.green .val { color:var(--green-tx); }
 
 /* ── Table ── */
 .table-wrap { overflow-x:auto; }
@@ -111,6 +112,7 @@ tr:hover td { background:var(--bg2); }
 tr.has-defect td { background:#fff8f8; }
 tr.has-issue  td { background:#fffbf5; }
 tr.is-manual  td { background:#f0f0ff; }
+tr.is-fuel    td { background:#f5fbf5; }
 
 .badge { font-size:11px; padding:2px 8px; border-radius:20px; font-weight:600; white-space:nowrap; display:inline-block; }
 .b-ok   { background:var(--green-bg); color:var(--green-tx); }
@@ -119,7 +121,9 @@ tr.is-manual  td { background:#f0f0ff; }
 .b-pre  { background:var(--blue-bg);  color:var(--blue-tx); }
 .b-post { background:#f0e8fe; color:#4a1a8a; }
 .b-both { background:#e8fef0; color:#1a6a3a; }
+.b-fuel { background:#d1eed1; color:#0d470d; border:0.5px solid #5a9e5a; }
 .b-manual { background:#ededff; color:#3a3a9a; }
+.link-btn { color:var(--blue-tx); text-decoration:underline; cursor:pointer; font-weight:500; }
 
 /* ── Alerts ── */
 .alert { padding:10px 14px; border-radius:var(--radius-sm); font-size:13px; margin-bottom:14px; line-height:1.6; }
@@ -135,7 +139,6 @@ tr.is-manual  td { background:#f0f0ff; }
 /* ── Manual entry form ── */
 .form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; }
 .form-group label { font-size:12px; color:var(--text2); display:block; margin-bottom:5px; font-weight:500; }
-.form-group label .req { color:var(--red-tx); margin-left:2px; }
 .check-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 .check-item { display:flex; align-items:center; justify-content:space-between; padding:8px 10px; background:var(--bg2); border-radius:var(--radius-sm); font-size:13px; }
 .check-item span { flex:1; }
@@ -148,7 +151,6 @@ tr.is-manual  td { background:#f0f0ff; }
 .yn { flex:1; padding:8px; text-align:center; font-size:13px; border:0.5px solid var(--border2); border-radius:var(--radius-sm); cursor:pointer; background:var(--bg2); color:var(--text2); }
 .yn.y.sel { background:var(--red-bg);   border-color:var(--red-bd);   color:var(--red-tx);   font-weight:600; }
 .yn.n.sel { background:var(--green-bg); border-color:var(--green-bd); color:var(--green-tx); font-weight:600; }
-.section-divider { font-size:12px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.05em; padding:12px 0 8px; border-top:0.5px solid var(--border); margin-top:8px; }
 
 /* ── Print ── */
 .print-area { display:none; }
@@ -163,7 +165,6 @@ tr.is-manual  td { background:#f0f0ff; }
 </head>
 <body>
 
-<!-- ══ LOGIN OVERLAY ══════════════════════════════════════════ -->
 <div id="login-overlay">
   <div class="login-box">
     <div class="lock-icon">🔒</div>
@@ -176,12 +177,11 @@ tr.is-manual  td { background:#f0f0ff; }
   </div>
 </div>
 
-<!-- ══ MAIN APP ════════════════════════════════════════════════ -->
 <div id="main-app">
   <div class="page-header no-print">
     <div>
       <h1>Our Home Adult Day Care LLC</h1>
-      <p>관리자 — 일일 점검 기록 &nbsp;·&nbsp; Admin — Daily Inspection Log</p>
+      <p>관리자 — 차량 점검 및 주유 기록 &nbsp;·&nbsp; Admin — Fleet Log</p>
     </div>
     <div class="header-right">
       <span class="badge-admin">Admin View</span>
@@ -192,13 +192,11 @@ tr.is-manual  td { background:#f0f0ff; }
   <div class="wrap no-print">
     <div id="err-box" class="alert alert-err" style="display:none;"></div>
 
-    <!-- Tabs -->
     <div class="tabs">
       <button class="tab active" onclick="switchTab('search')">조회 / Search</button>
       <button class="tab" onclick="switchTab('manual')">수동 입력 / Manual Entry</button>
     </div>
 
-    <!-- ══ TAB 1: SEARCH ═══════════════════════════════════════ -->
     <div class="tab-content active" id="tab-search">
 
       <div class="card">
@@ -262,7 +260,7 @@ tr.is-manual  td { background:#f0f0ff; }
         <div class="stat-card"><div class="val" id="st-total">0</div><div class="lbl">총 제출 건수</div></div>
         <div class="stat-card red"><div class="val" id="st-defect">0</div><div class="lbl">결함 발견</div></div>
         <div class="stat-card amber"><div class="val" id="st-pax">0</div><div class="lbl">승객 구역 문제</div></div>
-        <div class="stat-card"><div class="val" id="st-drivers">0</div><div class="lbl">참여 운전자</div></div>
+        <div class="stat-card green"><div class="val" id="st-fuel">0</div><div class="lbl">주유 건수</div></div>
       </div>
 
       <div class="card" id="result-card" style="display:none;">
@@ -277,7 +275,6 @@ tr.is-manual  td { background:#f0f0ff; }
       </div>
     </div>
 
-    <!-- ══ TAB 2: MANUAL ENTRY ════════════════════════════════ -->
     <div class="tab-content" id="tab-manual">
       <div class="alert alert-warn">
         ⚠️ 수동 입력은 운전자가 앱으로 제출하지 못한 경우에만 사용하세요. 관리자 입력 표시(Manual)가 기록됩니다.
@@ -327,55 +324,73 @@ tr.is-manual  td { background:#f0f0ff; }
           </div>
           <div class="filter-group">
             <label>점검 구분 / Trip Type <span style="color:var(--red-tx);">*</span></label>
-            <select id="m-trip">
+            <select id="m-trip" onchange="toggleManualSections()">
               <option value="">선택하세요</option>
               <option value="Pre-Trip">출발 전 / Pre-Trip</option>
               <option value="Post-Trip">귀환 후 / Post-Trip</option>
               <option value="Both">출발+귀환 / Both</option>
+              <option value="Fuel Log">주유 / Fuel Log</option>
             </select>
           </div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="sec-title">차량 점검 항목 / DVIR Safety Items</div>
-        <div class="check-grid" id="m-dvir-items"></div>
-      </div>
-
-      <div class="card">
-        <div class="sec-title">결함 여부 / Defect</div>
-        <div class="yn-group" style="max-width:300px;">
-          <div class="yn n" id="m-def-no"  onclick="mSelDefect('no')">없음 / No</div>
-          <div class="yn y" id="m-def-yes" onclick="mSelDefect('yes')">있음 / Yes</div>
-        </div>
-        <div id="m-def-extra" style="display:none;margin-top:12px;">
-          <div class="form-grid">
-            <div class="filter-group">
-              <label>결함 내용 *</label>
-              <textarea id="m-def-desc" placeholder="결함을 구체적으로 설명하세요..."></textarea>
-            </div>
-            <div class="filter-group">
-              <label>보고 대상자 / Reported To</label>
-              <input type="text" id="m-def-to" placeholder="관리자 이름" />
-              <label style="margin-top:8px;">보고 시각 / Time</label>
-              <input type="text" id="m-def-time" placeholder="예: 08:45" />
-            </div>
+      <div class="card" id="m-fuel-card" style="display:none; background:#f5fbf5; border-color:var(--green-bd);">
+        <div class="sec-title" style="color:var(--green-tx);">주유 정보 / Fuel Info</div>
+        <div class="form-grid">
+          <div class="filter-group">
+            <label>주유량 (Gallons)</label>
+            <input type="number" id="m-fuel-qty" step="0.01" placeholder="예: 15.5" />
+          </div>
+          <div class="filter-group">
+            <label>결제 금액 ($)</label>
+            <input type="number" id="m-fuel-amt" step="0.01" placeholder="예: 45.00" />
           </div>
         </div>
+        <p style="font-size:11px; color:var(--text2); margin-top:8px;">* 수동 입력 시 영수증 사진 업로드는 지원하지 않습니다.</p>
       </div>
 
-      <div class="card" id="m-pax-card">
-        <div class="sec-title">최종 승객 구역 점검 / Passenger Compartment Check</div>
-        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Pre-Trip 선택 시 해당없음으로 자동 처리됩니다.</p>
-        <div id="m-pax-items"></div>
-        <div style="margin-top:14px;">
-          <label style="font-size:13px;font-weight:500;display:block;margin-bottom:8px;">승객·소지품·안전 문제 발견?</label>
+      <div id="m-inspection-cards">
+        <div class="card">
+          <div class="sec-title">차량 점검 항목 / DVIR Safety Items</div>
+          <div class="check-grid" id="m-dvir-items"></div>
+        </div>
+
+        <div class="card">
+          <div class="sec-title">결함 여부 / Defect</div>
           <div class="yn-group" style="max-width:300px;">
-            <div class="yn n" id="m-pax-no"  onclick="mSelPax('no')">없음 / No</div>
-            <div class="yn y" id="m-pax-yes" onclick="mSelPax('yes')">있음 / Yes</div>
+            <div class="yn n" id="m-def-no"  onclick="mSelDefect('no')">없음 / No</div>
+            <div class="yn y" id="m-def-yes" onclick="mSelDefect('yes')">있음 / Yes</div>
           </div>
-          <div id="m-pax-extra" style="display:none;margin-top:10px;">
-            <textarea id="m-pax-desc" placeholder="발견된 사항을 기재하세요..."></textarea>
+          <div id="m-def-extra" style="display:none;margin-top:12px;">
+            <div class="form-grid">
+              <div class="filter-group">
+                <label>결함 내용 *</label>
+                <textarea id="m-def-desc" placeholder="결함을 구체적으로 설명하세요..."></textarea>
+              </div>
+              <div class="filter-group">
+                <label>보고 대상자 / Reported To</label>
+                <input type="text" id="m-def-to" placeholder="관리자 이름" />
+                <label style="margin-top:8px;">보고 시각 / Time</label>
+                <input type="text" id="m-def-time" placeholder="예: 08:45" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="m-pax-card">
+          <div class="sec-title">최종 승객 구역 점검 / Passenger Compartment Check</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Pre-Trip 선택 시 해당없음으로 자동 처리됩니다.</p>
+          <div id="m-pax-items"></div>
+          <div style="margin-top:14px;">
+            <label style="font-size:13px;font-weight:500;display:block;margin-bottom:8px;">승객·소지품·안전 문제 발견?</label>
+            <div class="yn-group" style="max-width:300px;">
+              <div class="yn n" id="m-pax-no"  onclick="mSelPax('no')">없음 / No</div>
+              <div class="yn y" id="m-pax-yes" onclick="mSelPax('yes')">있음 / Yes</div>
+            </div>
+            <div id="m-pax-extra" style="display:none;margin-top:10px;">
+              <textarea id="m-pax-desc" placeholder="발견된 사항을 기재하세요..."></textarea>
+            </div>
           </div>
         </div>
       </div>
@@ -394,38 +409,39 @@ tr.is-manual  td { background:#f0f0ff; }
 // ════════════════════════════════════════════════════════════
 // ★ 설정 — 비밀번호와 Apps Script URL을 여기서 변경하세요
 // ════════════════════════════════════════════════════════════
-const ADMIN_PASSWORD   = 'ohadc2026';  // ★ 원하는 비밀번호로 변경
+const ADMIN_PASSWORD   = 'ohadc2026';  // ★ 관리자 비밀번호
 const APPS_SCRIPT_URL  = 'https://script.google.com/macros/s/AKfycbwESkB72659eQ9sQFAf6bhuAByoUkvqxIstWsLTZV_DH2KQ0Fy4pmVZnrGPtijB8YXl_A/exec';
 
-// ── Column index ─────────────────────────────────────────────
+// ── Column index (주유 데이터 포함) ─────────────────────────
 const COL = {
   date:0,time:1,driver:2,vehicle:3,odometer:4,tripType:5,
   brakes:6,tires:7,lights:8,doors:9,belts:10,lift:11,
   fluid:12,firstaid:13,dashcam:14,interior:15,
   defectFound:16,defectDesc:17,defectReportedTo:18,defectTime:19,
   paxSeats:20,paxWheelchair:21,paxFloor:22,paxRear:23,paxNoPax:24,
-  paxIssueFound:25,paxIssueDesc:26,entryType:27
+  paxIssueFound:25,paxIssueDesc:26,
+  fuelQty:27, fuelAmt:28, receiptUrl:29, entryType:30
 };
 
 const DVIR_ITEMS = [
-  {id:'brakes',   ko:'브레이크 / 조향장치',           en:'Brakes / Steering'},
+  {id:'brakes',   ko:'브레이크 / 조향장치',            en:'Brakes / Steering'},
   {id:'tires',    ko:'타이어 / 바퀴',                  en:'Tires / Wheels'},
-  {id:'lights',   ko:'전조등 / 신호등 / 미러',         en:'Lights / Signals / Mirrors / Windshield'},
+  {id:'lights',   ko:'전조등 / 신호등 / 미러',          en:'Lights / Signals / Mirrors / Windshield'},
   {id:'doors',    ko:'문 / 비상구 / 경적',              en:'Doors / Emergency Exits / Horn'},
   {id:'belts',    ko:'안전벨트 / 구속장치',             en:'Seat Belts / Passenger Restraints'},
   {id:'lift',     ko:'휠체어 리프트',                   en:'Wheelchair Lift / Securement'},
   {id:'fluid',    ko:'오일누유 / 경고등',               en:'Fluid Leaks / Warning Lights'},
   {id:'firstaid', ko:'응급처치 / 비상장비',             en:'First Aid / Emergency Equipment'},
   {id:'dashcam',  ko:'대시캠 / Fairmatic / GPS',       en:'Dashcam / Fairmatic / GPS'},
-  {id:'interior', ko:'승객 구역 / 바닥 / 계단',        en:'Passenger Area / Floor / Steps'}
+  {id:'interior', ko:'승객 구역 / 바닥 / 계단',         en:'Passenger Area / Floor / Steps'}
 ];
 
 const PAX_ITEMS = [
-  {id:'paxSeats',      ko:'전체 좌석열 확인',     en:'All seating rows checked'},
-  {id:'paxWheelchair', ko:'휠체어 자리 확인',      en:'Wheelchair positions checked'},
-  {id:'paxFloor',      ko:'바닥 확인',             en:'Floor area checked'},
-  {id:'paxRear',       ko:'후방 구역 확인',         en:'Rear compartment checked'},
-  {id:'paxNoPax',      ko:'잔류 승객 없음 확인',   en:'No passenger left inside vehicle'}
+  {id:'paxSeats',      ko:'전체 좌석열 확인',      en:'All seating rows checked'},
+  {id:'paxWheelchair', ko:'휠체어 자리 확인',       en:'Wheelchair positions checked'},
+  {id:'paxFloor',      ko:'바닥 확인',              en:'Floor area checked'},
+  {id:'paxRear',       ko:'후방 구역 확인',          en:'Rear compartment checked'},
+  {id:'paxNoPax',      ko:'잔류 승객 없음 확인',    en:'No passenger left inside vehicle'}
 ];
 
 const DVIR_LABELS_EN = [
@@ -567,7 +583,7 @@ function renderStats(){
   document.getElementById('st-total').textContent   = t;
   document.getElementById('st-defect').textContent  = filteredData.filter(r=>r[COL.defectFound]==='yes').length;
   document.getElementById('st-pax').textContent     = filteredData.filter(r=>r[COL.paxIssueFound]==='yes').length;
-  document.getElementById('st-drivers').textContent = new Set(filteredData.map(r=>r[COL.driver])).size;
+  document.getElementById('st-fuel').textContent    = filteredData.filter(r=>r[COL.tripType]==='Fuel Log').length;
   document.getElementById('stats-row').style.display = t > 0 ? 'grid' : 'none';
   const defCnt = filteredData.filter(r=>r[COL.defectFound]==='yes').length;
   document.getElementById('result-title').textContent =
@@ -585,10 +601,12 @@ function renderTable(){
   const tripBadge = t =>
     t==='Pre-Trip'  ? '<span class="badge b-pre">Pre-Trip</span>'
     : t==='Post-Trip' ? '<span class="badge b-post">Post-Trip</span>'
+    : t==='Fuel Log'  ? '<span class="badge b-fuel">Fuel Log</span>'
     : '<span class="badge b-both">Both</span>';
+    
   const yesNo = (v,y,n) =>
-    v==='yes' ? `<span class="badge b-def">${y}</span>`
-    : `<span class="badge b-ok">${n}</span>`;
+    v==='yes' ? `<span class="badge b-def">${y}</span>` : `<span class="badge b-ok">${n}</span>`;
+    
   const fmtDate = raw => {
     if(!raw) return '';
     const s = String(raw);
@@ -603,21 +621,34 @@ function renderTable(){
   };
 
   const rows = filteredData.map((r,i) => {
+    const isFuel    = r[COL.tripType]==='Fuel Log';
     const hasDef    = r[COL.defectFound]==='yes';
     const hasPax    = r[COL.paxIssueFound]==='yes';
     const isManual  = r[COL.entryType]==='manual';
-    const cls = hasDef ? 'has-defect' : hasPax ? 'has-issue' : isManual ? 'is-manual' : '';
+    const cls = isFuel ? 'is-fuel' : hasDef ? 'has-defect' : hasPax ? 'has-issue' : isManual ? 'is-manual' : '';
+    
+    const defectCell = isFuel ? '<td style="color:#aaa;">—</td>' : `<td>${yesNo(r[COL.defectFound],'결함','없음')}</td>`;
+    const paxCell = isFuel ? '<td style="color:#aaa;">—</td>' : `<td>${yesNo(r[COL.paxIssueFound],'있음','없음')}</td>`;
+    const fuelCell = isFuel ? `<td><strong>${r[COL.fuelQty]||''}</strong> gal<br>$${r[COL.fuelAmt]||''}</td>` : '<td style="color:#aaa;">—</td>';
+    
+    // Receipt Link
+    let receiptCell = '<td style="color:#aaa;">—</td>';
+    if (isFuel && r[COL.receiptUrl] && r[COL.receiptUrl] !== 'N/A') {
+      receiptCell = `<td><a class="link-btn" href="${r[COL.receiptUrl]}" target="_blank">영수증 보기</a></td>`;
+    } else if (isFuel && isManual) {
+      receiptCell = `<td style="font-size:11px;color:#888;">수동입력(사진없음)</td>`;
+    }
+
     return `<tr class="${cls}">
       <td style="white-space:nowrap;">${fmtDate(r[COL.date])}</td>
       <td>${fmtTime(r[COL.time])}</td>
       <td style="white-space:nowrap;font-size:12px;">${r[COL.driver]||''}</td>
       <td><strong>${r[COL.vehicle]||''}</strong></td>
-      <td>${r[COL.odometer]||''}</td>
       <td>${tripBadge(r[COL.tripType])}</td>
-      <td>${yesNo(r[COL.defectFound],'결함','없음')}</td>
-      <td style="max-width:180px;font-size:12px;color:var(--red-tx);line-height:1.4;">${r[COL.defectDesc]||'—'}</td>
-      <td>${yesNo(r[COL.paxIssueFound],'있음','없음')}</td>
-      ${isManual ? '<td><span class="badge b-manual">수동입력</span></td>' : '<td></td>'}
+      ${defectCell}
+      ${paxCell}
+      ${fuelCell}
+      ${receiptCell}
       <td><button class="btn btn-green btn-sm" onclick="printRecord(${i})">인쇄</button></td>
     </tr>`;
   }).join('');
@@ -625,8 +656,7 @@ function renderTable(){
   wrap.innerHTML = `<table>
     <thead><tr>
       <th>날짜</th><th>시각</th><th>운전자</th><th>차량</th>
-      <th>주행거리</th><th>구분</th><th>결함</th><th>결함 내용</th>
-      <th>승객 문제</th><th>구분</th><th>인쇄</th>
+      <th>구분</th><th>차량결함</th><th>승객문제</th><th>주유(QTY/$)</th><th>영수증</th><th>인쇄</th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
@@ -634,11 +664,10 @@ function renderTable(){
 
 // ── Build manual entry form ───────────────────────────────────
 function buildManualForm(){
-  // DVIR items
   const dc = document.getElementById('m-dvir-items');
   dc.innerHTML = '';
   DVIR_ITEMS.forEach(item => {
-    mDvir[item.id] = 'ok'; // default ok
+    mDvir[item.id] = 'ok';
     const d = document.createElement('div');
     d.className = 'check-item';
     d.innerHTML = `<span style="font-size:13px;">${item.ko}</span>
@@ -649,7 +678,7 @@ function buildManualForm(){
       </div>`;
     dc.appendChild(d);
   });
-  // PAX items
+
   const pc = document.getElementById('m-pax-items');
   pc.innerHTML = '';
   PAX_ITEMS.forEach(item => {
@@ -664,11 +693,17 @@ function buildManualForm(){
       </div>`;
     pc.appendChild(d);
   });
-  // Set default date/time
+
   const now = new Date();
   const pad = n => String(n).padStart(2,'0');
   document.getElementById('m-date').value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
   document.getElementById('m-time').value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
+
+function toggleManualSections() {
+  const isFuel = document.getElementById('m-trip').value === 'Fuel Log';
+  document.getElementById('m-inspection-cards').style.display = isFuel ? 'none' : 'block';
+  document.getElementById('m-fuel-card').style.display = isFuel ? 'block' : 'none';
 }
 
 function mSelCheck(id, val, el){
@@ -708,24 +743,33 @@ async function submitManual(){
   const vehicle = document.getElementById('m-vehicle').value;
   const odo     = document.getElementById('m-odo').value.trim();
   const trip    = document.getElementById('m-trip').value;
+  const isFuel  = trip === 'Fuel Log';
 
   if(!date||!time||!driver||!vehicle||!odo||!trip){
     errEl.style.display = 'block';
-    errEl.textContent = '필수 항목을 모두 입력해주세요. (날짜, 시각, 운전자, 차량, 주행거리, 점검 구분)';
+    errEl.textContent = '필수 항목을 모두 입력해주세요. (날짜, 시각, 운전자, 차량, 주행거리, 구분)';
     return;
   }
-  if(!mDefect){
-    errEl.style.display = 'block';
-    errEl.textContent = '결함 여부를 선택해주세요.';
-    return;
-  }
-  if(mDefect==='yes' && !document.getElementById('m-def-desc').value.trim()){
-    errEl.style.display = 'block';
-    errEl.textContent = '결함 내용을 기재해주세요.';
-    return;
+  
+  if(!isFuel) {
+    if(!mDefect){
+      errEl.style.display = 'block';
+      errEl.textContent = '결함 여부를 선택해주세요.';
+      return;
+    }
+    if(mDefect==='yes' && !document.getElementById('m-def-desc').value.trim()){
+      errEl.style.display = 'block';
+      errEl.textContent = '결함 내용을 기재해주세요.';
+      return;
+    }
+  } else {
+    if(!document.getElementById('m-fuel-qty').value || !document.getElementById('m-fuel-amt').value) {
+      errEl.style.display = 'block';
+      errEl.textContent = '주유량과 결제 금액을 입력해주세요.';
+      return;
+    }
   }
 
-  // Format date MM/DD/YYYY
   const [y,m,d] = date.split('-');
   const fmtDate = `${m}/${d}/${y}`;
   const isPre = trip === 'Pre-Trip';
@@ -733,22 +777,30 @@ async function submitManual(){
   const row = {
     date: fmtDate, time, driver, vehicle,
     odometer: odo, tripType: trip,
-    brakes:   mDvir.brakes,   tires:    mDvir.tires,
-    lights:   mDvir.lights,   doors:    mDvir.doors,
-    belts:    mDvir.belts,    lift:     mDvir.lift,
-    fluid:    mDvir.fluid,    firstaid: mDvir.firstaid,
-    dashcam:  mDvir.dashcam,  interior: mDvir.interior,
-    defectFound:      mDefect,
-    defectDesc:       mDefect==='yes' ? document.getElementById('m-def-desc').value.trim() : '',
-    defectReportedTo: mDefect==='yes' ? document.getElementById('m-def-to').value.trim()   : '',
-    defectTime:       mDefect==='yes' ? document.getElementById('m-def-time').value.trim() : '',
-    paxSeats:      isPre ? 'N/A' : (mPaxChecks.paxSeats      || 'ok'),
-    paxWheelchair: isPre ? 'N/A' : (mPaxChecks.paxWheelchair || 'ok'),
-    paxFloor:      isPre ? 'N/A' : (mPaxChecks.paxFloor      || 'ok'),
-    paxRear:       isPre ? 'N/A' : (mPaxChecks.paxRear       || 'ok'),
-    paxNoPax:      isPre ? 'N/A' : (mPaxChecks.paxNoPax      || 'ok'),
-    paxIssueFound: isPre ? 'N/A' : (mPaxIssue || 'no'),
-    paxIssueDesc:  mPaxIssue==='yes' ? document.getElementById('m-pax-desc').value.trim() : '',
+    // DVIR 
+    brakes:   isFuel ? 'N/A' : mDvir.brakes,   tires:    isFuel ? 'N/A' : mDvir.tires,
+    lights:   isFuel ? 'N/A' : mDvir.lights,   doors:    isFuel ? 'N/A' : mDvir.doors,
+    belts:    isFuel ? 'N/A' : mDvir.belts,    lift:     isFuel ? 'N/A' : mDvir.lift,
+    fluid:    isFuel ? 'N/A' : mDvir.fluid,    firstaid: isFuel ? 'N/A' : mDvir.firstaid,
+    dashcam:  isFuel ? 'N/A' : mDvir.dashcam,  interior: isFuel ? 'N/A' : mDvir.interior,
+    defectFound:      isFuel ? 'N/A' : mDefect,
+    defectDesc:       (!isFuel && mDefect==='yes') ? document.getElementById('m-def-desc').value.trim() : '',
+    defectReportedTo: (!isFuel && mDefect==='yes') ? document.getElementById('m-def-to').value.trim()   : '',
+    defectTime:       (!isFuel && mDefect==='yes') ? document.getElementById('m-def-time').value.trim() : '',
+    // PAX
+    paxSeats:      (isPre||isFuel) ? 'N/A' : (mPaxChecks.paxSeats      || 'ok'),
+    paxWheelchair: (isPre||isFuel) ? 'N/A' : (mPaxChecks.paxWheelchair || 'ok'),
+    paxFloor:      (isPre||isFuel) ? 'N/A' : (mPaxChecks.paxFloor      || 'ok'),
+    paxRear:       (isPre||isFuel) ? 'N/A' : (mPaxChecks.paxRear       || 'ok'),
+    paxNoPax:      (isPre||isFuel) ? 'N/A' : (mPaxChecks.paxNoPax      || 'ok'),
+    paxIssueFound: (isPre||isFuel) ? 'N/A' : (mPaxIssue || 'no'),
+    paxIssueDesc:  (!isPre && !isFuel && mPaxIssue==='yes') ? document.getElementById('m-pax-desc').value.trim() : '',
+    
+    // FUEL LOG
+    fuelQty:       isFuel ? document.getElementById('m-fuel-qty').value : 'N/A',
+    fuelAmt:       isFuel ? document.getElementById('m-fuel-amt').value : 'N/A',
+    receiptImg:    '', // 수동 입력은 이미지 없음
+    
     entryType: 'manual'
   };
 
@@ -763,7 +815,6 @@ async function submitManual(){
     okEl.style.display = 'block';
     okEl.textContent = `✓ ${driver} / ${vehicle} / ${fmtDate} 데이터가 저장되었습니다.`;
     resetManual();
-    // Reload data
     setTimeout(()=>loadData(), 1500);
   } catch(e){
     errEl.style.display = 'block';
@@ -783,14 +834,19 @@ function resetManual(){
   document.getElementById('m-def-to').value  = '';
   document.getElementById('m-def-time').value = '';
   document.getElementById('m-pax-desc').value = '';
+  document.getElementById('m-fuel-qty').value = '';
+  document.getElementById('m-fuel-amt').value = '';
   document.getElementById('m-def-extra').style.display = 'none';
   document.getElementById('m-pax-extra').style.display = 'none';
+  
+  toggleManualSections();
   mDefect = ''; mPaxIssue = '';
+  
   document.getElementById('m-def-no').classList.remove('sel');
   document.getElementById('m-def-yes').classList.remove('sel');
   document.getElementById('m-pax-no').classList.remove('sel');
   document.getElementById('m-pax-yes').classList.remove('sel');
-  // Reset checks to OK
+  
   DVIR_ITEMS.forEach(item => {
     mDvir[item.id] = 'ok';
     document.querySelectorAll(`[data-mid="${item.id}"]`).forEach(t=>t.classList.remove('sel'));
@@ -821,6 +877,34 @@ function printRecord(idx){
     return s;
   };
 
+  const isManual = r[COL.entryType]==='manual';
+  
+  // ─── 주유 기록 인쇄 (Fuel Log) ──────────────────────────────────
+  if (r[COL.tripType] === 'Fuel Log') {
+    document.getElementById('print-area').innerHTML = `
+      <div style="font-family:Arial,Helvetica,sans-serif;color:#111;font-size:12px;max-width:740px;">
+        <h1 style="font-size:16px;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:16px;">
+          Our Home Adult Day Care — Fuel Log
+          ${isManual?' <span style="font-size:12px;color:#3a3a9a;">[Manual Entry]</span>':''}
+        </h1>
+        <p><strong>Date:</strong> ${fmtDate(r[COL.date])} &nbsp;&nbsp; <strong>Time:</strong> ${fmtTime(r[COL.time])}</p>
+        <p><strong>Driver:</strong> ${r[COL.driver]}</p>
+        <p><strong>Vehicle:</strong> ${r[COL.vehicle]}</p>
+        <p><strong>Odometer:</strong> ${r[COL.odometer]}</p>
+        <div style="margin-top:20px;padding:15px;border:1px solid #ccc;background:#f9f9f9;">
+          <p style="font-size:14px;"><strong>Fuel QTY (Gallons):</strong> ${r[COL.fuelQty]}</p>
+          <p style="font-size:14px;margin-top:8px;"><strong>Amount Paid ($):</strong> ${r[COL.fuelAmt]}</p>
+        </div>
+        <p style="margin-top:20px;font-size:10px;color:#666;">
+          * Retain per Records Retention Policy. Printed on ${new Date().toLocaleDateString('en-US')}.
+        </p>
+      </div>
+    `;
+    window.print();
+    return;
+  }
+
+  // ─── 점검 기록 인쇄 (DVIR / Pax) ────────────────────────────────
   const chk = (v,t) => v===t
     ? '<span style="font-size:14px;font-weight:700;color:#1a5c1a;">&#10003;</span>'
     : '<span style="font-size:11px;color:#aaa;">&#9744;</span>';
@@ -898,8 +982,6 @@ function printRecord(idx){
         <p style="font-size:9px;color:#888;margin-top:3px;">${fmtDate(r[COL.date])} ${fmtTime(r[COL.time])}</p>
       </div>
     </div>` : '';
-
-  const isManual = r[COL.entryType]==='manual';
 
   document.getElementById('print-area').innerHTML = `
     <div style="font-family:Arial,Helvetica,sans-serif;color:#111;font-size:10px;max-width:740px;">
@@ -997,13 +1079,15 @@ function exportCSV(){
   const headers = ['Date','Time','Driver','Vehicle','Odometer','TripType',
     'Brakes','Tires','Lights','Doors','Belts','Lift','Fluid','FirstAid','Dashcam','Interior',
     'DefectFound','DefectDesc','ReportedTo','DefectTime',
-    'PaxSeats','PaxWheelchair','PaxFloor','PaxRear','PaxNoPax','PaxIssueFound','PaxIssueDesc','EntryType'];
+    'PaxSeats','PaxWheelchair','PaxFloor','PaxRear','PaxNoPax','PaxIssueFound','PaxIssueDesc',
+    'FuelQty','FuelAmount','ReceiptUrl','EntryType'];
+    
   const csv = [headers.join(','),
     ...filteredData.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(','))
   ].join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
-  a.download = `DVIR_Log_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `Fleet_Log_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
 }
 </script>
