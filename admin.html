@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -5,602 +6,1378 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Our Home ADC — Admin</title>
 <style>
+/* ── Apple-inspired design system ─────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg:#ffffff; --bg2:#f5f5f7; --bg3:#e8e8ea;
-  --text:#111; --text2:#6e6e73; --text3:#aeaeb2;
-  --border:rgba(0,0,0,0.1); --border2:rgba(0,0,0,0.2);
-  --green-bg:#e6f4e6; --green-bd:#5a9e5a; --green-tx:#1a5c1a;
-  --red-bg:#fde8e8; --red-bd:#e08080; --red-tx:#8b1a1a;
-  --warn-bg:#fef3e2; --warn-bd:#d4930a; --warn-tx:#6b4200;
-  --blue-bg:#e8f0fe; --blue-bd:#4a80d4; --blue-tx:#1a3a8a;
-  --radius:12px; --radius-sm:8px;
-  --font:-apple-system,'Noto Sans KR',BlinkMacSystemFont,'Segoe UI',sans-serif;
+  /* Surfaces */
+  --canvas:       #ffffff;
+  --parchment:    #f5f5f7;
+  --tile-dark:    #272729;
+  --pure-black:   #000000;
+  /* Text */
+  --ink:          #1d1d1f;
+  --ink-muted:    #6e6e73;
+  --ink-faint:    #aeaeb2;
+  --on-dark:      #ffffff;
+  --on-dark-muted:#cccccc;
+  /* Accent */
+  --blue:         #0066cc;
+  --blue-focus:   #0071e3;
+  --blue-dark:    #2997ff;
+  /* Status */
+  --green-bg:     #e6f4e6;
+  --green-bd:     #5a9e5a;
+  --green-tx:     #1a5c1a;
+  --red-bg:       #fde8e8;
+  --red-bd:       #e08080;
+  --red-tx:       #8b1a1a;
+  --amber-bg:     #fef3e2;
+  --amber-bd:     #d4930a;
+  --amber-tx:     #6b4200;
+  /* Borders */
+  --hairline:     #e0e0e0;
+  --divider:      rgba(0,0,0,0.08);
+  /* Radius */
+  --r-sm:  8px;
+  --r-md:  11px;
+  --r-lg:  18px;
+  --r-pill:9999px;
+  /* Font */
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
 }
-body { font-family:var(--font); background:var(--bg2); color:var(--text); }
-#login-overlay { position:fixed; inset:0; background:var(--bg2); display:flex; align-items:center; justify-content:center; z-index:999; }
-.login-box { background:var(--bg); border-radius:var(--radius); border:0.5px solid var(--border); padding:36px 40px; width:360px; text-align:center; }
-.login-box h2 { font-size:17px; margin-bottom:4px; }
-.login-box input { width:100%; padding:12px; margin-bottom:12px; text-align:center; font-size:16px; border:0.5px solid var(--border2); border-radius:var(--radius-sm); }
-.page-header { background:var(--bg); border-bottom:0.5px solid var(--border); padding:14px 24px; display:flex; justify-content:space-between; position:sticky; top:0; z-index:10; }
-.wrap { max-width:1200px; margin:0 auto; padding:24px 20px 60px; }
-.card { background:var(--bg); border-radius:var(--radius); border:0.5px solid var(--border); padding:16px 20px; margin-bottom:16px; }
-.sec-title { font-size:12px; font-weight:600; color:var(--text2); text-transform:uppercase; margin-bottom:14px; }
-.tabs { display:flex; gap:4px; margin-bottom:20px; background:var(--bg3); padding:4px; border-radius:8px; width:fit-content;}
-.tab { padding:8px 20px; font-size:14px; border-radius:6px; cursor:pointer; color:var(--text2); border:none; background:transparent; font-weight:600;}
-.tab.active { background:var(--bg); color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,0.1); }
-.tab-content { display:none; }
-.tab-content.active { display:block; }
-.filter-grid, .form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; align-items:end; }
-.filter-group label { font-size:12px; color:var(--text2); display:block; margin-bottom:5px; }
-select, input, textarea { width:100%; padding:9px 12px; border:0.5px solid var(--border2); border-radius:var(--radius-sm); background:var(--bg2); font-family:var(--font); }
-.btn { padding:9px 16px; font-size:13px; font-weight:600; border-radius:var(--radius-sm); cursor:pointer; border:none; }
-.btn-dark { background:var(--text); color:#fff; }
-.btn-outline { background:var(--bg); border:0.5px solid var(--border2); }
-.btn-green { background:var(--green-bg); color:var(--green-tx); border:0.5px solid var(--green-bd); }
-.btn-red { background:var(--red-bg); color:var(--red-tx); border:0.5px solid var(--red-bd); }
-.btn-blue { background:var(--blue-bg); color:var(--blue-tx); border:0.5px solid var(--blue-bd); }
-.btn-sm { padding:5px 10px; font-size:11px; }
 
-/* Stats Row */
-.stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:16px; }
-.stat-card { background:var(--bg); border:0.5px solid var(--border); border-radius:var(--radius-sm); padding:14px; text-align:center; box-shadow:0 1px 2px rgba(0,0,0,0.03); }
-.stat-card .val { font-size:22px; font-weight:700; color:var(--text); margin-bottom:4px; }
-.stat-card .lbl { font-size:11px; color:var(--text2); font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
+html, body {
+  font-family: var(--font);
+  background: var(--parchment);
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 1.47;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
 
-.table-wrap { overflow-x:auto; }
-table { width:100%; border-collapse:collapse; font-size:13px; text-align:left;}
-th { padding:10px; background:var(--bg2); font-size:11px; text-transform:uppercase; color:var(--text2); border-bottom:1px solid var(--border2); }
-td { padding:10px; border-bottom:0.5px solid var(--border); }
-tr:hover td { background:var(--bg2); }
-.badge { padding:3px 8px; border-radius:20px; font-size:11px; font-weight:600; }
-.b-ok { background:var(--green-bg); color:var(--green-tx); } .b-def { background:var(--red-bg); color:var(--red-tx); }
-.b-fuel { background:#d1eed1; color:#0d470d; border:0.5px solid #5a9e5a; }
-.action-group { display:flex; gap:4px; }
-.check-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.check-item { display:flex; justify-content:space-between; padding:8px; background:var(--bg2); border-radius:8px; font-size:13px;}
-.tg-group, .yn-group { display:flex; gap:4px; }
-.tg, .yn { padding:4px 8px; border:1px solid var(--border2); border-radius:20px; cursor:pointer; font-size:12px; }
-.tg.sel.ok, .yn.sel.n { background:var(--green-bg); border-color:var(--green-bd); color:var(--green-tx); font-weight:600;}
-.tg.sel.def, .yn.sel.y { background:var(--red-bg); border-color:var(--red-bd); color:var(--red-tx); font-weight:600;}
-.print-area { display:none; }
-@media print { body { background:white !important; } #main-app, .no-print { display:none !important; } .print-area { display:block !important; color:#000; font-size:11px; } @page { margin:10mm; } }
+/* ── Login overlay ──────────────────────────────────────── */
+#login-overlay {
+  position: fixed; inset: 0;
+  background: var(--parchment);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 999;
+}
+.login-box {
+  background: var(--canvas);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--hairline);
+  padding: 48px 44px;
+  width: 380px;
+  text-align: center;
+  box-shadow: rgba(0,0,0,0.08) 0 8px 32px;
+}
+.login-logo {
+  font-size: 13px;
+  color: var(--ink-muted);
+  letter-spacing: -0.12px;
+  margin-bottom: 6px;
+}
+.login-box h2 {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.374px;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.login-sub {
+  font-size: 14px;
+  color: var(--ink-muted);
+  margin-bottom: 28px;
+  letter-spacing: -0.224px;
+}
+.login-box input[type="password"] {
+  width: 100%;
+  padding: 14px 18px;
+  font-size: 17px;
+  text-align: center;
+  letter-spacing: 0.2em;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--font);
+  margin-bottom: 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.login-box input:focus { border-color: var(--blue-focus); background: var(--canvas); }
+.login-err { font-size: 14px; color: var(--red-tx); margin-top: 10px; display: none; letter-spacing: -0.224px; }
+
+/* ── Global nav ─────────────────────────────────────────── */
+.global-nav {
+  background: var(--pure-black);
+  height: 44px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  position: sticky; top: 0; z-index: 100;
+}
+.global-nav .brand {
+  font-size: 12px;
+  color: rgba(255,255,255,0.85);
+  letter-spacing: -0.12px;
+  font-weight: 400;
+}
+.global-nav .nav-right {
+  display: flex; gap: 12px; align-items: center;
+}
+
+/* Sub nav */
+.sub-nav {
+  background: rgba(245,245,247,0.88);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 0.5px solid rgba(0,0,0,0.1);
+  padding: 0 24px;
+  height: 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 44px; z-index: 99;
+}
+.sub-nav-title {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: 0.231px;
+  color: var(--ink);
+}
+.sub-nav-right { display: flex; gap: 8px; align-items: center; }
+
+/* ── Layout ─────────────────────────────────────────────── */
+#main-app { display: none; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 32px 24px 80px; }
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: -0.224px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.15s;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.btn:active { transform: scale(0.95); }
+
+/* Primary pill — blue */
+.btn-primary {
+  background: var(--blue);
+  color: #fff;
+  border-radius: var(--r-pill);
+  padding: 9px 20px;
+  font-size: 14px;
+}
+.btn-primary:hover { background: #005bbf; }
+
+/* Ghost pill */
+.btn-ghost {
+  background: transparent;
+  color: var(--blue);
+  border: 1px solid var(--blue);
+  border-radius: var(--r-pill);
+  padding: 9px 20px;
+  font-size: 14px;
+}
+
+/* Dark utility */
+.btn-dark-util {
+  background: var(--ink);
+  color: var(--canvas);
+  border-radius: var(--r-sm);
+  padding: 8px 15px;
+  font-size: 14px;
+}
+
+/* Pearl */
+.btn-pearl {
+  background: #fafafc;
+  color: #333;
+  border: 3px solid rgba(0,0,0,0.04);
+  border-radius: var(--r-md);
+  padding: 8px 14px;
+  font-size: 14px;
+}
+
+/* Status badges */
+.btn-green-pill {
+  background: var(--green-bg);
+  color: var(--green-tx);
+  border: 1px solid var(--green-bd);
+  border-radius: var(--r-pill);
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.btn-red-pill {
+  background: var(--red-bg);
+  color: var(--red-tx);
+  border: 1px solid var(--red-bd);
+  border-radius: var(--r-pill);
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.btn-blue-pill {
+  background: #e8f0fe;
+  color: #1a3a8a;
+  border: 1px solid #4a80d4;
+  border-radius: var(--r-pill);
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-full { width: 100%; padding: 13px; font-size: 15px; font-weight: 500; border-radius: var(--r-pill); }
+
+/* ── Tabs ────────────────────────────────────────────────── */
+.tabs {
+  display: flex; gap: 2px;
+  background: #e0e0e5;
+  border-radius: 12px;
+  padding: 3px;
+  width: fit-content;
+  margin-bottom: 28px;
+}
+.tab {
+  padding: 8px 22px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.224px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--ink-muted);
+  border: none;
+  background: transparent;
+  font-family: var(--font);
+  transition: all 0.15s;
+}
+.tab.active {
+  background: var(--canvas);
+  color: var(--ink);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ── Cards ───────────────────────────────────────────────── */
+.card {
+  background: var(--canvas);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--hairline);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+.card-parchment {
+  background: var(--parchment);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--hairline);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+.card-green {
+  background: #f5fbf5;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--green-bd);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+.card-amber {
+  background: var(--amber-bg);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--amber-bd);
+  padding: 14px 18px;
+  margin-bottom: 14px;
+}
+.sec-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 14px;
+}
+
+/* ── Form controls ───────────────────────────────────────── */
+.filter-grid, .form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+.filter-group label {
+  font-size: 12px;
+  color: var(--ink-muted);
+  display: block;
+  margin-bottom: 5px;
+  letter-spacing: -0.12px;
+}
+select, input[type="date"], input[type="time"], input[type="text"],
+input[type="number"], input[type="email"], input[type="month"], textarea {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 15px;
+  font-family: var(--font);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+select:focus, input:focus, textarea:focus {
+  border-color: var(--blue-focus);
+  background: var(--canvas);
+}
+textarea { resize: vertical; min-height: 60px; }
+
+/* ── Stats row ───────────────────────────────────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat-card {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: 16px 20px;
+  text-align: center;
+}
+.stat-card .val {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.374px;
+  color: var(--ink);
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+.stat-card .lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.stat-card.blue-card  { border-color: #4a80d4; background: #f0f4ff; }
+.stat-card.blue-card  .val { color: #1a3a8a; }
+.stat-card.green-card { border-color: var(--green-bd); background: #f5fbf5; }
+.stat-card.green-card .val { color: var(--green-tx); }
+
+/* ── Table ───────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+thead tr { background: var(--parchment); }
+th {
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--hairline);
+  white-space: nowrap;
+}
+td {
+  padding: 11px 12px;
+  border-bottom: 0.5px solid var(--hairline);
+  vertical-align: middle;
+}
+tr:hover td { background: #fafafa; }
+tr.fuel-row td { background: #f5fbf5; }
+.action-group { display: flex; gap: 5px; }
+
+/* ── Badges ──────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.b-ok   { background: var(--green-bg); color: var(--green-tx); }
+.b-def  { background: var(--red-bg);   color: var(--red-tx); }
+.b-fuel { background: #d1eed1; color: #0d470d; border: 0.5px solid var(--green-bd); }
+.b-manual { background: #ededff; color: #3a3a9a; }
+
+/* ── Check items (manual form) ───────────────────────────── */
+.check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.check-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--parchment);
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  border: 1px solid var(--hairline);
+}
+.tg-group { display: flex; gap: 4px; }
+.tg {
+  padding: 4px 10px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--canvas);
+  color: var(--ink-muted);
+  font-family: var(--font);
+  transition: all 0.12s;
+}
+.tg.sel.ok  { background: var(--green-bg); border-color: var(--green-bd); color: var(--green-tx); }
+.tg.sel.def { background: var(--red-bg);   border-color: var(--red-bd);   color: var(--red-tx); }
+.tg.sel.na  { background: #e8e8ea; border-color: #aaa; color: #444; }
+
+/* ── Alert / notice ──────────────────────────────────────── */
+.alert {
+  padding: 12px 16px;
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+.alert-err   { background: var(--red-bg);   color: var(--red-tx);   border: 0.5px solid var(--red-bd); }
+.alert-warn  { background: var(--amber-bg); color: var(--amber-tx); border: 0.5px solid var(--amber-bd); }
+.alert-ok    { background: var(--green-bg); color: var(--green-tx); border: 0.5px solid var(--green-bd); }
+.alert-blue  { background: #e8f0fe; color: #1a3a8a; border: 0.5px solid #4a80d4; }
+.alert-edit  { background: #fefce8; border: 1px solid #fef08a; color: #5c4800; }
+
+/* ── Spinner ─────────────────────────────────────────────── */
+.spinner {
+  width: 28px; height: 28px;
+  border: 3px solid var(--hairline);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-state { text-align: center; padding: 48px 20px; color: var(--ink-muted); font-size: 15px; }
+
+/* ── Print ───────────────────────────────────────────────── */
+.print-area { display: none; }
+@media print {
+  html, body { background: white !important; }
+  #main-app  { display: none !important; }
+  .print-area { display: block !important; }
+  @page { margin: 14mm 13mm; size: letter; }
+}
 </style>
 </head>
 <body>
 
+<!-- ══ LOGIN ══════════════════════════════════════════════════ -->
 <div id="login-overlay">
   <div class="login-box">
-    <h2>Our Home Admin</h2>
-    <input type="password" id="pw-input" placeholder="비밀번호" onkeydown="if(event.key==='Enter') checkPw()" />
-    <button class="btn btn-dark" style="width:100%" onclick="checkPw()">로그인</button>
-    <div class="login-err" id="login-err" style="color:red;display:none;margin-top:10px;">비밀번호 오류</div>
+    <p class="login-logo">Our Home Adult Day Care LLC</p>
+    <h2>Admin Portal</h2>
+    <p class="login-sub">관리자 전용 — Fleet &amp; Inspection Log</p>
+    <input type="password" id="pw-input" placeholder="Password"
+           onkeydown="if(event.key==='Enter') checkPw()" />
+    <button class="btn btn-primary btn-full" onclick="checkPw()">Sign In</button>
+    <div class="login-err" id="login-err">비밀번호가 올바르지 않습니다.</div>
   </div>
 </div>
 
+<!-- ══ MAIN APP ════════════════════════════════════════════════ -->
 <div id="main-app">
-  <div class="page-header no-print">
-    <div><h1>Our Home ADC LLC</h1><p>관리자 — 차량 점검 및 주유 (NY Time)</p></div>
-    <button class="btn btn-outline btn-sm" onclick="location.reload()">로그아웃</button>
+
+  <!-- Global nav -->
+  <nav class="global-nav no-print">
+    <span class="brand">Our Home Adult Day Care LLC &nbsp;|&nbsp; Admin</span>
+    <div class="nav-right">
+      <button class="btn btn-dark-util btn-sm" onclick="loadData()">↻ Refresh</button>
+      <button class="btn btn-dark-util btn-sm" onclick="location.reload()">Sign Out</button>
+    </div>
+  </nav>
+
+  <!-- Sub nav -->
+  <div class="sub-nav no-print">
+    <span class="sub-nav-title">Fleet Log</span>
+    <div class="sub-nav-right">
+      <span id="ny-time" style="font-size:13px;color:var(--ink-muted);letter-spacing:-0.12px;"></span>
+    </div>
   </div>
 
   <div class="wrap no-print">
+
+    <!-- Tabs -->
     <div class="tabs">
       <button class="tab active" onclick="switchTab('search')">조회 / Search</button>
-      <button class="tab" onclick="switchTab('manual')" id="tab-btn-manual">수동 입력 / Edit</button>
+      <button class="tab" onclick="switchTab('manual')">수동 입력 / Edit</button>
       <button class="tab" onclick="switchTab('report')">월간 보고서 / Report</button>
     </div>
 
-    <!-- 1. SEARCH TAB -->
+    <!-- ══ TAB 1: SEARCH ═══════════════════════════════════ -->
     <div class="tab-content active" id="tab-search">
+
       <div class="card">
-        <div class="sec-title">조회 조건</div>
+        <div class="sec-title">조회 조건 / Filter</div>
         <div class="filter-grid">
-          <div class="filter-group"><label>정렬 (Sort)</label>
+          <div class="filter-group">
+            <label>정렬 / Sort</label>
             <select id="f-sort" onchange="applyFilters()">
-              <option value="desc">최신순 (Newest)</option><option value="asc">과거순 (Oldest)</option>
+              <option value="desc">최신순 Newest</option>
+              <option value="asc">과거순 Oldest</option>
             </select>
           </div>
-          <div class="filter-group"><label>시작</label><input type="date" id="f-from" /></div>
-          <div class="filter-group"><label>종료</label><input type="date" id="f-to" /></div>
-          <div class="filter-group"><label>차량</label>
+          <div class="filter-group"><label>시작 / From</label><input type="date" id="f-from" /></div>
+          <div class="filter-group"><label>종료 / To</label><input type="date" id="f-to" /></div>
+          <div class="filter-group">
+            <label>차량 / Vehicle</label>
             <select id="f-vehicle">
-              <option value="">전체</option><option>O25890</option><option>O25891</option><option>O29872</option>
-              <option>O24260</option><option>O25893</option><option>O25894</option><option>O25895</option>
-              <option>O25896</option><option>O24277</option><option>O24288</option><option>O24289</option><option>O24284</option>
+              <option value="">전체 All</option>
+              <option>O25890</option><option>O25891</option><option>O29872</option>
+              <option>O24260</option><option>O25893</option><option>O25894</option>
+              <option>O25895</option><option>O25896</option><option>O24277</option>
+              <option>O24288</option><option>O24289</option><option>O24284</option>
             </select>
           </div>
-          <div class="filter-group" style="display:flex;gap:8px;"><button class="btn btn-dark" style="flex:1" onclick="applyFilters()">조회</button><button class="btn btn-outline" style="flex:1" onclick="resetFilters()">초기화</button></div>
+          <div class="filter-group" style="display:flex;gap:8px;align-items:flex-end;">
+            <button class="btn btn-primary" style="flex:1;" onclick="applyFilters()">조회</button>
+            <button class="btn btn-pearl" style="flex:1;" onclick="resetFilters()">초기화</button>
+          </div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn btn-pearl btn-sm" onclick="setQuick('today')">오늘</button>
+          <button class="btn btn-pearl btn-sm" onclick="setQuick('week')">최근 7일</button>
+          <button class="btn btn-pearl btn-sm" onclick="setQuick('month')">이번 달</button>
+          <button class="btn btn-pearl btn-sm" onclick="setQuick('lastmonth')">지난 달</button>
         </div>
       </div>
 
-      <!-- 실시간 누적 연비 & 금액 통계 -->
+      <!-- Stats -->
       <div class="stats-row" id="search-stats" style="display:none;">
         <div class="stat-card"><div class="val" id="st-dist">0 mi</div><div class="lbl">누적 주행거리</div></div>
+        <div class="stat-card green-card"><div class="val" id="st-fuel-amt">$0</div><div class="lbl">누적 주유비</div></div>
         <div class="stat-card"><div class="val" id="st-fuel-qty">0 gal</div><div class="lbl">누적 주유량</div></div>
-        <div class="stat-card" style="border-color:var(--green-bd);background:#f5fbf5;"><div class="val" id="st-fuel-amt" style="color:var(--green-tx)">$0</div><div class="lbl">누적 주유비용</div></div>
-        <div class="stat-card" style="border-color:var(--blue-bd);background:#f0f4ff;"><div class="val" id="st-mpg" style="color:var(--blue-tx)">0.0</div><div class="lbl">평균 연비 (MPG)</div></div>
+        <div class="stat-card blue-card"><div class="val" id="st-mpg">0.0</div><div class="lbl">평균 연비 MPG</div></div>
       </div>
 
+      <!-- Result table -->
       <div class="card" id="result-card">
-        <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
-          <h3 id="result-title" style="font-size:14px;">결과</h3>
-          <button class="btn btn-outline btn-sm" onclick="exportCSV()">CSV 다운</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <h3 id="result-title" style="font-size:15px;font-weight:600;letter-spacing:-0.374px;">결과</h3>
+          <button class="btn btn-pearl btn-sm" onclick="exportCSV()">CSV 다운로드</button>
         </div>
-        <div id="table-wrap" class="table-wrap">데이터를 불러오는 중...</div>
+        <div id="table-wrap" class="table-wrap">
+          <div class="empty-state"><div class="spinner"></div><br>데이터 불러오는 중...</div>
+        </div>
       </div>
     </div>
 
-    <!-- 2. MANUAL / EDIT TAB -->
+    <!-- ══ TAB 2: MANUAL ENTRY ════════════════════════════ -->
     <div class="tab-content" id="tab-manual">
-      <div class="card" style="background:#fefce8; border-color:#fef08a;" id="edit-notice" style="display:none;">
-        <strong>[수정 모드]</strong> 기존 데이터를 수정 중입니다.
+      <div class="alert alert-edit" id="edit-notice" style="display:none;">
+        <strong>수정 모드 (Edit Mode)</strong> — 기존 레코드를 수정 중입니다.
       </div>
-      <div class="card">
-        <div class="form-grid">
-          <div class="filter-group"><label>날짜 *</label><input type="date" id="m-date"/></div>
-          <div class="filter-group"><label>시각 *</label><input type="time" id="m-time"/></div>
-          <div class="filter-group"><label>차량 *</label><input type="text" id="m-vehicle" placeholder="예: O25890"/></div>
-          <div class="filter-group"><label>운전자 *</label><input type="text" id="m-driver"/></div>
-          <div class="filter-group"><label>주행거리</label><input type="number" id="m-odo"/></div>
-          <div class="filter-group"><label>구분</label>
-            <select id="m-trip" onchange="toggleManual()"><option value="Pre-Trip">Pre-Trip</option><option value="Post-Trip">Post-Trip</option><option value="Both">Both</option><option value="Fuel Log">Fuel Log</option></select>
-          </div>
-        </div>
-      </div>
-      <div class="card" id="m-fuel-card" style="display:none;background:#f5fbf5;">
-        <div class="form-grid">
-          <div class="filter-group"><label>주유량 (QTY)</label><input type="number" step="0.01" id="m-fuel-qty"></div>
-          <div class="filter-group"><label>금액 ($)</label><input type="number" step="0.01" id="m-fuel-amt"></div>
-        </div>
-      </div>
-      <div id="m-dvir-card" class="card"><div class="sec-title">안전 점검 (DVIR)</div><div class="check-grid" id="m-dvir-items"></div></div>
-      <div style="display:flex;gap:10px;"><button class="btn btn-dark" style="flex:2" onclick="submitManual()" id="btn-save">저장</button><button class="btn btn-outline" style="flex:1" onclick="resetManual()">초기화</button></div>
-    </div>
+      <div id="manual-ok"  class="alert alert-ok"  style="display:none;"></div>
+      <div id="manual-err" class="alert alert-err" style="display:none;"></div>
 
-    <!-- 3. REPORT TAB -->
-    <div class="tab-content" id="tab-report">
       <div class="card">
-        <div class="sec-title">월간 차량 보고서 생성</div>
-        <div class="filter-grid" style="grid-template-columns: 200px 200px 150px;">
-          <div class="filter-group"><label>조회 월 (Month)</label><input type="month" id="r-month"></div>
+        <div class="sec-title">기본 정보 / Basic Info</div>
+        <div class="form-grid">
+          <div class="filter-group"><label>날짜 *</label><input type="date" id="m-date" /></div>
+          <div class="filter-group"><label>시각 *</label><input type="time" id="m-time" /></div>
+          <div class="filter-group"><label>차량 *</label><input type="text" id="m-vehicle" placeholder="예: O25890" /></div>
+          <div class="filter-group"><label>운전자 *</label><input type="text" id="m-driver" /></div>
+          <div class="filter-group"><label>주행거리</label><input type="number" id="m-odo" /></div>
           <div class="filter-group">
-            <label>차량 선택</label>
-            <select id="r-vehicle-sel">
-              <option value="ALL">전체 차량 요약</option>
-              <option value="O25890">O25890</option><option value="O25891">O25891</option><option value="O29872">O29872</option>
-              <option value="O24260">O24260</option><option value="O25893">O25893</option><option value="O25894">O25894</option>
-              <option value="O25895">O25895</option><option value="O25896">O25896</option><option value="O24277">O24277</option>
-              <option value="O24288">O24288</option><option value="O24289">O24289</option><option value="O24284">O24284</option>
+            <label>점검 구분</label>
+            <select id="m-trip" onchange="toggleManual()">
+              <option value="Pre-Trip">Pre-Trip</option>
+              <option value="Post-Trip">Post-Trip</option>
+              <option value="Both">Both</option>
+              <option value="Fuel Log">Fuel Log</option>
             </select>
           </div>
-          <div class="filter-group"><label>&nbsp;</label><button class="btn btn-dark" onclick="generateReport()">보고서 생성</button></div>
         </div>
       </div>
-      
+
+      <div class="card card-green" id="m-fuel-card" style="display:none;">
+        <div class="sec-title">주유 정보 / Fuel Info</div>
+        <div class="form-grid">
+          <div class="filter-group"><label>주유량 Qty (gal)</label><input type="number" step="0.01" id="m-fuel-qty" /></div>
+          <div class="filter-group"><label>금액 Amount ($)</label><input type="number" step="0.01" id="m-fuel-amt" /></div>
+        </div>
+      </div>
+
+      <div class="card" id="m-dvir-card">
+        <div class="sec-title">안전 점검 항목 / DVIR Items</div>
+        <div class="check-grid" id="m-dvir-items"></div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button class="btn btn-primary btn-full" style="flex:2;" onclick="submitManual()" id="btn-save">저장 / Save</button>
+        <button class="btn btn-pearl btn-full" style="flex:1;" onclick="resetManual()">초기화</button>
+      </div>
+    </div>
+
+    <!-- ══ TAB 3: MONTHLY REPORT ══════════════════════════ -->
+    <div class="tab-content" id="tab-report">
+      <div class="card">
+        <div class="sec-title">월간 차량 보고서 / Monthly Vehicle Report</div>
+        <div class="filter-grid" style="grid-template-columns:200px 200px 160px;">
+          <div class="filter-group"><label>조회 월 / Month</label><input type="month" id="r-month" /></div>
+          <div class="filter-group">
+            <label>차량 / Vehicle</label>
+            <select id="r-vehicle-sel">
+              <option value="ALL">전체 차량 요약 All</option>
+              <option>O25890</option><option>O25891</option><option>O29872</option>
+              <option>O24260</option><option>O25893</option><option>O25894</option>
+              <option>O25895</option><option>O25896</option><option>O24277</option>
+              <option>O24288</option><option>O24289</option><option>O24284</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>&nbsp;</label>
+            <button class="btn btn-primary" onclick="generateReport()">보고서 생성</button>
+          </div>
+        </div>
+      </div>
+
       <div class="card" id="report-output" style="display:none;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-          <h3 id="report-title"></h3>
-          <div style="display:flex;gap:6px;">
-            <input type="email" id="r-email" placeholder="이메일 주소" style="width:180px; padding:6px; font-size:12px;">
-            <button class="btn btn-blue btn-sm" onclick="sendEmailReport()">이메일 발송</button>
-            <button class="btn btn-green btn-sm" onclick="printReportDiv()">출력 / PDF</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+          <h3 id="report-title" style="font-size:16px;font-weight:600;letter-spacing:-0.374px;"></h3>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input type="email" id="r-email" placeholder="이메일 주소"
+                   style="width:180px;padding:8px 12px;font-size:13px;border-radius:var(--r-pill);">
+            <button class="btn btn-blue-pill" onclick="sendEmailReport()">이메일 발송</button>
+            <button class="btn btn-green-pill" onclick="printReportDiv()">출력 / PDF</button>
           </div>
         </div>
         <div id="report-table-wrap" class="table-wrap"></div>
       </div>
     </div>
-  </div>
-</div>
 
+  </div><!-- /.wrap -->
+</div><!-- /#main-app -->
+
+<!-- ══ PRINT AREA ══════════════════════════════════════════════ -->
 <div class="print-area" id="print-area"></div>
 
 <script>
-const ADMIN_PASSWORD = 'ohadc2026'; 
-// ★ 반드시 새로 배포한 URL로 변경하여 사용하세요
+// ════════════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════════════
+const ADMIN_PASSWORD  = 'ohadc2026';
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwESkB72659eQ9sQFAf6bhuAByoUkvqxIstWsLTZV_DH2KQ0Fy4pmVZnrGPtijB8YXl_A/exec';
 
-const COL = { date:0,time:1,driver:2,vehicle:3,odometer:4,tripType:5, brakes:6,tires:7,lights:8,doors:9,belts:10,lift:11, fluid:12,firstaid:13,dashcam:14,interior:15, defectFound:16,defectDesc:17,defectReportedTo:18,defectTime:19, paxSeats:20,paxWheelchair:21,paxFloor:22,paxRear:23,paxNoPax:24, paxIssueFound:25,paxIssueDesc:26, fuelQty:27, fuelAmt:28, receiptUrl:29, entryType:30, rowIndex:31 };
+// Column index map
+const COL = {
+  date:0,time:1,driver:2,vehicle:3,odometer:4,tripType:5,
+  brakes:6,tires:7,lights:8,doors:9,belts:10,lift:11,
+  fluid:12,firstaid:13,dashcam:14,interior:15,
+  defectFound:16,defectDesc:17,defectReportedTo:18,defectTime:19,
+  paxSeats:20,paxWheelchair:21,paxFloor:22,paxRear:23,paxNoPax:24,
+  paxIssueFound:25,paxIssueDesc:26,
+  fuelQty:27,fuelAmt:28,receiptUrl:29,entryType:30,rowIndex:31
+};
+
 const DVIR_KEYS = ['brakes','tires','lights','doors','belts','lift','fluid','firstaid','dashcam','interior'];
-const DVIR_LABELS_EN = ['Brakes/Steering','Tires/Wheels','Lights/Mirrors','Doors/Exits','Seat Belts','Wheelchair Lift','Fluid Leaks','First Aid','Dashcam/GPS','Passenger Area'];
+const DVIR_EN   = [
+  'Brakes / Steering','Tires / Wheels','Lights / Signals / Mirrors / Windshield',
+  'Doors / Emergency Exits / Horn','Seat Belts / Passenger Restraints',
+  'Wheelchair Lift / Securement Equipment','Fluid Leaks / Warning Lights / Unusual Noise',
+  'First Aid / Emergency Equipment','Dashcam / Fairmatic / GPS Active & Not Blocked',
+  'Passenger Area / Floor / Steps / General Condition'
+];
 const PAX_KEYS = ['paxSeats','paxWheelchair','paxFloor','paxRear','paxNoPax'];
-const PAX_LABELS_EN = ['All rows checked','Wheelchair checked','Floor checked','Rear checked','No passenger left'];
+const PAX_EN   = [
+  'All seating rows checked','Wheelchair positions checked',
+  'Floor area checked','Rear compartment checked','No passenger left inside vehicle'
+];
 
-let allData = []; let filteredData = [];
-let mDvir = {}; let editRowId = null; let editReceiptUrl = '';
+let allData = [], filteredData = [];
+let mDvir = {}, editRowId = null, editReceiptUrl = '';
 
+// ── NY time clock ─────────────────────────────────────────
+function updateClock(){
+  const ny = new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  document.getElementById('ny-time').textContent =
+    ny.toLocaleString('en-US',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}) + ' ET';
+}
+setInterval(updateClock, 1000); updateClock();
+
+// ── Login ─────────────────────────────────────────────────
 function checkPw(){
   if(document.getElementById('pw-input').value === ADMIN_PASSWORD){
-    document.getElementById('login-overlay').style.display='none';
-    document.getElementById('main-app').style.display='block';
-    const ny = new Date(new Date().toLocaleString("en-US", {timeZone: "America/New_York"}));
-    document.getElementById('f-to').value = ny.toISOString().slice(0,10);
-    document.getElementById('f-from').value = new Date(ny.getFullYear(), ny.getMonth(), 1).toISOString().slice(0,10);
-    document.getElementById('r-month').value = ny.toISOString().slice(0,7);
-    buildForms(); loadData();
-  } else { document.getElementById('login-err').style.display='block'; }
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+    const ny = new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+    const pad = n => String(n).padStart(2,'0');
+    const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    document.getElementById('f-to').value   = fmt(ny);
+    document.getElementById('f-from').value = `${ny.getFullYear()}-${pad(ny.getMonth()+1)}-01`;
+    document.getElementById('r-month').value = fmt(ny).slice(0,7);
+    buildForms();
+    loadData();
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-input').focus();
+  }
 }
 
+// ── Tab switch ────────────────────────────────────────────
 function switchTab(t){
-  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelector(`[onclick="switchTab('${t}')"]`).classList.add('active');
   document.getElementById('tab-'+t).classList.add('active');
 }
 
-// ── 시간/날짜 파싱 유틸 ──
-const parseTimeStr = (raw) => {
-  if(!raw) return '';
-  const s = String(raw);
-  // 구글 시트 1899년도 텍스트 버그 보정
-  if(s.includes('1899-12-30T')) return s.slice(11, 16);
-  if(s.includes('1899-12-31T')) return s.slice(11, 16);
-  if(s.includes('T')) return s.slice(11, 16);
-  return s;
-};
-const parseDateStr = (raw) => {
-  if(!raw) return '';
-  const s = String(raw);
-  if(s.includes('T')) return s.slice(0, 10);
-  return s;
-};
-
-// ── 데이터 로드 및 렌더링 ──
-async function loadData(){
-  try {
-    const res = await fetch(APPS_SCRIPT_URL + '?action=getAll');
-    const json = await res.json();
-    allData = json.data || []; applyFilters();
-  } catch(e) { document.getElementById('table-wrap').innerHTML = '데이터 로딩 실패'; }
+// ── Quick date presets ────────────────────────────────────
+function setQuick(p){
+  const ny  = new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const pad = n => String(n).padStart(2,'0');
+  const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  document.getElementById('f-to').value = fmt(ny);
+  if(p==='today'){
+    document.getElementById('f-from').value = fmt(ny);
+  } else if(p==='week'){
+    const d = new Date(ny); d.setDate(d.getDate()-6);
+    document.getElementById('f-from').value = fmt(d);
+  } else if(p==='month'){
+    document.getElementById('f-from').value = `${ny.getFullYear()}-${pad(ny.getMonth()+1)}-01`;
+  } else if(p==='lastmonth'){
+    const f = new Date(ny.getFullYear(), ny.getMonth()-1, 1);
+    const l = new Date(ny.getFullYear(), ny.getMonth(), 0);
+    document.getElementById('f-from').value = fmt(f);
+    document.getElementById('f-to').value   = fmt(l);
+  }
+  applyFilters();
 }
 
+// ── Date/time parse helpers ───────────────────────────────
+const parseDate = r => { const s=String(r||''); return s.includes('T')?s.slice(0,10):s; };
+const parseTime = r => { const s=String(r||''); if(s.includes('1899-12-3'))return s.slice(11,16); return s.includes('T')?s.slice(11,16):s; };
+
+// ── Load data ─────────────────────────────────────────────
+async function loadData(){
+  document.getElementById('table-wrap').innerHTML =
+    '<div class="empty-state"><div class="spinner"></div><br>불러오는 중...</div>';
+  try {
+    const res  = await fetch(APPS_SCRIPT_URL + '?action=getAll');
+    const json = await res.json();
+    allData = json.data || [];
+    applyFilters();
+  } catch(e){
+    document.getElementById('table-wrap').innerHTML =
+      '<div class="empty-state" style="color:var(--red-tx);">데이터 로딩 실패 — 연결을 확인하세요.</div>';
+  }
+}
+
+// ── Filter + sort ─────────────────────────────────────────
 function applyFilters(){
-  const f = document.getElementById('f-from').value; const t = document.getElementById('f-to').value;
-  const v = document.getElementById('f-vehicle').value; const s = document.getElementById('f-sort').value;
-  
+  const from = document.getElementById('f-from').value;
+  const to   = document.getElementById('f-to').value;
+  const veh  = document.getElementById('f-vehicle').value;
+  const sort = document.getElementById('f-sort').value;
+
   filteredData = allData.filter(r => {
-    let d = parseDateStr(r[COL.date]);
-    if(f && d < f) return false; if(t && d > t) return false;
-    if(v && r[COL.vehicle] !== v) return false;
+    const d = parseDate(r[COL.date]);
+    if(from && d < from) return false;
+    if(to   && d > to)   return false;
+    if(veh  && r[COL.vehicle] !== veh) return false;
     return true;
   });
 
   filteredData.sort((a,b) => {
-    let t1 = new Date(parseDateStr(a[COL.date]) + 'T' + (parseTimeStr(a[COL.time])||'00:00') + ':00Z').getTime();
-    let t2 = new Date(parseDateStr(b[COL.date]) + 'T' + (parseTimeStr(b[COL.time])||'00:00') + ':00Z').getTime();
-    return s === 'desc' ? t2 - t1 : t1 - t2;
+    const t1 = new Date(parseDate(a[COL.date])+'T'+(parseTime(a[COL.time])||'00:00')).getTime();
+    const t2 = new Date(parseDate(b[COL.date])+'T'+(parseTime(b[COL.time])||'00:00')).getTime();
+    return sort === 'desc' ? t2-t1 : t1-t2;
   });
 
-  renderStats(); // 통계 카드 업데이트
-  
-  let rows = filteredData.map((r, i) => {
-    let isF = r[COL.tripType]==='Fuel Log';
-    let qty = parseFloat(r[COL.fuelQty])||0;
-    let amt = parseFloat(r[COL.fuelAmt])||0;
-    let unitPrice = qty > 0 ? (amt/qty).toFixed(2) : 0;
-    
-    // 리터당(갤런당) 단가 표시 추가
-    let fStr = isF ? `<strong>${qty}</strong> gal / $${amt}<br><span style="font-size:11px;color:#666;">($${unitPrice}/gal)</span>` : '—';
-    let url = (isF && r[COL.receiptUrl] && r[COL.receiptUrl].startsWith('http')) ? `<a href="${r[COL.receiptUrl]}" target="_blank" style="color:blue;font-weight:600;">영수증</a>` : (isF? '사진없음':'');
-    
-    return `<tr style="background:${isF?'#f5fbf5':''}">
-      <td>${parseDateStr(r[COL.date])}</td>
-      <td>${parseTimeStr(r[COL.time])}</td><td>${r[COL.vehicle]}</td><td>${r[COL.tripType]}</td><td>${fStr}</td><td>${url}</td>
+  renderStats();
+  renderTable();
+}
+
+// ── Stats ─────────────────────────────────────────────────
+function renderStats(){
+  let tQty=0, tAmt=0, vMap={};
+  filteredData.forEach(r => {
+    const v = r[COL.vehicle]; if(!v) return;
+    if(!vMap[v]) vMap[v] = {min:Infinity, max:0};
+    const odo = parseFloat(r[COL.odometer]);
+    if(!isNaN(odo) && odo>0){ if(odo<vMap[v].min)vMap[v].min=odo; if(odo>vMap[v].max)vMap[v].max=odo; }
+    if(r[COL.tripType]==='Fuel Log'){
+      tQty += parseFloat(r[COL.fuelQty])||0;
+      tAmt += parseFloat(r[COL.fuelAmt])||0;
+    }
+  });
+  let tDist = 0;
+  for(const v in vMap){ if(vMap[v].max>0 && vMap[v].min!==Infinity) tDist += vMap[v].max - vMap[v].min; }
+  const mpg = tQty>0 ? (tDist/tQty).toFixed(1) : '0.0';
+
+  document.getElementById('st-dist').textContent    = tDist.toLocaleString()+' mi';
+  document.getElementById('st-fuel-qty').textContent = tQty.toFixed(2)+' gal';
+  document.getElementById('st-fuel-amt').textContent = '$'+tAmt.toFixed(2);
+  document.getElementById('st-mpg').textContent      = mpg;
+  document.getElementById('search-stats').style.display = filteredData.length>0?'grid':'none';
+}
+
+// ── Table ─────────────────────────────────────────────────
+function renderTable(){
+  const wrap = document.getElementById('table-wrap');
+  if(!filteredData.length){
+    wrap.innerHTML = '<div class="empty-state">조회된 데이터가 없습니다.</div>';
+    document.getElementById('result-title').textContent = '결과 0건';
+    return;
+  }
+  const defCnt = filteredData.filter(r=>r[COL.defectFound]==='yes').length;
+  document.getElementById('result-title').textContent =
+    `조회 결과 ${filteredData.length}건${defCnt?' — 결함 '+defCnt+'건':''}`;
+
+  const rows = filteredData.map((r,i) => {
+    const isF = r[COL.tripType]==='Fuel Log';
+    const qty = parseFloat(r[COL.fuelQty])||0;
+    const amt = parseFloat(r[COL.fuelAmt])||0;
+    const ppg = qty>0 ? (amt/qty).toFixed(2) : 0;
+    const fStr = isF
+      ? `<strong>${qty}</strong> gal / $${amt}<br><span style="font-size:11px;color:var(--ink-muted);">($${ppg}/gal)</span>`
+      : '—';
+    const urlHtml = (isF && r[COL.receiptUrl] && r[COL.receiptUrl].startsWith('http'))
+      ? `<a href="${r[COL.receiptUrl]}" target="_blank" style="color:var(--blue);font-weight:600;font-size:12px;">영수증</a>`
+      : (isF?'<span style="font-size:12px;color:var(--ink-muted);">사진없음</span>':'');
+    const defBadge = r[COL.defectFound]==='yes'
+      ? '<span class="badge b-def">결함</span>' : '';
+    const manualBadge = r[COL.entryType]==='manual'
+      ? '<span class="badge b-manual">수동</span>' : '';
+
+    return `<tr class="${isF?'fuel-row':''}">
+      <td style="white-space:nowrap;">${parseDate(r[COL.date])}</td>
+      <td>${parseTime(r[COL.time])}</td>
+      <td style="font-size:12px;">${r[COL.driver]||''}</td>
+      <td><strong>${r[COL.vehicle]||''}</strong></td>
+      <td>${r[COL.tripType]||''} ${isF?'<span class="badge b-fuel">주유</span>':''} ${defBadge} ${manualBadge}</td>
+      <td>${fStr}</td>
+      <td>${urlHtml}</td>
       <td class="action-group">
-        <button class="btn btn-green btn-sm" onclick="printRecord(${i})">인쇄</button>
-        <button class="btn btn-blue btn-sm" onclick="editRecord(${r[COL.rowIndex]})">수정</button>
-        <button class="btn btn-red btn-sm" onclick="deleteRecord(${r[COL.rowIndex]})">삭제</button>
+        <button class="btn btn-green-pill btn-sm" onclick="printRecord(${i})">인쇄</button>
+        <button class="btn btn-blue-pill btn-sm" onclick="editRecord(${r[COL.rowIndex]})">수정</button>
+        <button class="btn btn-red-pill btn-sm" onclick="deleteRecord(${r[COL.rowIndex]})">삭제</button>
       </td>
     </tr>`;
   }).join('');
-  
-  document.getElementById('table-wrap').innerHTML = `<table><tr><th>날짜</th><th>시간</th><th>차량</th><th>구분</th><th>주유(단가)</th><th>링크</th><th>작업</th></tr>${rows}</table>`;
+
+  wrap.innerHTML = `<table>
+    <thead><tr>
+      <th>날짜</th><th>시각</th><th>운전자</th><th>차량</th>
+      <th>구분</th><th>주유</th><th>링크</th><th>작업</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
 }
 
-// ── 상단 실시간 통계 렌더링 ──
-function renderStats() {
-  let totalFuelQty = 0;
-  let totalFuelAmt = 0;
-  let totalDist = 0;
-  let vehMap = {};
-
-  filteredData.forEach(r => {
-    let v = r[COL.vehicle];
-    if(!v) return;
-    if(!vehMap[v]) vehMap[v] = { min: Infinity, max: 0 };
-    
-    let odo = parseFloat(r[COL.odometer]);
-    if(!isNaN(odo) && odo > 0) {
-      if(odo < vehMap[v].min) vehMap[v].min = odo;
-      if(odo > vehMap[v].max) vehMap[v].max = odo;
-    }
-
-    if(r[COL.tripType] === 'Fuel Log') {
-      totalFuelQty += parseFloat(r[COL.fuelQty]) || 0;
-      totalFuelAmt += parseFloat(r[COL.fuelAmt]) || 0;
-    }
-  });
-
-  // 각 차량별 최대 주행거리 - 최소 주행거리 합산
-  for(let v in vehMap) {
-    if(vehMap[v].max > 0 && vehMap[v].min !== Infinity) {
-      totalDist += (vehMap[v].max - vehMap[v].min);
-    }
-  }
-
-  let mpg = totalFuelQty > 0 ? (totalDist / totalFuelQty).toFixed(2) : "0.0";
-
-  document.getElementById('st-dist').textContent = totalDist.toLocaleString() + ' mi';
-  document.getElementById('st-fuel-qty').textContent = totalFuelQty.toFixed(2) + ' gal';
-  document.getElementById('st-fuel-amt').textContent = '$' + totalFuelAmt.toFixed(2);
-  document.getElementById('st-mpg').textContent = mpg;
-  
-  document.getElementById('search-stats').style.display = filteredData.length > 0 ? 'grid' : 'none';
-}
-
-// ── 삭제 기능 ──
+// ── Delete ────────────────────────────────────────────────
 async function deleteRecord(rowId){
-  if(!confirm("정말 이 기록을 삭제하시겠습니까? 복구할 수 없습니다.")) return;
+  if(!confirm('이 기록을 삭제하시겠습니까? 복구할 수 없습니다.')) return;
   try {
-    await fetch(APPS_SCRIPT_URL, { method:'POST', mode:'no-cors', body:JSON.stringify({action:'delete', rowIndex: rowId}) });
-    alert("삭제 요청이 전송되었습니다. 잠시 후 새로고침 됩니다.");
+    await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',body:JSON.stringify({action:'delete',rowIndex:rowId})});
+    alert('삭제 요청이 전송되었습니다.');
     setTimeout(()=>loadData(), 1500);
   } catch(e){ alert('오류 발생'); }
 }
 
-// ── 수정 폼으로 보내기 ──
+// ── Edit ──────────────────────────────────────────────────
 function editRecord(rowId){
-  const r = allData.find(x => x[COL.rowIndex] === rowId);
+  const r = allData.find(x => x[COL.rowIndex]===rowId);
   if(!r) return;
-  editRowId = rowId; editReceiptUrl = r[COL.receiptUrl] || '';
-  
-  document.getElementById('m-date').value = parseDateStr(r[COL.date]);
-  document.getElementById('m-time').value = parseTimeStr(r[COL.time]);
-  document.getElementById('m-vehicle').value = r[COL.vehicle];
-  document.getElementById('m-driver').value = r[COL.driver];
-  document.getElementById('m-odo').value = r[COL.odometer];
-  document.getElementById('m-trip').value = r[COL.tripType];
-  document.getElementById('m-fuel-qty').value = r[COL.fuelQty] || '';
-  document.getElementById('m-fuel-amt').value = r[COL.fuelAmt] || '';
-  
-  DVIR_KEYS.forEach((k) => { mSelCheck(k, r[COL[k]] || 'ok'); });
-  
+  editRowId = rowId; editReceiptUrl = r[COL.receiptUrl]||'';
+  document.getElementById('m-date').value    = parseDate(r[COL.date]);
+  document.getElementById('m-time').value    = parseTime(r[COL.time]);
+  document.getElementById('m-vehicle').value = r[COL.vehicle]||'';
+  document.getElementById('m-driver').value  = r[COL.driver]||'';
+  document.getElementById('m-odo').value     = r[COL.odometer]||'';
+  document.getElementById('m-trip').value    = r[COL.tripType]||'Pre-Trip';
+  document.getElementById('m-fuel-qty').value = r[COL.fuelQty]||'';
+  document.getElementById('m-fuel-amt').value = r[COL.fuelAmt]||'';
+  DVIR_KEYS.forEach(k => mSelCheck(k, r[COL[k]]||'ok'));
   document.getElementById('edit-notice').style.display = 'block';
-  document.getElementById('btn-save').textContent = '수정 완료 (Update)';
-  document.getElementById('btn-save').classList.replace('btn-dark', 'btn-blue');
-  toggleManual(); switchTab('manual');
+  document.getElementById('btn-save').textContent = '수정 완료 Update';
+  document.getElementById('btn-save').style.background = '#1a3a8a';
+  toggleManual();
+  switchTab('manual');
 }
 
-// ── 폼 UI 빌드 ──
+// ── Manual form build ─────────────────────────────────────
 function buildForms(){
-  const dc = document.getElementById('m-dvir-items'); dc.innerHTML = '';
+  const dc = document.getElementById('m-dvir-items');
+  dc.innerHTML = '';
   DVIR_KEYS.forEach(k => {
-    dc.innerHTML += `<div class="check-item"><span>${k.toUpperCase()}</span><div class="tg-group">
-      <div class="tg ok sel" id="tg-${k}-ok" onclick="mSelCheck('${k}','ok')">OK</div>
-      <div class="tg def" id="tg-${k}-def" onclick="mSelCheck('${k}','defect')">Defect</div>
-      <div class="tg na" id="tg-${k}-na" onclick="mSelCheck('${k}','na')">N/A</div></div></div>`;
+    dc.innerHTML += `<div class="check-item">
+      <span style="font-size:12px;">${k.toUpperCase()}</span>
+      <div class="tg-group">
+        <div class="tg ok sel" id="tg-${k}-ok"  onclick="mSelCheck('${k}','ok')">OK</div>
+        <div class="tg def"    id="tg-${k}-def" onclick="mSelCheck('${k}','defect')">Def</div>
+        <div class="tg na"     id="tg-${k}-na"  onclick="mSelCheck('${k}','na')">N/A</div>
+      </div></div>`;
     mDvir[k] = 'ok';
   });
 }
+
 function mSelCheck(k, val){
   mDvir[k] = val;
-  ['ok','def','na'].forEach(x => document.getElementById(`tg-${k}-${x}`).classList.remove('sel'));
-  document.getElementById(`tg-${k}-${val==='defect'?'def':val}`).classList.add('sel');
-}
-function toggleManual(){
-  let isF = document.getElementById('m-trip').value === 'Fuel Log';
-  document.getElementById('m-fuel-card').style.display = isF ? 'block' : 'none';
-  document.getElementById('m-dvir-card').style.display = isF ? 'none' : 'block';
+  ['ok','def','na'].forEach(x => document.getElementById(`tg-${k}-${x}`)?.classList.remove('sel'));
+  const el = document.getElementById(`tg-${k}-${val==='defect'?'def':val}`);
+  if(el){ el.classList.add('sel'); el.classList.add(val==='defect'?'def':val==='na'?'na':'ok'); }
 }
 
-// ── 수동 입력 및 업데이트 제출 ──
+function toggleManual(){
+  const isF = document.getElementById('m-trip').value === 'Fuel Log';
+  document.getElementById('m-fuel-card').style.display = isF ? 'block' : 'none';
+  document.getElementById('m-dvir-card').style.display = isF ? 'none'  : 'block';
+}
+
+// ── Submit manual ─────────────────────────────────────────
 async function submitManual(){
-  let action = editRowId ? 'update' : 'insert';
-  let date = document.getElementById('m-date').value;
-  if(!date) return alert('날짜 필수');
-  let [y,m,d] = date.split('-');
-  
-  let row = {
-    action: action, rowIndex: editRowId, entryType: 'manual',
-    date: `${m}/${d}/${y}`, time: document.getElementById('m-time').value,
-    vehicle: document.getElementById('m-vehicle').value, driver: document.getElementById('m-driver').value,
-    odometer: document.getElementById('m-odo').value, tripType: document.getElementById('m-trip').value,
-    fuelQty: document.getElementById('m-fuel-qty').value, fuelAmt: document.getElementById('m-fuel-amt').value,
+  const errEl = document.getElementById('manual-err');
+  const okEl  = document.getElementById('manual-ok');
+  errEl.style.display='none'; okEl.style.display='none';
+  const date = document.getElementById('m-date').value;
+  if(!date){ errEl.style.display='block'; errEl.textContent='날짜를 입력해주세요.'; return; }
+  const [y,m,d] = date.split('-');
+  const row = {
+    action: editRowId ? 'update' : 'insert',
+    rowIndex: editRowId, entryType: 'manual',
+    date:`${m}/${d}/${y}`, time:document.getElementById('m-time').value,
+    vehicle:document.getElementById('m-vehicle').value,
+    driver:document.getElementById('m-driver').value,
+    odometer:document.getElementById('m-odo').value,
+    tripType:document.getElementById('m-trip').value,
+    fuelQty:document.getElementById('m-fuel-qty').value,
+    fuelAmt:document.getElementById('m-fuel-amt').value,
     receiptUrl: editReceiptUrl
   };
   DVIR_KEYS.forEach(k => row[k] = mDvir[k]);
-
-  document.getElementById('btn-save').textContent = '저장 중...';
+  const btn = document.getElementById('btn-save');
+  btn.disabled=true; btn.textContent='저장 중...';
   try {
-    await fetch(APPS_SCRIPT_URL, { method:'POST', mode:'no-cors', body:JSON.stringify(row) });
-    alert("완료되었습니다. 새로고침 됩니다.");
-    resetManual(); setTimeout(()=>loadData(), 1500); switchTab('search');
-  } catch(e){ alert('오류 발생'); }
+    await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',body:JSON.stringify(row)});
+    okEl.style.display='block';
+    okEl.textContent = `✓ ${row.vehicle} / ${row.date} 저장 완료`;
+    resetManual();
+    setTimeout(()=>loadData(), 1500);
+    switchTab('search');
+  } catch(e){ errEl.style.display='block'; errEl.textContent='오류: '+e.message; }
+  finally { btn.disabled=false; btn.textContent='저장 / Save'; btn.style.background=''; }
 }
 
 function resetManual(){
-  editRowId = null; editReceiptUrl = '';
-  document.querySelectorAll('input').forEach(el => {if(el.type!=='date'&&el.type!=='time'&&el.id!=='pw-input') el.value=''});
-  DVIR_KEYS.forEach(k=>mSelCheck(k,'ok'));
+  editRowId=null; editReceiptUrl='';
+  ['m-date','m-time','m-vehicle','m-driver','m-odo','m-fuel-qty','m-fuel-amt']
+    .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  DVIR_KEYS.forEach(k => mSelCheck(k,'ok'));
   document.getElementById('edit-notice').style.display='none';
-  document.getElementById('btn-save').textContent='신규 저장';
-  document.getElementById('btn-save').classList.replace('btn-blue', 'btn-dark');
+  document.getElementById('btn-save').textContent='저장 / Save';
+  document.getElementById('btn-save').style.background='';
   toggleManual();
 }
 
-// ── 월간 차량별 보고서 자동화 및 이메일 ──
+// ── Monthly report ────────────────────────────────────────
 function generateReport(){
-  const monthStr = document.getElementById('r-month').value; // YYYY-MM
-  const vehSel = document.getElementById('r-vehicle-sel').value;
+  const monthStr = document.getElementById('r-month').value;
+  const vehSel   = document.getElementById('r-vehicle-sel').value;
   if(!monthStr) return;
-  
-  if (vehSel === 'ALL') {
-    let map = {};
-    allData.forEach(r => {
-      let d = parseDateStr(r[COL.date]);
-      if(d.slice(0,7) !== monthStr) return;
-      let v = r[COL.vehicle]; if(!v) return;
-      if(!map[v]) map[v] = { trips:0, minOdo:Infinity, maxOdo:0, fuelQty:0, fuelAmt:0, defectCnt:0 };
-      
-      map[v].trips++;
-      let odo = parseFloat(r[COL.odometer]);
-      if(!isNaN(odo)){ if(odo < map[v].minOdo) map[v].minOdo=odo; if(odo > map[v].maxOdo) map[v].maxOdo=odo; }
-      if(r[COL.tripType] === 'Fuel Log'){
-        map[v].fuelQty += parseFloat(r[COL.fuelQty]||0);
-        map[v].fuelAmt += parseFloat(r[COL.fuelAmt]||0);
-      }
-      if(r[COL.defectFound]==='yes') map[v].defectCnt++;
-    });
 
-    let rows = Object.keys(map).sort().map(v => {
-      let dist = (map[v].maxOdo > 0 && map[v].minOdo !== Infinity) ? map[v].maxOdo - map[v].minOdo : 0;
-      let ppg = map[v].fuelQty > 0 ? (map[v].fuelAmt / map[v].fuelQty).toFixed(2) : 0;
-      let mpg = map[v].fuelQty > 0 ? (dist / map[v].fuelQty).toFixed(2) : 0;
-      
+  if(vehSel==='ALL'){
+    const map = {};
+    allData.forEach(r => {
+      const d = parseDate(r[COL.date]);
+      if(!d||d.slice(0,7)!==monthStr) return;
+      const v = r[COL.vehicle]; if(!v) return;
+      if(!map[v]) map[v]={trips:0,minOdo:Infinity,maxOdo:0,fuelQty:0,fuelAmt:0,defects:0};
+      map[v].trips++;
+      const odo=parseFloat(r[COL.odometer]);
+      if(!isNaN(odo)){if(odo<map[v].minOdo)map[v].minOdo=odo;if(odo>map[v].maxOdo)map[v].maxOdo=odo;}
+      if(r[COL.tripType]==='Fuel Log'){map[v].fuelQty+=parseFloat(r[COL.fuelQty]||0);map[v].fuelAmt+=parseFloat(r[COL.fuelAmt]||0);}
+      if(r[COL.defectFound]==='yes') map[v].defects++;
+    });
+    const rows = Object.keys(map).sort().map(v => {
+      const dist=(map[v].maxOdo>0&&map[v].minOdo!==Infinity)?map[v].maxOdo-map[v].minOdo:0;
+      const ppg=map[v].fuelQty>0?(map[v].fuelAmt/map[v].fuelQty).toFixed(2):0;
+      const mpg=map[v].fuelQty>0?(dist/map[v].fuelQty).toFixed(2):'—';
       return `<tr>
         <td><strong>${v}</strong></td><td>${map[v].trips}</td>
-        <td>${dist.toLocaleString()} mi</td><td>${map[v].fuelQty.toFixed(2)} gal</td>
-        <td>$${map[v].fuelAmt.toFixed(2)} <span style="color:#666;font-size:11px;">($${ppg}/gal)</span></td>
-        <td style="color:#1a3a8a; font-weight:bold;">${mpg}</td>
-        <td><span class="badge ${map[v].defectCnt>0?'b-def':'b-ok'}">${map[v].defectCnt}</span></td>
+        <td>${dist.toLocaleString()} mi</td>
+        <td>${map[v].fuelQty.toFixed(2)} gal</td>
+        <td>$${map[v].fuelAmt.toFixed(2)} <span style="color:var(--ink-muted);font-size:11px;">($${ppg}/gal)</span></td>
+        <td style="color:#1a3a8a;font-weight:700;">${mpg}</td>
+        <td><span class="badge ${map[v].defects>0?'b-def':'b-ok'}">${map[v].defects}</span></td>
       </tr>`;
     }).join('');
-
     document.getElementById('report-title').textContent = `[${monthStr}] 전체 차량 요약 보고서`;
-    document.getElementById('report-table-wrap').innerHTML = `<table><tr><th>차량</th><th>운행 건수</th><th>월간 주행거리</th><th>총 주유량</th><th>주유 금액(단가)</th><th>평균 연비(MPG)</th><th>결함 보고</th></tr>${rows||'<tr><td colspan="7">데이터 없음</td></tr>'}</table>`;
-  
+    document.getElementById('report-table-wrap').innerHTML = `<table>
+      <thead><tr><th>차량</th><th>운행건수</th><th>주행거리</th><th>주유량</th><th>주유금액(단가)</th><th>연비 MPG</th><th>결함</th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:var(--ink-muted);">데이터 없음</td></tr>'}</tbody>
+    </table>`;
   } else {
-    // 2. 특정 차량 상세 내역
-    let listRows = [];
-    let tDist = 0; let minOdo = Infinity; let maxOdo = 0;
-    let tQty = 0; let tAmt = 0;
-
+    let listRows=[], minOdo=Infinity, maxOdo=0, tQty=0, tAmt=0;
     allData.forEach(r => {
-      let d = parseDateStr(r[COL.date]);
-      if(d && d.slice(0,7) === monthStr && r[COL.vehicle] === vehSel) {
-        
-        let odo = parseFloat(r[COL.odometer]);
-        if(!isNaN(odo) && odo > 0) {
-            if(odo < minOdo) minOdo = odo;
-            if(odo > maxOdo) maxOdo = odo;
-        }
-
-        let isF = r[COL.tripType] === 'Fuel Log';
-        if(isF) {
-            tQty += parseFloat(r[COL.fuelQty])||0;
-            tAmt += parseFloat(r[COL.fuelAmt])||0;
-        }
-
-        let fStr = isF ? `${r[COL.fuelQty]}gal / $${r[COL.fuelAmt]}` : '—';
-        let defStr = r[COL.defectFound]==='yes' ? `<span style="color:red;font-weight:bold;">Defect</span>` : 'OK';
-        listRows.push(`<tr><td>${d}</td><td>${parseTimeStr(r[COL.time])}</td><td>${r[COL.driver]}</td><td>${r[COL.odometer]}</td><td>${r[COL.tripType]}</td><td>${fStr}</td><td>${defStr}</td></tr>`);
-      }
+      const d=parseDate(r[COL.date]);
+      if(!d||d.slice(0,7)!==monthStr||r[COL.vehicle]!==vehSel) return;
+      const odo=parseFloat(r[COL.odometer]);
+      if(!isNaN(odo)&&odo>0){if(odo<minOdo)minOdo=odo;if(odo>maxOdo)maxOdo=odo;}
+      const isF=r[COL.tripType]==='Fuel Log';
+      if(isF){tQty+=parseFloat(r[COL.fuelQty]||0);tAmt+=parseFloat(r[COL.fuelAmt]||0);}
+      const fStr=isF?`${r[COL.fuelQty]}gal / $${r[COL.fuelAmt]}`:'—';
+      const defStr=r[COL.defectFound]==='yes'?`<span class="badge b-def">Defect</span>`:'<span class="badge b-ok">OK</span>';
+      listRows.push(`<tr><td>${d}</td><td>${parseTime(r[COL.time])}</td><td>${r[COL.driver]||''}</td><td>${r[COL.odometer]||''}</td><td>${r[COL.tripType]}</td><td>${fStr}</td><td>${defStr}</td></tr>`);
     });
-
-    if(maxOdo > 0 && minOdo !== Infinity) tDist = maxOdo - minOdo;
-    let vMpg = tQty > 0 ? (tDist / tQty).toFixed(2) : "0.0";
-    
-    let summaryHtml = `<div style="background:#f0f4ff; border:1px solid #c2d5ff; padding:12px; margin-bottom:14px; border-radius:8px; display:flex; gap:20px; font-size:14px;">
-        <div><strong>누적 주행거리:</strong> ${tDist.toLocaleString()} mi</div>
-        <div><strong>총 주유량:</strong> ${tQty.toFixed(2)} gal</div>
-        <div><strong>총 주유비:</strong> $${tAmt.toFixed(2)}</div>
-        <div><strong style="color:var(--blue-tx);">평균 연비: ${vMpg} MPG</strong></div>
+    const dist=(maxOdo>0&&minOdo!==Infinity)?maxOdo-minOdo:0;
+    const mpg=tQty>0?(dist/tQty).toFixed(2):'0.0';
+    const sumHtml=`<div style="background:#f0f4ff;border:1px solid #c2d5ff;padding:14px 18px;margin-bottom:16px;border-radius:var(--r-sm);display:flex;gap:24px;font-size:14px;flex-wrap:wrap;">
+      <div><strong>주행거리:</strong> ${dist.toLocaleString()} mi</div>
+      <div><strong>주유량:</strong> ${tQty.toFixed(2)} gal</div>
+      <div><strong>주유비:</strong> $${tAmt.toFixed(2)}</div>
+      <div><strong style="color:#1a3a8a;">연비: ${mpg} MPG</strong></div>
     </div>`;
-    
-    document.getElementById('report-title').textContent = `[${monthStr}] 차량 ${vehSel} 운행 및 주유 상세 내역`;
-    document.getElementById('report-table-wrap').innerHTML = summaryHtml + `<table><tr><th>날짜</th><th>시간</th><th>운전자</th><th>주행거리</th><th>구분</th><th>주유</th><th>결함</th></tr>${listRows.join('')||'<tr><td colspan="7">해당 차량의 데이터가 없습니다.</td></tr>'}</table>`;
+    document.getElementById('report-title').textContent=`[${monthStr}] 차량 ${vehSel} 상세 내역`;
+    document.getElementById('report-table-wrap').innerHTML=sumHtml+`<table>
+      <thead><tr><th>날짜</th><th>시각</th><th>운전자</th><th>주행거리</th><th>구분</th><th>주유</th><th>결함</th></tr></thead>
+      <tbody>${listRows.join('')||'<tr><td colspan="7" style="text-align:center;color:var(--ink-muted);">데이터 없음</td></tr>'}</tbody>
+    </table>`;
   }
-  
   document.getElementById('report-output').style.display='block';
 }
 
-async function sendEmailReport() {
-  const email = document.getElementById('r-email').value;
-  if (!email) { alert("이메일 주소를 입력하세요."); return; }
-  
-  const title = document.getElementById('report-title').textContent;
-  const content = document.getElementById('report-table-wrap').innerHTML;
-  
-  const htmlBody = `
-    <div style="font-family:Arial, sans-serif; color:#333;">
-      <h2 style="color:#1a3a8a; border-bottom: 2px solid #1a3a8a; padding-bottom:10px;">${title}</h2>
-      <p>Our Home Adult Day Care 시스템에서 자동 발송된 월간 보고서입니다.</p>
-      <br>
-      <table style="width:100%; border-collapse: collapse; font-size:14px; text-align:left;">
-        ${content.replace(/<th>/g, '<th style="padding:10px; background:#f0f0f0; border-bottom:1px solid #ccc;">').replace(/<td>/g, '<td style="padding:10px; border-bottom:1px solid #eee;">')}
-      </table>
-      <br><p style="font-size:12px; color:#888;">Generated by Our Home Fleet Log System</p>
-    </div>
-  `;
-
-  document.getElementById('report-output').style.opacity = '0.5';
+async function sendEmailReport(){
+  const email=document.getElementById('r-email').value;
+  if(!email){alert('이메일 주소를 입력하세요.');return;}
+  const title=document.getElementById('report-title').textContent;
+  const content=document.getElementById('report-table-wrap').innerHTML;
+  const htmlBody=`<div style="font-family:Arial,sans-serif;color:#333;"><h2 style="color:#1a3a8a;border-bottom:2px solid #1a3a8a;padding-bottom:8px;">${title}</h2><p>Our Home Adult Day Care 시스템에서 자동 발송된 월간 보고서입니다.</p><br>${content}<br><p style="font-size:12px;color:#888;">Generated by Our Home Fleet Log System</p></div>`;
   try {
-    await fetch(APPS_SCRIPT_URL, {
-      method: 'POST', mode: 'no-cors',
-      body: JSON.stringify({ action: 'sendEmail', to: email, subject: title, htmlBody: htmlBody })
-    });
-    alert("성공적으로 이메일 발송이 요청되었습니다.");
-  } catch(e) { alert('오류가 발생했습니다.'); }
-  document.getElementById('report-output').style.opacity = '1';
+    await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',body:JSON.stringify({action:'sendEmail',to:email,subject:title,htmlBody})});
+    alert('이메일 발송이 요청되었습니다.');
+  } catch(e){alert('오류 발생');}
 }
 
-function printReportDiv() {
-  const content = document.getElementById('report-output').innerHTML;
-  document.getElementById('print-area').innerHTML = `<h2>Our Home Adult Day Care</h2><p>Fleet Report</p>` + content;
+function printReportDiv(){
+  const content=document.getElementById('report-output').innerHTML;
+  document.getElementById('print-area').innerHTML=`<h2 style="font-family:Arial;margin-bottom:8px;">Our Home Adult Day Care LLC</h2><p style="font-family:Arial;color:#555;margin-bottom:16px;">Monthly Fleet Report</p>`+content;
   window.print();
 }
 
-// ── 단일 행 인쇄 (개별 프린트 기능 복구) ──
+// ── CSV Export ────────────────────────────────────────────
+function exportCSV(){
+  if(!filteredData.length){alert('조회된 데이터가 없습니다.');return;}
+  const headers=['Date','Time','Driver','Vehicle','Odometer','TripType',
+    'Brakes','Tires','Lights','Doors','Belts','Lift','Fluid','FirstAid','Dashcam','Interior',
+    'DefectFound','DefectDesc','ReportedTo','DefectTime',
+    'PaxSeats','PaxWheelchair','PaxFloor','PaxRear','PaxNoPax','PaxIssueFound','PaxIssueDesc',
+    'FuelQty','FuelAmt','ReceiptUrl','EntryType'];
+  const csv=[headers.join(','),
+    ...filteredData.map(r=>r.slice(0,-1).map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(','))
+  ].join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`DVIR_Log_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+function resetFilters(){
+  document.getElementById('f-vehicle').value='';
+  setQuick('month');
+}
+
+// ════════════════════════════════════════════════════════
+// PRINT — Full Form A-1 / A-2 restoration
+// ════════════════════════════════════════════════════════
 function printRecord(idx){
   const r = filteredData[idx];
   if(!r) return;
 
-  const chk = (v,t) => v===t ? '<span style="font-size:14px;font-weight:700;color:#1a5c1a;">&#10003;</span>' : '<span style="font-size:11px;color:#aaa;">&#9744;</span>';
-  const cell = (t,s='10px') => `<td style="padding:4px 6px;border:1px solid #bbb;font-size:${s};">${t}</td>`;
-  const th   = (t,w='')    => `<th style="text-align:left;padding:4px 6px;border:1px solid #bbb;background:#f0f0f0;font-size:9px;${w?'width:'+w:''}">${t}</th>`;
+  const ds  = parseDate(r[COL.date]);
+  const ts  = parseTime(r[COL.time]);
+  const trip = r[COL.tripType] || '';
 
-  // 주유 전용 인쇄
-  if (r[COL.tripType] === 'Fuel Log') {
-    let unitPrice = (parseFloat(r[COL.fuelAmt])/parseFloat(r[COL.fuelQty])).toFixed(2);
+  // ── Fuel Log print ─────────────────────────────────────
+  if(trip === 'Fuel Log'){
+    const qty = parseFloat(r[COL.fuelQty])||0;
+    const amt = parseFloat(r[COL.fuelAmt])||0;
+    const ppg = qty>0 ? (amt/qty).toFixed(3) : '—';
     document.getElementById('print-area').innerHTML = `
-      <div style="font-family:Arial,sans-serif;color:#111;font-size:12px;max-width:740px;">
-        <h1 style="font-size:16px;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:16px;">Our Home Adult Day Care — Fuel Log</h1>
-        <p><strong>Date:</strong> ${parseDateStr(r[COL.date])} &nbsp;&nbsp; <strong>Time:</strong> ${parseTimeStr(r[COL.time])}</p>
-        <p><strong>Driver:</strong> ${r[COL.driver]}</p>
-        <p><strong>Vehicle:</strong> ${r[COL.vehicle]} &nbsp;&nbsp; <strong>Odo:</strong> ${r[COL.odometer]}</p>
-        <div style="margin-top:20px;padding:15px;border:1px solid #ccc;background:#f9f9f9;">
-          <p style="font-size:14px;"><strong>Fuel QTY (Gallons):</strong> ${r[COL.fuelQty]}</p>
-          <p style="font-size:14px;margin-top:8px;"><strong>Amount Paid ($):</strong> ${r[COL.fuelAmt]} <span style="font-size:12px;color:#666;">($${unitPrice}/gal)</span></p>
+      <div style="font-family:Arial,Helvetica,sans-serif;color:#111;font-size:11px;max-width:580px;">
+        <div style="border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:14px;">
+          <p style="font-size:8px;color:#555;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:2px;">
+            Our Home Adult Day Care LLC &nbsp;|&nbsp; Transportation Safety Program
+          </p>
+          <h1 style="font-size:14px;font-weight:700;">Fuel Log Record</h1>
         </div>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
+          <tr style="background:#f0f0f0;">
+            <th style="padding:4px 6px;border:1px solid #bbb;font-size:9px;text-align:left;">Date</th>
+            <th style="padding:4px 6px;border:1px solid #bbb;font-size:9px;text-align:left;">Time</th>
+            <th style="padding:4px 6px;border:1px solid #bbb;font-size:9px;text-align:left;">Vehicle No.</th>
+            <th style="padding:4px 6px;border:1px solid #bbb;font-size:9px;text-align:left;">Driver Name</th>
+            <th style="padding:4px 6px;border:1px solid #bbb;font-size:9px;text-align:left;">Odometer</th>
+          </tr>
+          <tr>
+            <td style="padding:5px 6px;border:1px solid #bbb;">${ds}</td>
+            <td style="padding:5px 6px;border:1px solid #bbb;">${ts}</td>
+            <td style="padding:5px 6px;border:1px solid #bbb;">${r[COL.vehicle]||''}</td>
+            <td style="padding:5px 6px;border:1px solid #bbb;">${r[COL.driver]||''}</td>
+            <td style="padding:5px 6px;border:1px solid #bbb;">${r[COL.odometer]||''}</td>
+          </tr>
+        </table>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:14px;">
+          <tr style="background:#f0f0f0;">
+            <th style="padding:4px 6px;border:1px solid #bbb;font-size:9px;text-align:left;width:34%;">Fuel Quantity (Gallons)</th>
+            <th style="padding:4px 6px;border:1px solid #bbb;font-size:9px;text-align:left;width:33%;">Amount Paid ($)</th>
+            <th style="padding:4px 6px;border:1px solid #bbb;font-size:9px;text-align:left;width:33%;">Unit Price ($/gal)</th>
+          </tr>
+          <tr>
+            <td style="padding:8px 6px;border:1px solid #bbb;font-size:14px;font-weight:700;">${qty}</td>
+            <td style="padding:8px 6px;border:1px solid #bbb;font-size:14px;font-weight:700;">$${amt.toFixed(2)}</td>
+            <td style="padding:8px 6px;border:1px solid #bbb;font-size:13px;">$${ppg}</td>
+          </tr>
+        </table>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:16px;">
+          <div>
+            <p style="font-size:9px;color:#666;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Driver Signature</p>
+            <div style="border-bottom:1px solid #333;height:28px;"></div>
+            <p style="font-size:9px;color:#888;margin-top:3px;">${r[COL.driver]||''}</p>
+          </div>
+          <div>
+            <p style="font-size:9px;color:#666;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Date / Time</p>
+            <div style="border-bottom:1px solid #333;height:28px;"></div>
+            <p style="font-size:9px;color:#888;margin-top:3px;">${ds} &nbsp; ${ts}</p>
+          </div>
+        </div>
+        <p style="font-size:8px;color:#999;border-top:0.5px solid #ccc;padding-top:8px;margin-top:16px;">
+          Our Home Adult Day Care LLC &nbsp;|&nbsp; Transportation Safety Program &nbsp;|&nbsp;
+          Retain per Records Retention Policy &nbsp;|&nbsp;
+          Printed by Admin: ${new Date().toLocaleDateString('en-US')} ${new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}
+          ${r[COL.entryType]==='manual'?' | [Manual Entry]':''}
+        </p>
       </div>`;
     window.print(); return;
   }
 
-  // 일반 점검 인쇄
-  const dvirRows = DVIR_KEYS.map((k,i) => `<tr>${cell(DVIR_LABELS_EN[i])}<td style="text-align:center;border:1px solid #bbb;">${chk(r[COL[k]],'ok')}</td><td style="text-align:center;border:1px solid #bbb;">${chk(r[COL[k]],'defect')}</td><td style="text-align:center;border:1px solid #bbb;">${chk(r[COL[k]],'na')}</td></tr>`).join('');
-  const defBlock = r[COL.defectFound]==='yes' ? `<table style="width:100%;border-collapse:collapse;margin-bottom:8px;"><tr style="background:#fff0f0;">${th('Describe defect','50%')}${th('Reported To','25%')}${th('Time','25%')}</tr><tr>${cell(r[COL.defectDesc])}${cell(r[COL.defectReportedTo])}${cell(r[COL.defectTime])}</tr></table>` : '';
+  // ── DVIR print helpers ─────────────────────────────────
+  const cell = (t, s='10px') =>
+    `<td style="padding:4px 6px;border:1px solid #bbb;font-size:${s};">${t||''}</td>`;
+  const th = (t, w='') =>
+    `<th style="text-align:left;padding:4px 6px;border:1px solid #bbb;background:#f0f0f0;font-size:9px;${w?'width:'+w:''}">${t}</th>`;
+  const chk = (v, target) => v===target
+    ? '<span style="font-size:14px;font-weight:700;color:#1a5c1a;">&#10003;</span>'
+    : '<span style="font-size:11px;color:#aaa;">&#9744;</span>';
 
-  const paxSection = (r[COL.tripType] !== 'Pre-Trip') ? `
-    <div style="border-top:2px dashed #ccc;margin:18px 0 14px;"></div>
-    <h2 style="font-size:11px;font-weight:700;margin-bottom:8px;">FORM A-2. FINAL PASSENGER COMPARTMENT CHECK</h2>
-    <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
-      <tr style="background:#f0f0f0;">${th('Check Item','72%')}${th('Completed')}</tr>
-      ${PAX_KEYS.map((k,i)=>`<tr>${cell(PAX_LABELS_EN[i])}<td style="text-align:center;border:1px solid #bbb;">${chk(r[COL[k]],'ok')}</td></tr>`).join('')}
+  const tripMark = {
+    'Pre-Trip':  '<strong>&#10003; Pre-Trip</strong> &nbsp; &#9744; Post-Trip &nbsp; &#9744; Both',
+    'Post-Trip': '&#9744; Pre-Trip &nbsp; <strong>&#10003; Post-Trip</strong> &nbsp; &#9744; Both',
+    'Both':      '&#9744; Pre-Trip &nbsp; &#9744; Post-Trip &nbsp; <strong>&#10003; Both</strong>'
+  };
+
+  const dvirRows = DVIR_KEYS.map((k,i) => `<tr>
+    ${cell(DVIR_EN[i])}
+    <td style="text-align:center;border:1px solid #bbb;">${chk(r[COL[k]],'ok')}</td>
+    <td style="text-align:center;border:1px solid #bbb;">${chk(r[COL[k]],'defect')}</td>
+    <td style="text-align:center;border:1px solid #bbb;">${chk(r[COL[k]],'na')}</td>
+  </tr>`).join('');
+
+  const defBlock = r[COL.defectFound]==='yes' ? `
+    <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+      <tr style="background:#fff0f0;">
+        ${th('If yes, describe defect and report immediately to management','50%')}
+        ${th('Reported To','25%')}
+        ${th('Time Reported','25%')}
+      </tr>
+      <tr>
+        ${cell(r[COL.defectDesc]||'—')}
+        ${cell(r[COL.defectReportedTo]||'—')}
+        ${cell(r[COL.defectTime]||'—')}
+      </tr>
     </table>` : '';
 
+  const isPre = trip === 'Pre-Trip';
+  const paxSection = !isPre ? `
+    <div style="border-top:2px dashed #ccc;margin:18px 0 14px;"></div>
+    <h2 style="font-size:11px;font-weight:700;letter-spacing:0.03em;margin-bottom:8px;">
+      FORM A-2. FINAL PASSENGER COMPARTMENT CHECK
+    </h2>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
+      <tr style="background:#f0f0f0;">
+        ${th('Date','22%')}${th('Vehicle No.','18%')}${th('Driver Name','35%')}${th('Route / Assignment','25%')}
+      </tr>
+      <tr>${cell(ds)}${cell(r[COL.vehicle]||'')}${cell(r[COL.driver]||'')}${cell('—')}</tr>
+    </table>
+    <p style="font-size:9px;font-style:italic;color:#555;margin:4px 0 8px;">
+      This check must be completed after the final passenger drop-off or final route.
+    </p>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
+      <tr style="background:#f0f0f0;">${th('Check Item','72%')}${th('Completed')}</tr>
+      ${PAX_KEYS.map((k,i)=>`<tr>
+        ${cell(PAX_EN[i])}
+        <td style="text-align:center;border:1px solid #bbb;">${chk(r[COL[k]],'ok')}</td>
+      </tr>`).join('')}
+      <tr>
+        ${cell('Passenger belongings or safety concerns reported, if any')}
+        <td style="text-align:center;border:1px solid #bbb;">
+          ${r[COL.paxIssueFound]==='yes'
+            ? '<span style="font-size:14px;font-weight:700;color:#1a5c1a;">&#10003;</span>'
+            : '<span style="font-size:11px;color:#aaa;">&#9744;</span>'}
+        </td>
+      </tr>
+    </table>
+    <p style="font-size:10px;margin-bottom:6px;">
+      <strong>Any passenger, belonging, or safety concern found?</strong>&nbsp;
+      ${r[COL.paxIssueFound]==='no'
+        ? '<strong style="color:#1a5c1a;">&#10003; No</strong> &nbsp; <span style="color:#aaa;">&#9744; Yes</span>'
+        : '<span style="color:#aaa;">&#9744; No</span> &nbsp; <strong style="color:#8b1a1a;">&#10003; Yes</strong>'}
+    </p>
+    ${r[COL.paxIssueFound]==='yes' ? `
+      <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+        <tr style="background:#fff0f0;">${th('If yes, describe and report to management')}</tr>
+        <tr>${cell(r[COL.paxIssueDesc]||'—')}</tr>
+      </table>` : ''}
+    <p style="font-size:9px;font-style:italic;color:#555;margin-bottom:12px;">
+      I certify that I completed a physical passenger compartment check after the final passenger
+      drop-off or route completion.
+    </p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:8px;">
+      <div>
+        <p style="font-size:9px;color:#666;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Driver Signature</p>
+        <div style="border-bottom:1px solid #333;height:28px;"></div>
+        <p style="font-size:9px;color:#888;margin-top:3px;">${r[COL.driver]||''}</p>
+      </div>
+      <div>
+        <p style="font-size:9px;color:#666;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Date / Time</p>
+        <div style="border-bottom:1px solid #333;height:28px;"></div>
+        <p style="font-size:9px;color:#888;margin-top:3px;">${ds} &nbsp; ${ts}</p>
+      </div>
+    </div>` : '';
+
+  const isManual = r[COL.entryType]==='manual';
+  const printedAt = `${new Date().toLocaleDateString('en-US')} ${new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}`;
+
   document.getElementById('print-area').innerHTML = `
-    <div style="font-family:Arial,sans-serif;color:#111;font-size:10px;max-width:740px;">
-      <h1 style="font-size:14px;font-weight:700;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:12px;">FORM A-1. DVIR</h1>
+    <div style="font-family:Arial,Helvetica,sans-serif;color:#111;font-size:10px;max-width:740px;">
+
+      <div style="border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:12px;">
+        <p style="font-size:8px;color:#555;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.04em;">
+          APPENDIX A. CORE FLEET SAFETY ROUTINE FORMS
+        </p>
+        <h1 style="font-size:14px;font-weight:700;color:#111;margin-bottom:2px;">Our Home Adult Day Care LLC</h1>
+        <p style="font-size:9px;color:#555;">
+          Adult Day Care / Adult Medical Day Care Transportation Program
+          ${isManual ? ' &nbsp;|&nbsp; <strong style="color:#3a3a9a;">[Manual Entry by Admin]</strong>' : ''}
+        </p>
+      </div>
+
+      <h2 style="font-size:11px;font-weight:700;letter-spacing:0.03em;margin-bottom:8px;">
+        FORM A-1. DAILY VEHICLE INSPECTION REPORT / DVIR
+      </h2>
+
       <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
-        <tr style="background:#f0f0f0;">${th('Date')}${th('Vehicle')}${th('Driver')}${th('Type')}</tr>
-        <tr>${cell(parseDateStr(r[COL.date]))}${cell(r[COL.vehicle])}${cell(r[COL.driver])}${cell(r[COL.tripType])}</tr>
+        <tr style="background:#f0f0f0;">
+          ${th('Date','20%')}${th('Vehicle No.','16%')}${th('Driver Name','34%')}${th('Odometer','30%')}
+        </tr>
+        <tr>${cell(ds)}${cell(r[COL.vehicle]||'')}${cell(r[COL.driver]||'')}${cell(r[COL.odometer]||'')}</tr>
       </table>
+
+      <p style="font-size:10px;margin-bottom:10px;">
+        <strong>Inspection Type:</strong> &nbsp; ${tripMark[trip]||trip}
+      </p>
+
+      <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">
+        Driver Section
+      </p>
       <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
-        <tr style="background:#f0f0f0;">${th('Safety Item','54%')}${th('OK')}${th('Defect')}${th('N/A')}</tr>
+        <tr style="background:#f0f0f0;">
+          ${th('Safety Item','54%')}${th('OK')}${th('Defect')}${th('N/A')}
+        </tr>
         ${dvirRows}
       </table>
-      ${defBlock} ${paxSection}
+
+      <p style="font-size:10px;margin-bottom:6px;">
+        <strong>Defect found?</strong> &nbsp;
+        ${r[COL.defectFound]==='no'
+          ? '<strong style="color:#1a5c1a;">&#10003; No</strong> &nbsp; <span style="color:#aaa;">&#9744; Yes</span>'
+          : '<span style="color:#aaa;">&#9744; No</span> &nbsp; <strong style="color:#8b1a1a;">&#10003; Yes</strong>'}
+      </p>
+      ${defBlock}
+
+      <p style="font-size:9px;font-style:italic;color:#555;margin-bottom:12px;">
+        I certify that I inspected the vehicle and reported any known defect, damage, unsafe condition,
+        missing equipment, warning light, unusual noise, or safety concern.
+      </p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:14px;">
+        <div>
+          <p style="font-size:9px;color:#666;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Driver Signature</p>
+          <div style="border-bottom:1px solid #333;height:28px;"></div>
+          <p style="font-size:9px;color:#888;margin-top:3px;">${r[COL.driver]||''}</p>
+        </div>
+        <div>
+          <p style="font-size:9px;color:#666;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Date / Time</p>
+          <div style="border-bottom:1px solid #333;height:28px;"></div>
+          <p style="font-size:9px;color:#888;margin-top:3px;">${ds} &nbsp; ${ts}</p>
+        </div>
+      </div>
+
+      <div style="border:0.5px solid #ccc;padding:10px 12px;margin-bottom:16px;background:#fafafa;">
+        <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;color:#444;">
+          Management Section — Complete only if a defect, damage, or safety concern is reported.
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:10px;">
+          <div>
+            <p style="font-size:9px;color:#666;margin-bottom:4px;">Reviewed By</p>
+            <div style="border-bottom:1px solid #aaa;height:22px;"></div>
+          </div>
+          <div>
+            <p style="font-size:9px;color:#666;margin-bottom:4px;">Date / Time</p>
+            <div style="border-bottom:1px solid #aaa;height:22px;"></div>
+          </div>
+        </div>
+        <p style="font-size:9px;color:#555;margin-bottom:5px;">
+          Management Decision: &nbsp;
+          &#9744; Vehicle cleared for service &nbsp;
+          &#9744; Vehicle removed from service &nbsp;
+          &#9744; Vehicle sent for repair
+        </p>
+        <p style="font-size:9px;color:#555;margin-bottom:5px;">
+          Return to service approved? &nbsp; &#9744; Yes &nbsp; &#9744; No &nbsp; &#9744; N/A
+        </p>
+        <p style="font-size:9px;color:#555;">
+          Follow-Up / Repair Notes: &nbsp;__________________________________________
+        </p>
+        <div style="margin-top:10px;">
+          <p style="font-size:9px;color:#666;margin-bottom:4px;">Management Signature</p>
+          <div style="border-bottom:1px solid #aaa;height:22px;width:50%;"></div>
+          <p style="font-size:9px;color:#666;margin-top:8px;margin-bottom:4px;">Date / Time</p>
+          <div style="border-bottom:1px solid #aaa;height:22px;width:50%;"></div>
+        </div>
+      </div>
+
+      ${paxSection}
+
+      <p style="font-size:8px;color:#999;border-top:0.5px solid #ccc;padding-top:8px;margin-top:16px;">
+        Our Home Adult Day Care LLC &nbsp;|&nbsp; Transportation Safety Program &nbsp;|&nbsp;
+        Vehicle: ${r[COL.vehicle]||''} &nbsp;|&nbsp;
+        Retain per Records Retention Policy &nbsp;|&nbsp;
+        Printed by Admin: ${printedAt}
+        ${isManual?' &nbsp;|&nbsp; [Manual Entry]':''}
+      </p>
     </div>`;
+
   window.print();
 }
 </script>
