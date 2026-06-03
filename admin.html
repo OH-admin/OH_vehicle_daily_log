@@ -586,8 +586,8 @@ function getDisplayDateTime(row){
   const d = dispDate(row[COL.date]);
   const t = fmtTime(row[COL.time]);
 
-  if(d && t) return `${d} ${t} ET`;
-  if(d) return `${d} ET`;
+  if(d && t) return d + ' ' + t;
+  if(d) return d;
   return '';
 }
 
@@ -942,7 +942,8 @@ function renderInspections(){
     const hasDef = r[COL.defectFound]==='yes';
     const isM    = r[COL.entryType]==='manual';
     return `<tr class="${hasDef?'defect-row':''}">
-      <td style="white-space:nowrap;">${getDisplayDateTime(r)}</td>
+      <td style="white-space:nowrap;">${dispDate(r[COL.date])}</td>
+      <td>${fmtTime(r[COL.time])}</td>
       <td style="font-size:12px;white-space:nowrap;">${r[COL.driver]||'—'}</td>
       <td><strong>${r[COL.vehicle]||'—'}</strong></td>
       <td>${r[COL.odometer]||'—'}</td>
@@ -959,7 +960,7 @@ function renderInspections(){
   document.getElementById('insp-wrap').innerHTML = `
     <table class="main-t">
       <thead><tr>
-        <th>Date / Time</th><th>Driver</th><th>Vehicle</th>
+        <th>Date</th><th>Time</th><th>Driver</th><th>Vehicle</th>
         <th>Odometer</th><th>Type</th><th>Actions</th>
       </tr></thead>
       <tbody>${html}</tbody>
@@ -985,7 +986,8 @@ function renderFuelLog(){
       ? `<a href="${r[COL.receiptUrl]}" target="_blank" style="color:var(--blue);font-size:12px;">Receipt</a>`
       : `<span style="font-size:12px;color:var(--ink-faint);">None</span>`;
     return `<tr class="fuel-row">
-      <td style="white-space:nowrap;">${getDisplayDateTime(r)}</td>
+      <td style="white-space:nowrap;">${dispDate(r[COL.date])}</td>
+      <td>${fmtTime(r[COL.time])}</td>
       <td style="font-size:12px;white-space:nowrap;">${r[COL.driver]||'—'}</td>
       <td><strong>${r[COL.vehicle]||'—'}</strong></td>
       <td>${r[COL.odometer]||'—'}</td>
@@ -1004,7 +1006,7 @@ function renderFuelLog(){
   document.getElementById('fuel-wrap').innerHTML = `
     <table class="main-t">
       <thead><tr>
-        <th>Date / Time</th><th>Driver</th><th>Vehicle</th>
+        <th>Date</th><th>Time</th><th>Driver</th><th>Vehicle</th>
         <th>Odometer</th><th>Qty (gal)</th><th>Amount</th><th>Unit Price</th>
         <th>Receipt</th><th>Actions</th>
       </tr></thead>
