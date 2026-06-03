@@ -879,18 +879,52 @@ function buildSummaryView(){
 
 // ── Submit ────────────────────────────────────────────────
 function submitForm(){ goTo('submitting'); generatePrint(); sendToSheets(); }
-
-async function sendToSheets(){
+function getNYDateTimeParts(){
   const now = new Date();
-  const optDate={timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'};
-  const optTime={timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',hour12:false};
-  const ds = new Intl.DateTimeFormat('en-US',optDate).format(now);
-  const ts = new Intl.DateTimeFormat('en-US',optTime).format(now);
+
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    hourCycle: 'h23'
+  }).formatToParts(now).reduce((acc, p) => {
+    acc[p.type] = p.value;
+    return acc;
+  }, {});
+
+  return {
+    date: `${parts.month}/${parts.day}/${parts.year}`,          // 06/03/2026
+    time: `${parts.hour}:${parts.minute}`,                     // 12:34
+    timeWithSeconds: `${parts.hour}:${parts.minute}:${parts.second}`,
+    isoDate: `${parts.year}-${parts.month}-${parts.day}`,       // 2026-06-03
+    timestamp: `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`,
+    epochMs: now.getTime(),
+    timezone: 'America/New_York'
+  };
+}
+async function sendToSheets(){
+  const ny = getNYDateTimeParts();
+
+  const ds = ny.date;
+  const ts = ny.time;
+
   const tm ={pre:'Pre-Trip',post:'Post-Trip',fuel:'Fuel Log'};
   const isFuel = S.trip==='fuel';
-
   const row = {
-    date:ds, time:ts, driver:S.driver, vehicle:S.vehicle,
+  date: ds,
+  time: ts,
+  timestamp: ny.timestamp,
+  isoDate: ny.isoDate,
+  epochMs: ny.epochMs,
+  timezone: ny.timezone,
+
+  driver:S.driver,
+  vehicle:S.vehicle,
     odometer:S.odo, tripType:tm[S.trip],
     brakes:   isFuel?'N/A':(S.dvir.brakes||'N/A'),
     tires:    isFuel?'N/A':(S.dvir.tires||'N/A'),
@@ -918,9 +952,7 @@ async function sendToSheets(){
     receiptImg: isFuel?S.fuelImgBase64:''
   };
 
-  const now2=new Date();
-  document.getElementById('done-time').textContent=
-    now2.toLocaleDateString('en-US')+' '+now2.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+ document.getElementById('done-time').textContent = `${ny.date} ${ny.time} NY`;
 
   const msgs=[];
   if(S.defect==='yes') msgs.push('Vehicle defect: '+S.defTxt);
@@ -952,11 +984,9 @@ async function sendToSheets(){
 
 // ── Print ─────────────────────────────────────────────────
 function generatePrint(){
-  const now=new Date();
-  const optDate={timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'};
-  const optTime={timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',hour12:false};
-  const ds=new Intl.DateTimeFormat('en-US',optDate).format(now);
-  const ts=new Intl.DateTimeFormat('en-US',optTime).format(now);
+  const ny = getNYDateTimeParts();
+  const ds = ny.date;
+  const ts = ny.time;
 
   if(S.trip==='fuel'){
     document.getElementById('print-out').innerHTML=`
