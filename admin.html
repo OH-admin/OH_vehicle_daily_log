@@ -952,7 +952,7 @@ function renderInspections(){
       <td class="act-group">
         <button class="btn btn-g btn-sm" onclick="printRecord(${globalIdx})">Print</button>
         <button class="btn btn-b btn-sm" onclick="editRecord(${r[COL.rowIndex]})">Edit</button>
-        <button class="btn btn-r btn-sm" onclick="deleteRecord(${r[COL.rowIndex]})">Del</button>
+        <button class="btn btn-r btn-sm" onclick="deleteRecord('${getRowIndex(r)}')">Del</button>
       </td>
     </tr>`;
   }).join('');
@@ -998,7 +998,7 @@ function renderFuelLog(){
       <td class="act-group">
         <button class="btn btn-g btn-sm" onclick="printRecord(${globalIdx})">Print</button>
         <button class="btn btn-b btn-sm" onclick="editRecord(${r[COL.rowIndex]})">Edit</button>
-        <button class="btn btn-r btn-sm" onclick="deleteRecord(${r[COL.rowIndex]})">Del</button>
+        <button class="btn btn-r btn-sm" onclick="deleteRecord('${getRowIndex(r)}')">Del</button>
       </td>
     </tr>`;
   }).join('');
@@ -1014,6 +1014,53 @@ function renderFuelLog(){
     </table>`;
 }
 
+// ── Row index helper ──────────────────────────────────────
+function getRowIndex(r){
+  const idx = r[COL.rowIndex];
+
+  if(idx !== undefined && idx !== null && idx !== '' && !isNaN(Number(idx))){
+    return Number(idx);
+  }
+
+  const last = r[r.length - 1];
+
+  if(last !== undefined && last !== null && last !== '' && !isNaN(Number(last))){
+    return Number(last);
+  }
+
+  return '';
+}
+
+// ── Delete ────────────────────────────────────────────────
+async function deleteRecord(rowId){
+  alert('Delete clicked. rowId = ' + rowId);
+
+  if(rowId === undefined || rowId === null || rowId === '' || isNaN(Number(rowId))){
+    alert('Delete failed: rowIndex is missing or invalid.');
+    return;
+  }
+
+  if(!confirm('Delete this record permanently?')) return;
+
+  try {
+    await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      mode:'no-cors',
+      body:JSON.stringify({
+        action:'delete',
+        rowIndex:Number(rowId)
+      })
+    });
+
+    alert('Delete request sent. Refreshing...');
+    setTimeout(()=>loadData(),2000);
+
+  } catch(e){
+    alert('Error: ' + e.message);
+  }
+}
+
+   
 // ── Delete ────────────────────────────────────────────────
 async function deleteRecord(rowId){
   console.log('Delete rowId:', rowId);
