@@ -146,23 +146,37 @@ textarea {
 /* ── Check rows ──────────────────────────────────────── */
 .check-row {
   display:flex; align-items:center; justify-content:space-between;
-  padding:12px 0; border-bottom:0.5px solid var(--hairline);
+  padding:14px 0; border-bottom:0.5px solid var(--hairline);
+  gap:12px;
 }
 .check-row:last-child { border-bottom:none; }
-.check-label { font-size:19px; color:var(--ink); flex:1; padding-right:10px; line-height:1.4; }
+.check-label { font-size:19px; color:var(--ink); flex:1; line-height:1.4; }
 .check-label-en { font-size:13px; color:var(--ink3); display:block; margin-top:2px; }
-.tg-group { display:flex; gap:5px; flex-shrink:0; }
+
+/* ── Two-option toggle ───────────────────────────────── */
+.toggle-wrap { display:flex; gap:0; flex-shrink:0; border-radius:var(--r-pill);
+  overflow:hidden; border:1.5px solid var(--hairline); background:var(--parchment); }
 .tg {
-  padding:9px 12px; font-size:17px; font-weight:500;
-  border:1px solid var(--hairline);
-  border-radius:var(--r-pill);
-  cursor:pointer; background:var(--parchment); color:var(--ink2);
-  user-select:none; white-space:nowrap; transition:all .12s;
-  min-width:52px; text-align:center;
+  padding:11px 18px; font-size:17px; font-weight:600;
+  cursor:pointer; background:transparent; color:var(--ink2);
+  user-select:none; white-space:nowrap; transition:all .15s;
+  text-align:center; border:none; font-family:var(--font);
+  line-height:1;
 }
-.tg.ok.sel  { background:var(--g-bg); border-color:var(--g-bd); color:var(--g-tx); }
-.tg.def.sel { background:var(--r-bg); border-color:var(--r-bd); color:var(--r-tx); }
-.tg.na.sel  { background:var(--bg3);  border-color:#aaa;        color:#444; }
+.tg + .tg { border-left:1.5px solid var(--hairline); }
+.tg.ok.sel  {
+  background:var(--g-tx); color:#fff;
+  border-color:var(--g-tx);
+  box-shadow:inset 0 1px 3px rgba(0,0,0,0.15);
+}
+.tg.def.sel {
+  background:var(--r-tx); color:#fff;
+  border-color:var(--r-tx);
+  box-shadow:inset 0 1px 3px rgba(0,0,0,0.15);
+}
+.tg.na.sel  { background:var(--bg3); border-color:#aaa; color:#444; }
+/* N/A tiny pill — only for lift item */
+.tg.na { padding:11px 12px; font-size:15px; font-weight:500; }
 
 /* ── Yes / No ────────────────────────────────────────── */
 .yn-group { display:flex; gap:10px; }
@@ -723,17 +737,24 @@ function submitFuel(){
 }
 
 // ── DVIR ──────────────────────────────────────────────────
+// Items that have an N/A option (wheelchair lift — may not be applicable)
+const NA_ITEMS = new Set(['lift']);
+
 function buildDVIR(){
   const c = document.getElementById('dvir-items'); c.innerHTML='';
   DVIR_ITEMS.forEach(item=>{
-    S.dvir[item.id]='';
+    // Default: ok (이상없음) for all items
+    S.dvir[item.id] = 'ok';
     const r = document.createElement('div'); r.className='check-row';
+    const naBtn = NA_ITEMS.has(item.id)
+      ? `<div class="tg na" data-id="${item.id}" onclick="selCheck('${item.id}','na',this)">해당없음</div>`
+      : '';
     r.innerHTML=`<span class="check-label">${item.ko}
         <span class="check-label-en">${item.en}</span></span>
-      <div class="tg-group">
-        <div class="tg ok"  data-id="${item.id}" onclick="selCheck('${item.id}','ok',this)">OK</div>
-        <div class="tg def" data-id="${item.id}" onclick="selCheck('${item.id}','defect',this)">결함</div>
-        <div class="tg na"  data-id="${item.id}" onclick="selCheck('${item.id}','na',this)">N/A</div>
+      <div class="toggle-wrap" id="tw-${item.id}">
+        <div class="tg ok sel" data-id="${item.id}" onclick="selCheck('${item.id}','ok',this)">✓ 이상없음</div>
+        <div class="tg def"    data-id="${item.id}" onclick="selCheck('${item.id}','defect',this)">⚠ 이상있음</div>
+        ${naBtn}
       </div>`;
     c.appendChild(r);
   });
@@ -747,9 +768,21 @@ function buildDVIR(){
 
 function selCheck(id,val,el){
   S.dvir[id]=val;
-  document.querySelectorAll(`[data-id="${id}"]`).forEach(t=>t.classList.remove('sel'));
+  // Remove sel from all buttons for this item
+  document.querySelectorAll(`[data-id="${id}"]`).forEach(t=>{
+    t.classList.remove('sel');
+    // Also reset border for toggle-wrap separation
+  });
   el.classList.add('sel');
+  // Auto-trigger defect yes when ⚠ 이상있음 selected
   if(val==='defect') selDefect('yes');
+  // If switching back to ok/na, auto-clear defect if no other defect items
+  if(val!=='defect'){
+    const anyDefect = DVIR_ITEMS.some(i => S.dvir[i.id]==='defect');
+    if(!anyDefect){
+      selDefect('no');
+    }
+  }
 }
 function selDefect(v){
   S.defect=v;
@@ -758,8 +791,8 @@ function selDefect(v){
   document.getElementById('def-extra').classList.toggle('show',v==='yes');
 }
 function dvirNext(){
-  if(!DVIR_ITEMS.every(i=>S.dvir[i.id])){ alert('모든 항목을 점검해주세요.\nPlease check all items.'); return; }
-  if(!S.defect){ alert('결함 여부를 선택해주세요.'); return; }
+  // All items start as 'ok' by default — no need to check if empty
+  if(!S.defect) S.defect='no'; // default no defect if not explicitly set
   if(S.defect==='yes'){
     const t=document.getElementById('def-txt').value.trim();
     if(!t){ alert('결함 내용을 기재해주세요.'); return; }
@@ -817,9 +850,9 @@ function buildSummaryView(){
   const dd=document.getElementById('sum-dvir'); dd.innerHTML='';
   DVIR_ITEMS.forEach(i=>{
     const v=S.dvir[i.id];
-    const b=v==='ok'?`<span class="badge b-ok">OK</span>`
-      :v==='defect'?`<span class="badge b-def">결함</span>`
-      :`<span class="badge b-na">N/A</span>`;
+    const b=v==='ok'?`<span class="badge b-ok">✓ 이상없음</span>`
+      :v==='defect'?`<span class="badge b-def">⚠ 이상있음</span>`
+      :`<span class="badge b-na">해당없음</span>`;
     dd.innerHTML+=`<div class="sum-row"><span>${i.ko}</span>${b}</div>`;
   });
   if(S.defect==='yes')
