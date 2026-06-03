@@ -881,27 +881,56 @@ function dvirNext(){
 
 // ── Passenger ─────────────────────────────────────────────
 function buildPax(){
-  const c=document.getElementById('pax-items'); c.innerHTML='';
-  PAX_ITEMS.forEach(item=>{
-    S.pax[item.id]='';
-    const r=document.createElement('div'); r.className='check-row';
-    r.innerHTML=`<span class="check-label">${item.ko}
+  const c = document.getElementById('pax-items');
+  c.innerHTML = '';
+
+  PAX_ITEMS.forEach(item => {
+    // 기본값: 이상없음
+    S.pax[item.id] = 'ok';
+
+    const r = document.createElement('div');
+    r.className = 'check-row';
+
+    r.innerHTML = `<span class="check-label">${item.ko}
         <span class="check-label-en">${item.en}</span></span>
-      <div class="tg-group">
-        <div class="tg ok"  data-pid="${item.id}" onclick="selPaxItem('${item.id}','ok',this)">완료</div>
-        <div class="tg def" data-pid="${item.id}" onclick="selPaxItem('${item.id}','issue',this)">문제</div>
+      <div class="toggle-wrap" id="pw-${item.id}">
+        <div class="tg ok sel" data-pid="${item.id}" onclick="selPaxItem('${item.id}','ok',this)">✓ 이상없음</div>
+        <div class="tg def" data-pid="${item.id}" onclick="selPaxItem('${item.id}','issue',this)">⚠ 이상있음</div>
       </div>`;
+
     c.appendChild(r);
   });
-  ['pn-no','pn-yes'].forEach(id=>document.getElementById(id).classList.remove('sel'));
+
+  // 승객·소지품·안전 문제 발견 여부도 기본값: 없음
+  S.paxIssue = 'no';
+  S.paxTxt = '';
+
+  document.getElementById('pn-no').classList.add('sel');
+  document.getElementById('pn-yes').classList.remove('sel');
   document.getElementById('pax-extra').classList.remove('show');
-  S.paxIssue=''; S.paxTxt='';
-  document.getElementById('pax-txt').value='';
+  document.getElementById('pax-txt').value = '';
 }
 function selPaxItem(id,val,el){
-  S.pax[id]=val;
-  document.querySelectorAll(`[data-pid="${id}"]`).forEach(t=>t.classList.remove('sel'));
+  S.pax[id] = val;
+
+  document.querySelectorAll(`[data-pid="${id}"]`).forEach(t => {
+    t.classList.remove('sel');
+  });
+
   el.classList.add('sel');
+
+  // 하나라도 이상있음이면 전체 문제 여부도 자동으로 "있음"
+  if(val === 'issue'){
+    selPaxIssue('yes');
+  }
+
+  // 모든 항목이 이상없음이면 전체 문제 여부도 자동으로 "없음"
+  if(val === 'ok'){
+    const anyIssue = PAX_ITEMS.some(i => S.pax[i.id] === 'issue');
+    if(!anyIssue){
+      selPaxIssue('no');
+    }
+  }
 }
 function selPaxIssue(v){
   S.paxIssue=v;
@@ -910,11 +939,20 @@ function selPaxIssue(v){
   document.getElementById('pax-extra').classList.toggle('show',v==='yes');
 }
 function goSummary(){
-  if(!PAX_ITEMS.every(i=>S.pax[i.id])){ alert('모든 항목을 확인해주세요.'); return; }
-  if(!S.paxIssue){ alert('문제 여부를 선택해주세요.'); return; }
-  if(S.paxIssue==='yes'&&!document.getElementById('pax-txt').value.trim()){ alert('발견 내용을 기재해주세요.'); return; }
-  S.paxTxt=document.getElementById('pax-txt').value.trim();
-  buildSummaryView(); goTo('summary');
+  // 승객 구역 항목은 기본값이 모두 '이상없음'이므로 별도 선택 확인 불필요
+  if(!S.paxIssue){
+    S.paxIssue = 'no';
+  }
+
+  if(S.paxIssue === 'yes' && !document.getElementById('pax-txt').value.trim()){
+    alert('발견 내용을 기재해주세요.');
+    return;
+  }
+
+  S.paxTxt = document.getElementById('pax-txt').value.trim();
+
+  buildSummaryView();
+  goTo('summary');
 }
 function goBackFromSummary(){ goTo(S.trip==='pre'?'dvir':'pax'); }
 
