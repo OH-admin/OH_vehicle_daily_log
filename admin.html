@@ -1031,35 +1031,6 @@ function getRowIndex(r){
   return '';
 }
 
-// ── Delete ────────────────────────────────────────────────
-async function deleteRecord(rowId){
-  alert('Delete clicked. rowId = ' + rowId);
-
-  if(rowId === undefined || rowId === null || rowId === '' || isNaN(Number(rowId))){
-    alert('Delete failed: rowIndex is missing or invalid.');
-    return;
-  }
-
-  if(!confirm('Delete this record permanently?')) return;
-
-  try {
-    await fetch(APPS_SCRIPT_URL,{
-      method:'POST',
-      mode:'no-cors',
-      body:JSON.stringify({
-        action:'delete',
-        rowIndex:Number(rowId)
-      })
-    });
-
-    alert('Delete request sent. Refreshing...');
-    setTimeout(()=>loadData(),2000);
-
-  } catch(e){
-    alert('Error: ' + e.message);
-  }
-}
-
    
 // ── Delete ────────────────────────────────────────────────
 async function deleteRecord(rowId){
