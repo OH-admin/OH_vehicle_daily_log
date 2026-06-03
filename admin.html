@@ -163,8 +163,7 @@ textarea { resize:vertical;min-height:56px; }
   border-top:1px solid var(--hairline); }
 
 /* ── Results panels ─────────────────────────────────────── */
-.results-wrap { display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px; }
-@media(max-width:900px){ .results-wrap { grid-template-columns:1fr; } }
+.results-wrap { display:flex;flex-direction:column;gap:14px;margin-bottom:14px; }
 
 /* ── Table ──────────────────────────────────────────────── */
 .t-wrap { overflow-x:auto; }
@@ -342,7 +341,7 @@ table.main-t tr.defect-row td { background:#fff8f8; }
       <div class="results-wrap" id="results-wrap" style="display:none;">
 
         <!-- Inspection results -->
-        <div class="card" style="margin-bottom:0;">
+        <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
             <div class="sec-title" style="margin-bottom:0;" id="insp-title">Inspections</div>
             <button class="btn btn-pearl btn-sm" onclick="exportCSV('insp')">CSV</button>
@@ -353,7 +352,7 @@ table.main-t tr.defect-row td { background:#fff8f8; }
         </div>
 
         <!-- Fuel log results -->
-        <div class="card" style="margin-bottom:0;">
+        <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
             <div class="sec-title" style="margin-bottom:0;" id="fuel-title">Fuel Log</div>
             <button class="btn btn-pearl btn-sm" onclick="exportCSV('fuel')">CSV</button>
@@ -658,7 +657,7 @@ function applyFilters(){
   });
 
   document.getElementById('loading-state').style.display='none';
-  document.getElementById('results-wrap').style.display= filteredData.length ? 'grid' : 'none';
+  document.getElementById('results-wrap').style.display= filteredData.length ? 'flex' : 'none';
 
   renderStats();
   renderEfficiencyTable();
@@ -703,7 +702,7 @@ function renderStats(){
   document.getElementById('st-fuel-amt').textContent    = '$'+tAmt.toFixed(2);
   document.getElementById('st-mpg').textContent         = mpg;
 
-  document.getElementById('stats-grid').style.display = filteredData.length ? 'grid' : 'none';
+  document.getElementById('stats-grid').style.display = filteredData.length ? 'flex' : 'none';
 }
 
 // ── Monthly efficiency table ──────────────────────────────
