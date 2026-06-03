@@ -130,10 +130,14 @@ select:focus,input:focus,textarea:focus {
 textarea { resize:vertical;min-height:56px; }
 .quick-btns { margin-top:10px;display:flex;gap:6px;flex-wrap:wrap; }
 
-/* ── Stats grid ─────────────────────────────────────────── */
+/* ── Stats grid (4 Columns) ─────────────────────────────── */
 .stats-grid { display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  /* 4개 카드가 균일하게 1:1:1:1 폭을 가지도록 설정 */
+  grid-template-columns:repeat(4, 1fr);
   gap:12px;margin-bottom:20px; }
+@media(max-width: 768px) {
+  .stats-grid { grid-template-columns:repeat(2, 1fr); }
+}
 .s-card { background:var(--canvas);border:1px solid var(--hairline);
   border-radius:var(--r-lg);padding:16px 18px; }
 .s-card .val { font-family:var(--font-d);font-size:22px;font-weight:600;
@@ -159,8 +163,6 @@ textarea { resize:vertical;min-height:56px; }
   text-align:right;font-size:13px; }
 .eff-wrap td:first-child { text-align:left;font-weight:600; }
 .eff-wrap tr:hover td { background:#fafafa; }
-.eff-wrap .total-row td { background:var(--parchment);font-weight:700;
-  border-top:1px solid var(--hairline); }
 
 /* ── Results panels ─────────────────────────────────────── */
 .results-wrap { display:flex;flex-direction:column;gap:14px;margin-bottom:14px; }
@@ -208,6 +210,7 @@ table.main-t tr.defect-row td { background:#fff8f8; }
   margin-bottom:12px;line-height:1.5; }
 .alert-ok  { background:var(--g-bg);color:var(--g-tx);border:.5px solid var(--g-bd); }
 .alert-err { background:var(--r-bg);color:var(--r-tx);border:.5px solid var(--r-bd); }
+.alert-warn { background:#fff3cd;color:#854d0e;border:1px solid #fde047; }
 
 /* ── Spinner ────────────────────────────────────────────── */
 .spinner { width:24px;height:24px;border:2.5px solid var(--hairline);
@@ -228,7 +231,6 @@ table.main-t tr.defect-row td { background:#fff8f8; }
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="login-overlay">
   <div class="login-box">
     <p class="co">Our Home Adult Day Care LLC</p>
@@ -241,7 +243,6 @@ table.main-t tr.defect-row td { background:#fff8f8; }
   </div>
 </div>
 
-<!-- MAIN APP -->
 <div id="main-app">
   <nav class="g-nav no-print">
     <span class="brand">Our Home Adult Day Care LLC &nbsp;·&nbsp; Admin Fleet Log</span>
@@ -265,10 +266,8 @@ table.main-t tr.defect-row td { background:#fff8f8; }
       <button class="tab" onclick="switchTab('report')">Monthly Report</button>
     </div>
 
-    <!-- ═══ TAB 1: SEARCH ══════════════════════════════════ -->
     <div class="tab-content active" id="tab-search">
 
-      <!-- Filter card -->
       <div class="card">
         <div class="sec-title">Filter</div>
         <div class="filter-grid">
@@ -303,55 +302,40 @@ table.main-t tr.defect-row td { background:#fff8f8; }
         </div>
       </div>
 
-      <!-- ── Cumulative fleet stats (always from filtered range) ── -->
-      <div class="stats-grid" id="stats-grid" style="display:none;">
-        <div class="s-card">
-          <div class="val" id="st-inspections">0</div>
-          <div class="lbl">Total Inspections</div>
-        </div>
-        <div class="s-card amber">
-          <div class="val" id="st-defects">0</div>
-          <div class="lbl">Defects Reported</div>
-        </div>
-        <div class="s-card">
-          <div class="val" id="st-dist">0 mi</div>
-          <div class="lbl">Fleet Miles (estimated)</div>
-        </div>
-        <div class="s-card green">
-          <div class="val" id="st-fuel-amt">$0</div>
-          <div class="lbl">Total Fuel Cost</div>
-        </div>
-        <div class="s-card">
-          <div class="val" id="st-fuel-qty">0 gal</div>
-          <div class="lbl">Total Fuel (gal)</div>
-        </div>
-        <div class="s-card blue">
-          <div class="val" id="st-mpg">—</div>
-          <div class="lbl">Fleet Avg MPG</div>
-        </div>
-      </div>
-
-      <!-- ── Monthly efficiency by vehicle ── -->
-      <div class="card" id="eff-card" style="display:none;">
-        <div class="sec-title">Monthly Fuel Efficiency by Vehicle (MPG)</div>
-        <div class="eff-wrap" id="eff-table-wrap"></div>
-      </div>
-
-      <!-- ── Split result panels ── -->
       <div class="results-wrap" id="results-wrap" style="display:none;">
 
-        <!-- Inspection results -->
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
             <div class="sec-title" style="margin-bottom:0;" id="insp-title">Inspections</div>
             <button class="btn btn-pearl btn-sm" onclick="exportCSV('insp')">CSV</button>
+          </div>
+          <div id="missing-alert" class="alert alert-warn" style="display:none; padding:10px 14px; margin-bottom:14px;">
+             <strong style="color:#713f12;">⚠ Missing Today (NY Weekday):</strong> <span id="missing-list"></span>
           </div>
           <div class="t-wrap" id="insp-wrap">
             <div class="empty-st">No inspection records.</div>
           </div>
         </div>
 
-        <!-- Fuel log results -->
+        <div class="stats-grid" id="stats-grid" style="display:grid;">
+          <div class="s-card">
+            <div class="val" id="st-dist">0 mi</div>
+            <div class="lbl">Fleet Miles (estimated)</div>
+          </div>
+          <div class="s-card green">
+            <div class="val" id="st-fuel-amt">$0</div>
+            <div class="lbl">Total Fuel Cost</div>
+          </div>
+          <div class="s-card">
+            <div class="val" id="st-fuel-qty">0 gal</div>
+            <div class="lbl">Total Fuel (gal)</div>
+          </div>
+          <div class="s-card blue">
+            <div class="val" id="st-mpg">—</div>
+            <div class="lbl">Fleet Avg MPG</div>
+          </div>
+        </div>
+
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
             <div class="sec-title" style="margin-bottom:0;" id="fuel-title">Fuel Log</div>
@@ -364,16 +348,12 @@ table.main-t tr.defect-row td { background:#fff8f8; }
 
       </div>
 
-      <!-- Loading state -->
       <div id="loading-state" class="card" style="text-align:center;padding:48px;">
         <div class="spinner"></div>
         <p style="margin-top:12px;color:var(--ink-muted);font-size:14px;">Loading data from Google Sheets...</p>
       </div>
 
-    </div><!-- /tab-search -->
-
-    <!-- ═══ TAB 2: MANUAL ENTRY ════════════════════════════ -->
-    <div class="tab-content" id="tab-manual">
+    </div><div class="tab-content" id="tab-manual">
       <div class="card-edit" id="edit-notice" style="display:none;">
         <strong>Edit Mode</strong> — Modifying an existing record. Changes will overwrite the original row.
       </div>
@@ -435,10 +415,7 @@ table.main-t tr.defect-row td { background:#fff8f8; }
         <button class="btn btn-primary btn-full" style="flex:2;" id="btn-save" onclick="submitManual()">Save Record</button>
         <button class="btn btn-pearl btn-full" style="flex:1;" onclick="resetManual()">Clear</button>
       </div>
-    </div><!-- /tab-manual -->
-
-    <!-- ═══ TAB 3: MONTHLY REPORT ══════════════════════════ -->
-    <div class="tab-content" id="tab-report">
+    </div><div class="tab-content" id="tab-report">
       <div class="card">
         <div class="sec-title">Generate Monthly Fleet Report</div>
         <div class="filter-grid" style="grid-template-columns:200px 220px 160px;">
@@ -471,12 +448,7 @@ table.main-t tr.defect-row td { background:#fff8f8; }
         </div>
         <div id="report-table-wrap" class="t-wrap"></div>
       </div>
-    </div><!-- /tab-report -->
-
-  </div><!-- /.wrap -->
-</div><!-- /#main-app -->
-
-<div class="print-area" id="print-area"></div>
+    </div></div></div><div class="print-area" id="print-area"></div>
 
 <script>
 // ════════════════════════════════════════════════════════
@@ -578,14 +550,10 @@ function setQuick(p){
 }
 
 // ── Date / time helpers ──────────────────────────────────
-// Apps Script returns dates as "yyyy-MM-dd" strings already (after our doGet fix)
-// but guard against ISO strings or the 1899 Google Sheets time bug
 function fmtDate(raw){
   if(!raw && raw!==0) return '';
   const s = String(raw);
-  // ISO date-time
   if(s.match(/^\d{4}-\d{2}-\d{2}T/)) return s.slice(0,10);
-  // Already formatted yyyy-MM-dd or MM/dd/yyyy
   if(s.match(/^\d{4}-\d{2}-\d{2}$/)) return s;
   if(s.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
     const [m,d,y] = s.split('/');
@@ -596,19 +564,16 @@ function fmtDate(raw){
 function fmtTime(raw){
   if(!raw && raw!==0) return '';
   const s = String(raw);
-  // Google Sheets 1899-12-30 time bug
   if(s.includes('1899-12-30T') || s.includes('1899-12-31T')) return s.slice(11,16);
   if(s.match(/^\d{4}-\d{2}-\d{2}T/)) return s.slice(11,16);
   if(s.match(/^\d{2}:\d{2}/)) return s.slice(0,5);
   return s;
 }
-// For sorting: combine date+time into comparable string
 function sortKey(r){
   const d = fmtDate(r[COL.date]);
   const t = fmtTime(r[COL.time]) || '00:00';
   return d + 'T' + t;
 }
-// Display format: yyyy-MM-dd → MM/dd/yyyy
 function dispDate(raw){
   const s = fmtDate(raw);
   if(s.match(/^\d{4}-\d{2}-\d{2}$/)){
@@ -623,7 +588,7 @@ async function loadData(){
   document.getElementById('loading-state').style.display='block';
   document.getElementById('results-wrap').style.display='none';
   document.getElementById('stats-grid').style.display='none';
-  document.getElementById('eff-card').style.display='none';
+  
   try {
     const res  = await fetch(APPS_SCRIPT_URL + '?action=getAll');
     const json = await res.json();
@@ -659,33 +624,61 @@ function applyFilters(){
   document.getElementById('loading-state').style.display='none';
   document.getElementById('results-wrap').style.display= filteredData.length ? 'flex' : 'none';
 
+  renderMissingVehicles(); // Check NY Weekday unwritten vehicles
   renderStats();
-  renderEfficiencyTable();
   renderInspections();
   renderFuelLog();
 }
 
+// ── Missing Vehicles (NY Weekday check) ───────────────────
+function renderMissingVehicles(){
+  const nyDate = new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const day = nyDate.getDay();
+  const isWeekday = day >= 1 && day <= 5;
+  const alertEl = document.getElementById('missing-alert');
+
+  if (!isWeekday) {
+    alertEl.style.display = 'none';
+    return;
+  }
+
+  const pad=n=>String(n).padStart(2,'0');
+  const todayStr = `${nyDate.getFullYear()}-${pad(nyDate.getMonth()+1)}-${pad(nyDate.getDate())}`;
+
+  // Check vehicles that have an inspection record today (NOT fuel log)
+  const todayInspections = allData.filter(r => fmtDate(r[COL.date]) === todayStr && r[COL.tripType] !== 'Fuel Log');
+  const reportedVehicles = new Set(todayInspections.map(r => r[COL.vehicle]));
+
+  const ALL_VEHICLES = ['O25890','O25891','O29872','O24260','O25893','O25894','O25895','O25896','O24277','O24288','O24289','O24284'];
+  const missing = ALL_VEHICLES.filter(v => !reportedVehicles.has(v));
+
+  if (missing.length > 0) {
+    document.getElementById('missing-list').textContent = missing.join(', ');
+    alertEl.style.display = 'block';
+  } else {
+    alertEl.style.display = 'none';
+  }
+}
+
 // ── Stats ─────────────────────────────────────────────────
 function renderStats(){
-  let tQty=0, tAmt=0, tInsp=0, tDef=0;
-  // per-vehicle odometer tracking for distance estimate
+  let tQty=0, tAmt=0;
   const vMap = {};
+  
   filteredData.forEach(r => {
     const v = r[COL.vehicle]; if(!v) return;
     if(!vMap[v]) vMap[v] = {min:Infinity, max:0};
+    
     const odo = parseFloat(r[COL.odometer]);
     if(!isNaN(odo) && odo > 0){
       if(odo < vMap[v].min) vMap[v].min = odo;
       if(odo > vMap[v].max) vMap[v].max = odo;
     }
-    const tt = r[COL.tripType];
-    if(tt === 'Fuel Log'){
+    
+    if(r[COL.tripType] === 'Fuel Log'){
       tQty += parseFloat(r[COL.fuelQty])||0;
       tAmt += parseFloat(r[COL.fuelAmt])||0;
-    } else {
-      tInsp++;
-      if(r[COL.defectFound]==='yes') tDef++;
-    }
+    } 
   });
 
   let tDist = 0;
@@ -695,88 +688,18 @@ function renderStats(){
   }
   const mpg = (tQty > 0 && tDist > 0) ? (tDist/tQty).toFixed(1) + ' mpg' : '—';
 
-  document.getElementById('st-inspections').textContent = tInsp.toLocaleString();
-  document.getElementById('st-defects').textContent     = tDef.toLocaleString();
-  document.getElementById('st-dist').textContent        = tDist > 0 ? tDist.toLocaleString()+' mi' : '—';
-  document.getElementById('st-fuel-qty').textContent    = tQty.toFixed(2)+' gal';
-  document.getElementById('st-fuel-amt').textContent    = '$'+tAmt.toFixed(2);
-  document.getElementById('st-mpg').textContent         = mpg;
+  document.getElementById('st-dist').textContent     = tDist > 0 ? tDist.toLocaleString()+' mi' : '—';
+  document.getElementById('st-fuel-qty').textContent = tQty.toFixed(2)+' gal';
+  document.getElementById('st-fuel-amt').textContent = '$'+tAmt.toFixed(2);
+  document.getElementById('st-mpg').textContent      = mpg;
 
-  document.getElementById('stats-grid').style.display = filteredData.length ? 'flex' : 'none';
-}
-
-// ── Monthly efficiency table ──────────────────────────────
-function renderEfficiencyTable(){
-  // Build: monthKey → vehicleKey → {minOdo, maxOdo, fuelQty}
-  const months = {}, vehicles = new Set();
-
-  filteredData.forEach(r => {
-    const v = r[COL.vehicle]; if(!v) return;
-    const d = fmtDate(r[COL.date]); if(!d) return;
-    const mk = d.slice(0,7); // yyyy-MM
-
-    if(!months[mk]) months[mk] = {};
-    if(!months[mk][v]) months[mk][v] = {minOdo:Infinity, maxOdo:0, fuelQty:0};
-    vehicles.add(v);
-
-    const odo = parseFloat(r[COL.odometer]);
-    if(!isNaN(odo) && odo > 0){
-      if(odo < months[mk][v].minOdo) months[mk][v].minOdo = odo;
-      if(odo > months[mk][v].maxOdo) months[mk][v].maxOdo = odo;
-    }
-    if(r[COL.tripType]==='Fuel Log'){
-      months[mk][v].fuelQty += parseFloat(r[COL.fuelQty])||0;
-    }
-  });
-
-  const sortedMonths   = Object.keys(months).sort();
-  const sortedVehicles = [...vehicles].sort();
-
-  if(!sortedMonths.length || !sortedVehicles.length){
-    document.getElementById('eff-card').style.display='none'; return;
-  }
-
-  // Headers
-  let thead = `<tr><th>Month</th>`;
-  sortedVehicles.forEach(v => { thead += `<th>${v}</th>`; });
-  thead += `<th>Fleet Avg</th></tr>`;
-
-  // Rows
-  let tbody = '';
-  sortedMonths.forEach(mk => {
-    const label = new Date(mk+'-01').toLocaleString('en-US',{month:'short',year:'numeric'});
-    let row = `<tr><td>${label}</td>`;
-    let fleetDist = 0, fleetFuel = 0;
-    sortedVehicles.forEach(v => {
-      const d = months[mk][v];
-      if(!d){ row += `<td style="color:var(--ink-faint);">—</td>`; return; }
-      const dist = d.maxOdo > 0 && d.minOdo !== Infinity ? d.maxOdo - d.minOdo : 0;
-      fleetDist += dist;
-      fleetFuel += d.fuelQty;
-      if(d.fuelQty > 0 && dist > 0){
-        const mpg = (dist/d.fuelQty).toFixed(1);
-        const color = parseFloat(mpg) >= 12 ? 'var(--g-tx)' : parseFloat(mpg) >= 8 ? 'var(--a-tx)' : 'var(--r-tx)';
-        row += `<td style="color:${color};font-weight:600;">${mpg}</td>`;
-      } else {
-        row += `<td style="color:var(--ink-faint);">—</td>`;
-      }
-    });
-    const fleetMpg = (fleetFuel > 0 && fleetDist > 0)
-      ? `<strong>${(fleetDist/fleetFuel).toFixed(1)}</strong>` : '—';
-    row += `<td>${fleetMpg}</td></tr>`;
-    tbody += row;
-  });
-
-  document.getElementById('eff-table-wrap').innerHTML =
-    `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
-  document.getElementById('eff-card').style.display = 'block';
+  document.getElementById('stats-grid').style.display = filteredData.length ? 'grid' : 'none';
 }
 
 // ── Inspection table ──────────────────────────────────────
 function renderInspections(){
   const rows = filteredData.filter(r => r[COL.tripType] !== 'Fuel Log');
-  document.getElementById('insp-title').textContent =
-    `Inspections (${rows.length})`;
+  document.getElementById('insp-title').textContent = `Inspections (${rows.length})`;
 
   if(!rows.length){
     document.getElementById('insp-wrap').innerHTML='<div class="empty-st">No inspection records in range.</div>';
@@ -790,7 +713,7 @@ function renderInspections(){
   };
 
   const html = rows.map((r,idx) => {
-    const globalIdx = filteredData.indexOf(r);
+    const globalIdx = allData.indexOf(r);
     const hasDef = r[COL.defectFound]==='yes';
     const isM    = r[COL.entryType]==='manual';
     return `<tr class="${hasDef?'defect-row':''}">
@@ -830,7 +753,7 @@ function renderFuelLog(){
   }
 
   const html = rows.map(r => {
-    const globalIdx = filteredData.indexOf(r);
+    const globalIdx = allData.indexOf(r);
     const qty = parseFloat(r[COL.fuelQty])||0;
     const amt = parseFloat(r[COL.fuelAmt])||0;
     const ppg = qty > 0 ? '$'+(amt/qty).toFixed(3)+'/gal' : '—';
@@ -1101,7 +1024,7 @@ function exportCSV(type){
 // PRINT — Full Form A-1 / A-2 (Appendix A)
 // ════════════════════════════════════════════════════════
 function printRecord(globalIdx){
-  const r = filteredData[globalIdx];
+  const r = allData[globalIdx];
   if(!r) return;
 
   const ds   = dispDate(r[COL.date]);
