@@ -608,11 +608,30 @@ function fmtDate(raw){
 }
 function fmtTime(raw){
   if(!raw && raw!==0) return '';
+
   const s = String(raw);
-  // Google Sheets 1899-12-30 time bug
-  if(s.includes('1899-12-30T') || s.includes('1899-12-31T')) return s.slice(11,16);
-  if(s.match(/^\d{4}-\d{2}-\d{2}T/)) return s.slice(11,16);
-  if(s.match(/^\d{2}:\d{2}/)) return s.slice(0,5);
+
+  // If Apps Script returns a Date/ISO string from Google Sheets,
+  // convert it to New York time instead of slicing UTC text.
+  if(s.includes('1899-12-30T') || s.includes('1899-12-31T') || s.match(/^\d{4}-\d{2}-\d{2}T/)){
+    const d = new Date(s);
+    if(!isNaN(d.getTime())){
+      return new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        hourCycle: 'h23'
+      }).format(d);
+    }
+  }
+
+  // Already normal HH:mm or HH:mm:ss
+  if(s.match(/^\d{1,2}:\d{2}/)){
+    const [h, m] = s.split(':');
+    return `${String(h).padStart(2,'0')}:${m}`;
+  }
+
   return s;
 }
 // For sorting: combine date+time into comparable string
