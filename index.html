@@ -550,7 +550,9 @@ textarea {
 // CONFIG
 // ════════════════════════════════════════════════════════
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyWBwZzTwhR3aZ1HVB2VI9y5S-Q-VVVACog5qVT9k4JBh28vk5a4eXHQHdSdDXWPrIrdg/exec';
-
+const SAVED_DRIVER_KEY = 'ohadc_saved_driver';
+const SAVED_OTHER_DRIVER_KEY = 'ohadc_saved_other_driver';
+   
 const VEHICLES = {
   'O25890':'2018 Champion Bus — Champion (White, Bus, 23 NP, Gas)',
   'O25891':'2018 Champion Bus — Econoline (White, Bus, 23 NP, Gas)',
@@ -609,11 +611,23 @@ function goTo(id){
 // ── Driver change ─────────────────────────────────────────
 function onDriverChange(){
   const v = document.getElementById('drv-sel').value;
-  document.getElementById('other-name-wrap').style.display = v==='OTHER'?'block':'none';
+
+  document.getElementById('other-name-wrap').style.display = v === 'OTHER' ? 'block' : 'none';
+
+  if (v) {
+    try {
+      localStorage.setItem(SAVED_DRIVER_KEY, v);
+    } catch(e) {}
+  }
+
   const vis = v !== '';
-  ['veh-card','odo-card','trip-card'].forEach(id=>
-    document.getElementById(id).style.display = vis?'block':'none');
-  document.getElementById('start-btn').style.display = vis?'block':'none';
+
+  ['veh-card','odo-card','trip-card'].forEach(id =>
+    document.getElementById(id).style.display = vis ? 'block' : 'none'
+  );
+
+  document.getElementById('start-btn').style.display = vis ? 'block' : 'none';
+
   if(vis) checkLastOdo();
 }
 
@@ -676,9 +690,44 @@ function selTrip(t){
 
 function getDriverName(){
   const v = document.getElementById('drv-sel').value;
-  return v==='OTHER' ? (document.getElementById('other-name').value.trim()||'') : v;
+
+  if (v === 'OTHER') {
+    const otherName = document.getElementById('other-name').value.trim();
+
+    if (otherName) {
+      try {
+        localStorage.setItem(SAVED_OTHER_DRIVER_KEY, otherName);
+      } catch(e) {}
+    }
+
+    return otherName || '';
+  }
+
+  return v;
 }
 
+function restoreSavedDriver(){
+  try {
+    const savedDriver = localStorage.getItem(SAVED_DRIVER_KEY);
+    const savedOtherDriver = localStorage.getItem(SAVED_OTHER_DRIVER_KEY);
+
+    if (!savedDriver) return;
+
+    const sel = document.getElementById('drv-sel');
+    const exists = Array.from(sel.options).some(opt => opt.value === savedDriver);
+
+    if (exists) {
+      sel.value = savedDriver;
+
+      if (savedDriver === 'OTHER' && savedOtherDriver) {
+        document.getElementById('other-name').value = savedOtherDriver;
+      }
+
+      onDriverChange();
+    }
+  } catch(e) {}
+}
+   
 // ── Start ─────────────────────────────────────────────────
 function startForm(){
   const drv = getDriverName();
@@ -1188,6 +1237,9 @@ function resetAll(){
   document.getElementById('receipt-preview-wrap').style.display='none';
   goTo('login');
 }
+window.addEventListener('DOMContentLoaded', function(){
+  restoreSavedDriver();
+});
 </script>
 </body>
 </html>
