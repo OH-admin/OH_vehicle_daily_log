@@ -549,19 +549,23 @@ const SAVED_DRIVER_KEY = 'ohadc_saved_driver';
 const SAVED_OTHER_DRIVER_KEY = 'ohadc_saved_other_driver';
    
 const VEHICLES = {
-  'O25890':'2018 Champion Bus — Champion (White, Bus, 23 NP, Gas)',
-  'O25891':'2018 Champion Bus — Econoline (White, Bus, 23 NP, Gas)',
-  'O29872':'2019 Ford — Grey Bus (14 NP, Gas)',
-  'O24260':'2018 Champion Bus — Omnibus (White, Bus, 14 NP, Gas)',
-  'O25893':'2018 Champion Bus — Omnibus (White, Bus, 14 NP, Gas)',
-  'O25894':'2018 Champion Bus — Omnibus (White, Bus, 14 NP, Gas)',
-  'O25895':'2018 Champion Bus — Omnibus (White, Bus, 14 NP, Gas)',
-  'O25896':'2018 Champion Bus — Omnibus (White, Bus, 14 NP, Gas)',
-  'O24277':'2018 Ford Transit (White, Wagon, 12 NP, Gas)',
-  'O24288':'2022 Ford Omnibus/E-Transit (White, Van, 14 NP, Electric)',
-  'O24289':'2022 Ford Omnibus/E-Transit (White, Van, 14 NP, Electric)',
-  'O24284':'2022 Ford Omnibus/E-Transit (White, Van, 14 NP, Electric)'
+  'O25890':'#A - O2 5890',
+  'O25891':'#B - O2 5891',
+  'O29872':'#C - O2 9872',
+  'O24260':'#1 - O2 4260',
+  'O25893':'#3 - O2 5893',
+  'O25894':'#4 - O2 5894',
+  'O25895':'#5 - O2 5895',
+  'O25896':'#6 - O2 5896',
+  'O24277':'#7 - O2 4277',
+  'O24288':'#2 - O2 4288',
+  'O24289':'#8 - O2 4289',
+  'O24284':'#9 - O2 4284'
 };
+
+function vehicleDisplay(v){
+  return VEHICLES[v] || v || '';
+}
 
 const DVIR_ITEMS = [
   {id:'brakes',   ko:'브레이크 / 조향장치',            en:'Brakes / Steering'},
