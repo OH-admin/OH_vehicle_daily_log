@@ -18,34 +18,29 @@
   --font:-apple-system,'Noto Sans KR',BlinkMacSystemFont,'Segoe UI',sans-serif;
 }
 body { font-family:var(--font); background:var(--bg2); color:var(--text); }
-/* Login */
 #login-overlay { position:fixed; inset:0; background:var(--bg2); display:flex; align-items:center; justify-content:center; z-index:999; }
 .login-box { background:var(--bg); border-radius:var(--radius); border:0.5px solid var(--border); padding:36px 40px; width:360px; text-align:center; }
 .login-box h2 { font-size:17px; margin-bottom:4px; }
 .login-box input { width:100%; padding:12px; margin-bottom:12px; text-align:center; font-size:16px; border:0.5px solid var(--border2); border-radius:var(--radius-sm); }
-/* Layout */
 .page-header { background:var(--bg); border-bottom:0.5px solid var(--border); padding:14px 24px; display:flex; justify-content:space-between; position:sticky; top:0; z-index:10; }
 .wrap { max-width:1200px; margin:0 auto; padding:24px 20px 60px; }
 .card { background:var(--bg); border-radius:var(--radius); border:0.5px solid var(--border); padding:16px 20px; margin-bottom:16px; }
 .sec-title { font-size:12px; font-weight:600; color:var(--text2); text-transform:uppercase; margin-bottom:14px; }
-/* Tabs */
 .tabs { display:flex; gap:4px; margin-bottom:20px; background:var(--bg3); padding:4px; border-radius:8px; width:fit-content;}
 .tab { padding:8px 20px; font-size:14px; border-radius:6px; cursor:pointer; color:var(--text2); border:none; background:transparent; font-weight:600;}
 .tab.active { background:var(--bg); color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,0.1); }
 .tab-content { display:none; }
 .tab-content.active { display:block; }
-/* Forms */
 .filter-grid, .form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; align-items:end; }
 .filter-group label { font-size:12px; color:var(--text2); display:block; margin-bottom:5px; }
 select, input, textarea { width:100%; padding:9px 12px; border:0.5px solid var(--border2); border-radius:var(--radius-sm); background:var(--bg2); font-family:var(--font); }
-/* Buttons */
 .btn { padding:9px 16px; font-size:13px; font-weight:600; border-radius:var(--radius-sm); cursor:pointer; border:none; }
 .btn-dark { background:var(--text); color:#fff; }
 .btn-outline { background:var(--bg); border:0.5px solid var(--border2); }
+.btn-green { background:var(--green-bg); color:var(--green-tx); border:0.5px solid var(--green-bd); }
 .btn-red { background:var(--red-bg); color:var(--red-tx); border:0.5px solid var(--red-bd); }
 .btn-blue { background:var(--blue-bg); color:var(--blue-tx); border:0.5px solid var(--blue-bd); }
 .btn-sm { padding:5px 10px; font-size:11px; }
-/* Table */
 .table-wrap { overflow-x:auto; }
 table { width:100%; border-collapse:collapse; font-size:13px; text-align:left;}
 th { padding:10px; background:var(--bg2); font-size:11px; text-transform:uppercase; color:var(--text2); border-bottom:1px solid var(--border2); }
@@ -55,14 +50,12 @@ tr:hover td { background:var(--bg2); }
 .b-ok { background:var(--green-bg); color:var(--green-tx); } .b-def { background:var(--red-bg); color:var(--red-tx); }
 .b-fuel { background:#d1eed1; color:#0d470d; border:0.5px solid #5a9e5a; }
 .action-group { display:flex; gap:4px; }
-/* Manual Form */
 .check-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 .check-item { display:flex; justify-content:space-between; padding:8px; background:var(--bg2); border-radius:8px; font-size:13px;}
 .tg-group, .yn-group { display:flex; gap:4px; }
 .tg, .yn { padding:4px 8px; border:1px solid var(--border2); border-radius:20px; cursor:pointer; font-size:12px; }
 .tg.sel.ok, .yn.sel.n { background:var(--green-bg); border-color:var(--green-bd); color:var(--green-tx); font-weight:600;}
 .tg.sel.def, .yn.sel.y { background:var(--red-bg); border-color:var(--red-bd); color:var(--red-tx); font-weight:600;}
-/* Print */
 .print-area { display:none; }
 @media print { body { background:white !important; } #main-app, .no-print { display:none !important; } .print-area { display:block !important; color:#000; font-size:11px; } @page { margin:10mm; } }
 </style>
@@ -91,6 +84,7 @@ tr:hover td { background:var(--bg2); }
       <button class="tab" onclick="switchTab('report')">월간 보고서 / Report</button>
     </div>
 
+    <!-- 1. SEARCH TAB -->
     <div class="tab-content active" id="tab-search">
       <div class="card">
         <div class="sec-title">조회 조건</div>
@@ -115,6 +109,7 @@ tr:hover td { background:var(--bg2); }
       </div>
     </div>
 
+    <!-- 2. MANUAL / EDIT TAB -->
     <div class="tab-content" id="tab-manual">
       <div class="card" style="background:#fefce8; border-color:#fef08a;" id="edit-notice" style="display:none;">
         <strong>[수정 모드]</strong> 기존 데이터를 수정 중입니다.
@@ -141,16 +136,35 @@ tr:hover td { background:var(--bg2); }
       <div style="display:flex;gap:10px;"><button class="btn btn-dark" style="flex:2" onclick="submitManual()" id="btn-save">저장</button><button class="btn btn-outline" style="flex:1" onclick="resetManual()">초기화</button></div>
     </div>
 
+    <!-- 3. REPORT TAB -->
     <div class="tab-content" id="tab-report">
       <div class="card">
         <div class="sec-title">월간 차량 보고서 생성</div>
-        <div class="filter-grid" style="grid-template-columns: 200px 150px;">
+        <div class="filter-grid" style="grid-template-columns: 200px 200px 150px;">
           <div class="filter-group"><label>조회 월 (Month)</label><input type="month" id="r-month"></div>
+          <div class="filter-group">
+            <label>차량 선택</label>
+            <select id="r-vehicle-sel">
+              <option value="ALL">전체 차량 요약</option>
+              <option value="O25890">O25890</option><option value="O25891">O25891</option><option value="O29872">O29872</option>
+              <option value="O24260">O24260</option><option value="O25893">O25893</option><option value="O25894">O25894</option>
+              <option value="O25895">O25895</option><option value="O25896">O25896</option><option value="O24277">O24277</option>
+              <option value="O24288">O24288</option><option value="O24289">O24289</option><option value="O24284">O24284</option>
+            </select>
+          </div>
           <div class="filter-group"><label>&nbsp;</label><button class="btn btn-dark" onclick="generateReport()">보고서 생성</button></div>
         </div>
       </div>
+      
       <div class="card" id="report-output" style="display:none;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:10px;"><h3 id="report-title"></h3><button class="btn btn-outline btn-sm" onclick="printReportDiv()">출력 / PDF</button></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <h3 id="report-title"></h3>
+          <div style="display:flex;gap:6px;">
+            <input type="email" id="r-email" placeholder="이메일 주소" style="width:180px; padding:6px; font-size:12px;">
+            <button class="btn btn-blue btn-sm" onclick="sendEmailReport()">이메일 발송</button>
+            <button class="btn btn-green btn-sm" onclick="printReportDiv()">출력 / PDF</button>
+          </div>
+        </div>
         <div id="report-table-wrap" class="table-wrap"></div>
       </div>
     </div>
@@ -161,10 +175,13 @@ tr:hover td { background:var(--bg2); }
 
 <script>
 const ADMIN_PASSWORD = 'ohadc2026'; 
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwESkB72659eQ9sQFAf6bhuAByoUkvqxIstWsLTZV_DH2KQ0Fy4pmVZnrGPtijB8YXl_A/exec'; // ★ 반드시 새로 배포한 URL로 덮어쓰기
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwESkB72659eQ9sQFAf6bhuAByoUkvqxIstWsLTZV_DH2KQ0Fy4pmVZnrGPtijB8YXl_A/exec';
 
 const COL = { date:0,time:1,driver:2,vehicle:3,odometer:4,tripType:5, brakes:6,tires:7,lights:8,doors:9,belts:10,lift:11, fluid:12,firstaid:13,dashcam:14,interior:15, defectFound:16,defectDesc:17,defectReportedTo:18,defectTime:19, paxSeats:20,paxWheelchair:21,paxFloor:22,paxRear:23,paxNoPax:24, paxIssueFound:25,paxIssueDesc:26, fuelQty:27, fuelAmt:28, receiptUrl:29, entryType:30, rowIndex:31 };
 const DVIR_KEYS = ['brakes','tires','lights','doors','belts','lift','fluid','firstaid','dashcam','interior'];
+const DVIR_LABELS_EN = ['Brakes/Steering','Tires/Wheels','Lights/Mirrors','Doors/Exits','Seat Belts','Wheelchair Lift','Fluid Leaks','First Aid','Dashcam/GPS','Passenger Area'];
+const PAX_KEYS = ['paxSeats','paxWheelchair','paxFloor','paxRear','paxNoPax'];
+const PAX_LABELS_EN = ['All rows checked','Wheelchair checked','Floor checked','Rear checked','No passenger left'];
 
 let allData = []; let filteredData = [];
 let mDvir = {}; let editRowId = null; let editReceiptUrl = '';
@@ -202,7 +219,7 @@ function applyFilters(){
   const v = document.getElementById('f-vehicle').value; const s = document.getElementById('f-sort').value;
   
   filteredData = allData.filter(r => {
-    let d = r[COL.date] ? new Date(r[COL.date]).toISOString().slice(0,10) : '';
+    let d = r[COL.date] || '';
     if(f && d < f) return false; if(t && d > t) return false;
     if(v && r[COL.vehicle] !== v) return false;
     return true;
@@ -214,22 +231,27 @@ function applyFilters(){
     return s === 'desc' ? t2 - t1 : t1 - t2;
   });
 
-  let rows = filteredData.map(r => {
+  let rows = filteredData.map((r, i) => {
     let isF = r[COL.tripType]==='Fuel Log';
-    let fStr = isF ? `<strong>${r[COL.fuelQty]||0}</strong> gal / $${r[COL.fuelAmt]||0}` : '—';
+    let qty = parseFloat(r[COL.fuelQty])||0;
+    let amt = parseFloat(r[COL.fuelAmt])||0;
+    let unitPrice = qty > 0 ? (amt/qty).toFixed(2) : 0; // ★ 리터당(갤런당) 단가 계산
+    
+    let fStr = isF ? `<strong>${qty}</strong> gal / $${amt}<br><span style="font-size:11px;color:#666;">($${unitPrice}/gal)</span>` : '—';
     let url = (isF && r[COL.receiptUrl] && r[COL.receiptUrl].startsWith('http')) ? `<a href="${r[COL.receiptUrl]}" target="_blank" style="color:blue">영수증</a>` : (isF? '사진없음':'');
     
     return `<tr style="background:${isF?'#f5fbf5':''}">
-      <td>${r[COL.date]?new Date(r[COL.date]).toLocaleDateString('en-US',{timeZone:'America/New_York'}):''}</td>
-      <td>${r[COL.time]||''}</td><td>${r[COL.vehicle]}</td><td>${r[COL.tripType]}</td><td>${fStr}</td><td>${url}</td>
+      <td>${r[COL.date]}</td>
+      <td>${r[COL.time]}</td><td>${r[COL.vehicle]}</td><td>${r[COL.tripType]}</td><td>${fStr}</td><td>${url}</td>
       <td class="action-group">
+        <button class="btn btn-green btn-sm" onclick="printRecord(${i})">인쇄</button>
         <button class="btn btn-blue btn-sm" onclick="editRecord(${r[COL.rowIndex]})">수정</button>
         <button class="btn btn-red btn-sm" onclick="deleteRecord(${r[COL.rowIndex]})">삭제</button>
       </td>
     </tr>`;
   }).join('');
   
-  document.getElementById('table-wrap').innerHTML = `<table><tr><th>날짜</th><th>시간</th><th>차량</th><th>구분</th><th>주유</th><th>링크</th><th>작업</th></tr>${rows}</table>`;
+  document.getElementById('table-wrap').innerHTML = `<table><tr><th>날짜</th><th>시간</th><th>차량</th><th>구분</th><th>주유(단가)</th><th>링크</th><th>작업</th></tr>${rows}</table>`;
 }
 
 // ── 삭제 기능 ──
@@ -248,9 +270,8 @@ function editRecord(rowId){
   if(!r) return;
   editRowId = rowId; editReceiptUrl = r[COL.receiptUrl] || '';
   
-  document.getElementById('m-date').value = r[COL.date] ? new Date(r[COL.date]).toISOString().slice(0,10) : '';
-  let timeStr = r[COL.time] || ''; if(timeStr.includes('T')) timeStr = timeStr.slice(11,16);
-  document.getElementById('m-time').value = timeStr;
+  document.getElementById('m-date').value = r[COL.date] || '';
+  document.getElementById('m-time').value = r[COL.time] || '';
   document.getElementById('m-vehicle').value = r[COL.vehicle];
   document.getElementById('m-driver').value = r[COL.driver];
   document.getElementById('m-odo').value = r[COL.odometer];
@@ -293,11 +314,10 @@ async function submitManual(){
   let action = editRowId ? 'update' : 'insert';
   let date = document.getElementById('m-date').value;
   if(!date) return alert('날짜 필수');
-  let [y,m,d] = date.split('-');
   
   let row = {
     action: action, rowIndex: editRowId, entryType: 'manual',
-    date: `${m}/${d}/${y}`, time: document.getElementById('m-time').value,
+    date: date, time: document.getElementById('m-time').value,
     vehicle: document.getElementById('m-vehicle').value, driver: document.getElementById('m-driver').value,
     odometer: document.getElementById('m-odo').value, tripType: document.getElementById('m-trip').value,
     fuelQty: document.getElementById('m-fuel-qty').value, fuelAmt: document.getElementById('m-fuel-amt').value,
@@ -323,45 +343,151 @@ function resetManual(){
   toggleManual();
 }
 
-// ── 월간 차량별 보고서 자동화 ──
+// ── 월간 차량별 보고서 자동화 및 이메일 ──
 function generateReport(){
   const monthStr = document.getElementById('r-month').value; // YYYY-MM
+  const vehSel = document.getElementById('r-vehicle-sel').value;
   if(!monthStr) return;
   
-  let map = {};
-  allData.forEach(r => {
-    let d = r[COL.date] ? new Date(r[COL.date]).toISOString().slice(0,7) : '';
-    if(d !== monthStr) return;
-    let v = r[COL.vehicle]; if(!v) return;
-    if(!map[v]) map[v] = { trips:0, minOdo:Infinity, maxOdo:0, fuelQty:0, fuelAmt:0, defectCnt:0 };
+  if (vehSel === 'ALL') {
+    // 1. 전체 차량 요약 모드
+    let map = {};
+    allData.forEach(r => {
+      let d = r[COL.date] ? r[COL.date].slice(0,7) : '';
+      if(d !== monthStr) return;
+      let v = r[COL.vehicle]; if(!v) return;
+      if(!map[v]) map[v] = { trips:0, minOdo:Infinity, maxOdo:0, fuelQty:0, fuelAmt:0, defectCnt:0 };
+      
+      map[v].trips++;
+      let odo = parseFloat(r[COL.odometer]);
+      if(!isNaN(odo)){ if(odo < map[v].minOdo) map[v].minOdo=odo; if(odo > map[v].maxOdo) map[v].maxOdo=odo; }
+      if(r[COL.tripType] === 'Fuel Log'){
+        map[v].fuelQty += parseFloat(r[COL.fuelQty]||0);
+        map[v].fuelAmt += parseFloat(r[COL.fuelAmt]||0);
+      }
+      if(r[COL.defectFound]==='yes') map[v].defectCnt++;
+    });
+
+    let rows = Object.keys(map).sort().map(v => {
+      let dist = (map[v].maxOdo > 0 && map[v].minOdo !== Infinity) ? map[v].maxOdo - map[v].minOdo : 0;
+      let ppg = map[v].fuelQty > 0 ? (map[v].fuelAmt / map[v].fuelQty).toFixed(2) : 0;
+      return `<tr>
+        <td><strong>${v}</strong></td><td>${map[v].trips}</td>
+        <td>${dist.toLocaleString()} mi</td><td>${map[v].fuelQty.toFixed(2)} gal</td>
+        <td>$${map[v].fuelAmt.toFixed(2)} ($${ppg}/gal)</td><td><span class="badge ${map[v].defectCnt>0?'b-def':'b-ok'}">${map[v].defectCnt}</span></td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('report-title').textContent = `[${monthStr}] 전체 차량 요약 보고서`;
+    document.getElementById('report-table-wrap').innerHTML = `<table><tr><th>차량</th><th>운행 건수</th><th>월간 주행거리</th><th>총 주유량</th><th>주유 금액(단가)</th><th>결함 보고</th></tr>${rows||'<tr><td colspan="6">데이터 없음</td></tr>'}</table>`;
+  
+  } else {
+    // 2. 특정 차량의 일자별 병합(Merge) 상세 보고서
+    let listRows = [];
+    allData.forEach(r => {
+      if(r[COL.date] && r[COL.date].slice(0,7) === monthStr && r[COL.vehicle] === vehSel) {
+        let isF = r[COL.tripType] === 'Fuel Log';
+        let fStr = isF ? `${r[COL.fuelQty]}gal / $${r[COL.fuelAmt]}` : '—';
+        let defStr = r[COL.defectFound]==='yes' ? `<span style="color:red;font-weight:bold;">Defect</span>` : 'OK';
+        listRows.push(`<tr><td>${r[COL.date]}</td><td>${r[COL.time]}</td><td>${r[COL.driver]}</td><td>${r[COL.odometer]}</td><td>${r[COL.tripType]}</td><td>${fStr}</td><td>${defStr}</td></tr>`);
+      }
+    });
     
-    map[v].trips++;
-    let odo = parseFloat(r[COL.odometer]);
-    if(!isNaN(odo)){ if(odo < map[v].minOdo) map[v].minOdo=odo; if(odo > map[v].maxOdo) map[v].maxOdo=odo; }
-    if(r[COL.tripType] === 'Fuel Log'){
-      map[v].fuelQty += parseFloat(r[COL.fuelQty]||0);
-      map[v].fuelAmt += parseFloat(r[COL.fuelAmt]||0);
-    }
-    if(r[COL.defectFound]==='yes') map[v].defectCnt++;
-  });
-
-  let rows = Object.keys(map).sort().map(v => {
-    let dist = (map[v].maxOdo > 0 && map[v].minOdo !== Infinity) ? map[v].maxOdo - map[v].minOdo : 0;
-    return `<tr>
-      <td><strong>${v}</strong></td><td>${map[v].trips}</td>
-      <td>${dist.toLocaleString()} mi</td><td>${map[v].fuelQty.toFixed(2)} gal</td>
-      <td>$${map[v].fuelAmt.toFixed(2)}</td><td><span class="badge ${map[v].defectCnt>0?'b-def':'b-ok'}">${map[v].defectCnt}</span></td>
-    </tr>`;
-  }).join('');
-
-  document.getElementById('report-title').textContent = `${monthStr} 차량 요약 보고서`;
-  document.getElementById('report-table-wrap').innerHTML = `<table><tr><th>차량</th><th>운행 건수</th><th>월간 주행거리</th><th>총 주유량</th><th>주유 금액</th><th>결함 보고</th></tr>${rows||'<tr><td colspan="6">데이터 없음</td></tr>'}</table>`;
+    document.getElementById('report-title').textContent = `[${monthStr}] 차량 ${vehSel} 운행 및 주유 상세 내역`;
+    document.getElementById('report-table-wrap').innerHTML = `<table><tr><th>날짜</th><th>시간</th><th>운전자</th><th>주행거리</th><th>구분</th><th>주유</th><th>결함</th></tr>${listRows.join('')||'<tr><td colspan="7">해당 차량의 데이터가 없습니다.</td></tr>'}</table>`;
+  }
+  
   document.getElementById('report-output').style.display='block';
+}
+
+async function sendEmailReport() {
+  const email = document.getElementById('r-email').value;
+  if (!email) { alert("이메일 주소를 입력하세요."); return; }
+  
+  const title = document.getElementById('report-title').textContent;
+  const content = document.getElementById('report-table-wrap').innerHTML;
+  
+  // 이메일에 들어갈 HTML 디자인 구조
+  const htmlBody = `
+    <div style="font-family:Arial, sans-serif; color:#333;">
+      <h2 style="color:#1a3a8a; border-bottom: 2px solid #1a3a8a; padding-bottom:10px;">${title}</h2>
+      <p>Our Home Adult Day Care 시스템에서 자동 발송된 월간 보고서입니다.</p>
+      <br>
+      <table style="width:100%; border-collapse: collapse; font-size:14px; text-align:left;">
+        ${content.replace(/<th>/g, '<th style="padding:10px; background:#f0f0f0; border-bottom:1px solid #ccc;">').replace(/<td>/g, '<td style="padding:10px; border-bottom:1px solid #eee;">')}
+      </table>
+      <br><p style="font-size:12px; color:#888;">Generated by Our Home Fleet Log System</p>
+    </div>
+  `;
+
+  document.getElementById('report-output').style.opacity = '0.5';
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST', mode: 'no-cors',
+      body: JSON.stringify({ action: 'sendEmail', to: email, subject: title, htmlBody: htmlBody })
+    });
+    alert("성공적으로 이메일 발송이 요청되었습니다.");
+  } catch(e) { alert('오류가 발생했습니다.'); }
+  document.getElementById('report-output').style.opacity = '1';
 }
 
 function printReportDiv() {
   const content = document.getElementById('report-output').innerHTML;
-  document.getElementById('print-area').innerHTML = `<h2>Our Home Adult Day Care</h2><p>Monthly Fleet Report</p>` + content;
+  document.getElementById('print-area').innerHTML = `<h2>Our Home Adult Day Care</h2><p>Fleet Report</p>` + content;
+  window.print();
+}
+
+// ── 단일 행 인쇄 (복구됨) ──
+function printRecord(idx){
+  const r = filteredData[idx];
+  if(!r) return;
+
+  const chk = (v,t) => v===t ? '<span style="font-size:14px;font-weight:700;color:#1a5c1a;">&#10003;</span>' : '<span style="font-size:11px;color:#aaa;">&#9744;</span>';
+  const cell = (t,s='10px') => `<td style="padding:4px 6px;border:1px solid #bbb;font-size:${s};">${t}</td>`;
+  const th   = (t,w='')    => `<th style="text-align:left;padding:4px 6px;border:1px solid #bbb;background:#f0f0f0;font-size:9px;${w?'width:'+w:''}">${t}</th>`;
+
+  // 주유 전용 인쇄
+  if (r[COL.tripType] === 'Fuel Log') {
+    let unitPrice = (parseFloat(r[COL.fuelAmt])/parseFloat(r[COL.fuelQty])).toFixed(2);
+    document.getElementById('print-area').innerHTML = `
+      <div style="font-family:Arial,sans-serif;color:#111;font-size:12px;max-width:740px;">
+        <h1 style="font-size:16px;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:16px;">Our Home Adult Day Care — Fuel Log</h1>
+        <p><strong>Date:</strong> ${r[COL.date]} &nbsp;&nbsp; <strong>Time:</strong> ${r[COL.time]}</p>
+        <p><strong>Driver:</strong> ${r[COL.driver]}</p>
+        <p><strong>Vehicle:</strong> ${r[COL.vehicle]} &nbsp;&nbsp; <strong>Odo:</strong> ${r[COL.odometer]}</p>
+        <div style="margin-top:20px;padding:15px;border:1px solid #ccc;background:#f9f9f9;">
+          <p style="font-size:14px;"><strong>Fuel QTY (Gallons):</strong> ${r[COL.fuelQty]}</p>
+          <p style="font-size:14px;margin-top:8px;"><strong>Amount Paid ($):</strong> ${r[COL.fuelAmt]} <span style="font-size:12px;color:#666;">($${unitPrice}/gal)</span></p>
+        </div>
+      </div>`;
+    window.print(); return;
+  }
+
+  // 일반 점검 인쇄
+  const dvirRows = DVIR_KEYS.map((k,i) => `<tr>${cell(DVIR_LABELS_EN[i])}<td style="text-align:center;border:1px solid #bbb;">${chk(r[COL[k]],'ok')}</td><td style="text-align:center;border:1px solid #bbb;">${chk(r[COL[k]],'defect')}</td><td style="text-align:center;border:1px solid #bbb;">${chk(r[COL[k]],'na')}</td></tr>`).join('');
+  const defBlock = r[COL.defectFound]==='yes' ? `<table style="width:100%;border-collapse:collapse;margin-bottom:8px;"><tr style="background:#fff0f0;">${th('Describe defect','50%')}${th('Reported To','25%')}${th('Time','25%')}</tr><tr>${cell(r[COL.defectDesc])}${cell(r[COL.defectReportedTo])}${cell(r[COL.defectTime])}</tr></table>` : '';
+
+  const paxSection = (r[COL.tripType] !== 'Pre-Trip') ? `
+    <div style="border-top:2px dashed #ccc;margin:18px 0 14px;"></div>
+    <h2 style="font-size:11px;font-weight:700;margin-bottom:8px;">FORM A-2. FINAL PASSENGER COMPARTMENT CHECK</h2>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
+      <tr style="background:#f0f0f0;">${th('Check Item','72%')}${th('Completed')}</tr>
+      ${PAX_KEYS.map((k,i)=>`<tr>${cell(PAX_LABELS_EN[i])}<td style="text-align:center;border:1px solid #bbb;">${chk(r[COL[k]],'ok')}</td></tr>`).join('')}
+    </table>` : '';
+
+  document.getElementById('print-area').innerHTML = `
+    <div style="font-family:Arial,sans-serif;color:#111;font-size:10px;max-width:740px;">
+      <h1 style="font-size:14px;font-weight:700;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:12px;">FORM A-1. DVIR</h1>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+        <tr style="background:#f0f0f0;">${th('Date')}${th('Vehicle')}${th('Driver')}${th('Type')}</tr>
+        <tr>${cell(r[COL.date])}${cell(r[COL.vehicle])}${cell(r[COL.driver])}${cell(r[COL.tripType])}</tr>
+      </table>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+        <tr style="background:#f0f0f0;">${th('Safety Item','54%')}${th('OK')}${th('Defect')}${th('N/A')}</tr>
+        ${dvirRows}
+      </table>
+      ${defBlock} ${paxSection}
+    </div>`;
   window.print();
 }
 </script>
