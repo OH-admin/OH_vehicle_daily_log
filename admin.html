@@ -1016,13 +1016,31 @@ function renderFuelLog(){
 
 // ── Delete ────────────────────────────────────────────────
 async function deleteRecord(rowId){
+  console.log('Delete rowId:', rowId);
+
+  if(!rowId){
+    alert('Delete failed: rowIndex is missing.');
+    return;
+  }
+
   if(!confirm('Delete this record permanently?')) return;
+
   try {
-    await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',
-      body:JSON.stringify({action:'delete',rowIndex:rowId})});
+    await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      mode:'no-cors',
+      body:JSON.stringify({
+        action:'delete',
+        rowIndex:rowId
+      })
+    });
+
     alert('Delete request sent. Refreshing...');
-    setTimeout(()=>loadData(),1500);
-  } catch(e){ alert('Error: '+e.message); }
+    setTimeout(()=>loadData(),2000);
+
+  } catch(e){
+    alert('Error: '+e.message);
+  }
 }
 
 // ── Edit ──────────────────────────────────────────────────
