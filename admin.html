@@ -1028,6 +1028,12 @@ function getRowIndex(r){
     return Number(last);
   }
 
+  const position = allData.indexOf(r);
+
+  if(position >= 0){
+    return position + 2;
+  }
+
   return '';
 }
 
