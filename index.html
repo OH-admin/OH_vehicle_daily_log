@@ -310,18 +310,8 @@ textarea {
       <div class="card">
         <span class="lbl">운전자 선택 <span class="lbl-sub">Select Driver</span></span>
         <select id="drv-sel" onchange="onDriverChange()">
-          <option value="">— 이름을 선택하세요 —</option>
-          <option value="Chung, Byeong Woo">Chung, Byeong Woo (정병우)</option>
-          <option value="Goag, Chang Bog">Goag, Chang Bog (곽창복)</option>
-          <option value="Kim, Sunggil">Kim, Sunggil (김성길)</option>
-          <option value="Kim, Tae Kyun">Kim, Tae Kyun (김태균)</option>
-          <option value="Lee, Eunho">Lee, Eunho (이은호)</option>
-          <option value="Lee, Hakwoon">Lee, Hakwoon (이학운)</option>
-          <option value="Lee, Jung Jae">Lee, Jung Jae (이정재)</option>
-          <option value="Maing, Jou Hak">Maing, Jou Hak (맹주학)</option>
-          <option value="You, Kyo Sun">You, Kyo Sun (유교선)</option>
-          <option value="OTHER">기타 / Other</option>
-        </select>
+           <option value="">— 이름을 불러오는 중... —</option>
+      </select>
         <div id="other-name-wrap">
           <input type="text" id="other-name" placeholder="이름 입력 / Enter full name" />
         </div>
@@ -608,6 +598,41 @@ function goTo(id){
   window.scrollTo(0,0);
 }
 
+async function loadDrivers(){
+  try {
+    const res = await fetch(APPS_SCRIPT_URL + '?action=getDrivers');
+    const json = await res.json();
+
+    if(json.result !== 'success' || !Array.isArray(json.drivers)){
+      console.log('Drivers load failed:', json);
+      return;
+    }
+
+    const sel = document.getElementById('drv-sel');
+
+    sel.innerHTML = '<option value="">— 이름을 선택하세요 —</option>';
+
+    json.drivers.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.driverName;
+      opt.textContent = d.koreanName
+        ? `${d.driverName} (${d.koreanName})`
+        : d.driverName;
+      sel.appendChild(opt);
+    });
+
+    const other = document.createElement('option');
+    other.value = 'OTHER';
+    other.textContent = '기타 / Other';
+    sel.appendChild(other);
+
+    restoreSavedDriver();
+
+  } catch(e){
+    console.log('loadDrivers error:', e);
+  }
+}
+   
 // ── Driver change ─────────────────────────────────────────
 function onDriverChange(){
   const v = document.getElementById('drv-sel').value;
@@ -1238,7 +1263,7 @@ function resetAll(){
   goTo('login');
 }
 window.addEventListener('DOMContentLoaded', function(){
-  restoreSavedDriver();
+  loadDrivers();
 });
 </script>
 </body>
