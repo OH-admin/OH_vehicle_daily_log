@@ -699,6 +699,144 @@ async function loadData(){
   }
 }
 
+let openIssues = [];
+
+async function loadOpenIssues(){
+  try {
+    const res = await fetch(APPS_SCRIPT_URL + '?action=getOpenIssues');
+    const json = await res.json();
+
+    if(json.result !== 'success'){
+      console.log('Open issues load failed:', json);
+      return;
+    }
+
+    openIssues = json.issues || [];
+    renderOpenIssues();
+
+  } catch(e){
+    console.log('loadOpenIssues error:', e);
+  }
+}
+
+function renderOpenIssues(){
+  const card = document.getElementById('review-card');
+  const summary = document.getElementById('review-summary');
+  const wrap = document.getElementById('review-wrap');
+
+  if(!card || !summary || !wrap) return;
+
+  if(!openIssues.length){
+    card.style.display = 'none';
+    return;
+  }
+
+  card.style.display = 'block';
+
+  const highCount = openIssues.filter(i => i.severity === 'HIGH').length;
+  const medCount = openIssues.filter(i => i.severity === 'MEDIUM').length;
+
+  summary.innerHTML = `
+    <strong>${openIssues.length}</strong> open item(s) need review.
+    <span style="color:var(--r-tx);font-weight:600;">HIGH: ${highCount}</span>
+    &nbsp;|&nbsp;
+    <span style="color:var(--a-tx);font-weight:600;">MEDIUM: ${medCount}</span>
+  `;
+
+  const rows = openIssues.slice(0, 10).map(issue => {
+    const photo = issue.photoUrl && String(issue.photoUrl).startsWith('http')
+      ? `<a href="${issue.photoUrl}" target="_blank" style="color:var(--blue);">Photo</a>`
+      : '—';
+
+    return `
+      <tr>
+        <td><span class="badge ${issue.severity === 'HIGH' ? 'b-def' : 'b-post'}">${issue.severity}</span></td>
+        <td>${escapeHtml(issue.issueType)}</td>
+        <td>${escapeHtml(issue.time || '')}</td>
+        <td>${escapeHtml(issue.driver || '')}</td>
+        <td><strong>${escapeHtml(issue.vehicle || '')}</strong></td>
+        <td>${escapeHtml(String(issue.odometer || ''))}</td>
+        <td style="font-size:12px;max-width:260px;">${escapeHtml(issue.description || '')}</td>
+        <td>${photo}</td>
+        <td class="act-group">
+          <button class="btn btn-b btn-sm" onclick="editRecord('${issue.rowNo}')">Edit</button>
+          <button class="btn btn-g btn-sm" onclick="updateIssueStatus('${issue.rowIndex}','RESOLVED')">Resolve</button>
+          <button class="btn btn-r btn-sm" onclick="updateIssueStatus('${issue.rowIndex}','IGNORED')">Ignore</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div class="t-wrap">
+      <table class="main-t">
+        <thead>
+          <tr>
+            <th>Severity</th>
+            <th>Issue</th>
+            <th>Time</th>
+            <th>Driver</th>
+            <th>Vehicle</th>
+            <th>Odometer</th>
+            <th>Description</th>
+            <th>Photo</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    ${openIssues.length > 10 ? `<p style="font-size:12px;color:var(--ink-muted);margin-top:8px;">Showing first 10 of ${openIssues.length} open issues.</p>` : ''}
+  `;
+}
+
+async function updateIssueStatus(rowIndex, status){
+  if(!confirm('Mark this issue as ' + status + '?')) return;
+
+  try {
+    const url = APPS_SCRIPT_URL
+      + '?action=updateIssueStatus'
+      + '&rowIndex=' + encodeURIComponent(rowIndex)
+      + '&status=' + encodeURIComponent(status);
+
+    await fetch(url, { method:'GET', mode:'no-cors' });
+
+    setTimeout(() => {
+      loadOpenIssues();
+    }, 1000);
+
+  } catch(e){
+    alert('Failed to update issue: ' + e.message);
+  }
+}
+
+async function runScreeningNow(){
+  if(!confirm('Run DVIR screening now?')) return;
+
+  try {
+    await fetch(APPS_SCRIPT_URL + '?action=runScreening', {
+      method:'GET',
+      mode:'no-cors'
+    });
+
+    alert('Screening request sent. Refreshing review queue...');
+    setTimeout(() => {
+      loadOpenIssues();
+    }, 2000);
+
+  } catch(e){
+    alert('Failed to run screening: ' + e.message);
+  }
+}
+
+function escapeHtml(value){
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}   
 // ── Filter ────────────────────────────────────────────────
 function applyFilters(){
   const from = document.getElementById('f-from').value;
