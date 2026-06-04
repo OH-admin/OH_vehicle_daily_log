@@ -951,28 +951,52 @@ function renderInspections(){
   const html = rows.map((r,idx) => {
     const globalIdx = filteredData.indexOf(r);
     const hasDef = r[COL.defectFound]==='yes';
+     const imgUrl = r[COL.receiptUrl];
+   const photoLink = imgUrl && String(imgUrl).startsWith('http')
+     ? `<a href="${imgUrl}" target="_blank" style="color:var(--blue);font-size:12px;font-weight:600;">Photo</a>`
+     : `<span style="font-size:12px;color:var(--ink-faint);">—</span>`;
+   
+   const defectReport = hasDef
+     ? `<div style="font-size:12px;line-height:1.5;color:var(--r-tx);">
+          <strong>Defect:</strong> ${r[COL.defectDesc] || 'No description'}<br>
+          <span style="color:var(--ink-muted);">
+            Reported to: ${r[COL.defectReportedTo] || '—'}
+            ${r[COL.defectTime] ? ' / ' + r[COL.defectTime] : ''}
+          </span>
+        </div>`
+     : `<span style="font-size:12px;color:var(--ink-faint);">—</span>`;
     const isM    = r[COL.entryType]==='manual';
     return `<tr class="${hasDef?'defect-row':''}">
-      <td style="white-space:nowrap;">${dispDate(r[COL.date])}</td>
-      <td>${fmtTime(r[COL.time])}</td>
-      <td style="font-size:12px;white-space:nowrap;">${r[COL.driver]||'—'}</td>
-      <td><strong>${r[COL.vehicle]||'—'}</strong></td>
-      <td style="text-align:right;">${fmtOdo(r[COL.odometer])}</td>
-      <td>${tripBadge(r[COL.tripType])}${isM?' <span class="badge b-manual">Manual</span>':''}
-          ${hasDef?' <span class="badge b-def">Defect</span>':''}</td>
-      <td class="act-group">
-        <button class="btn btn-g btn-sm" onclick="printRecord(${globalIdx})">Print</button>
-        <button class="btn btn-b btn-sm" onclick="editRecord(${r[COL.rowIndex]})">Edit</button>
-        <button class="btn btn-r btn-sm" onclick="deleteRecord('${getRowIndex(r)}')">Del</button>
-      </td>
-    </tr>`;
+  <td style="white-space:nowrap;">${dispDate(r[COL.date])}</td>
+  <td>${fmtTime(r[COL.time])}</td>
+  <td style="font-size:12px;white-space:nowrap;">${r[COL.driver]||'—'}</td>
+  <td><strong>${r[COL.vehicle]||'—'}</strong></td>
+  <td style="text-align:right; font-variant-numeric:tabular-nums;">${fmtOdo(r[COL.odometer])}</td>
+  <td>${tripBadge(r[COL.tripType])}${isM?' <span class="badge b-manual">Manual</span>':''}
+      ${hasDef?' <span class="badge b-def">Defect</span>':''}</td>
+  <td>${defectReport}</td>
+  <td>${photoLink}</td>
+  <td class="act-group">
+    <button class="btn btn-g btn-sm" onclick="printRecord(${globalIdx})">Print</button>
+    <button class="btn btn-b btn-sm" onclick="editRecord(${r[COL.rowIndex]})">Edit</button>
+    <button class="btn btn-r btn-sm" onclick="deleteRecord('${getRowIndex(r)}')">Del</button>
+  </td>
+</tr>`;
   }).join('');
 
   document.getElementById('insp-wrap').innerHTML = `
     <table class="main-t">
-      <thead><tr>
-        <th>Date</th><th>Time</th><th>Driver</th><th>Vehicle</th>
-        <th>Odometer</th><th>Type</th><th>Actions</th>
+     <thead><tr>
+  <th>Date</th>
+  <th>Time</th>
+  <th>Driver</th>
+  <th>Vehicle</th>
+  <th style="text-align:right;">Odometer</th>
+  <th>Type</th>
+  <th>Defect Report</th>
+  <th>Photo</th>
+  <th>Actions</th>
+</tr></thead>
       </tr></thead>
       <tbody>${html}</tbody>
     </table>`;
