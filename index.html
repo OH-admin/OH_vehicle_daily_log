@@ -437,6 +437,22 @@ textarea {
           <input type="text" id="def-to" placeholder="관리자 이름 / Manager name" />
           <span class="field-label">보고 시각 / Time Reported</span>
           <input type="text" id="def-time" placeholder="예: 08:45" inputmode="numeric" />
+          <span class="field-label">결함 사진 / Defect Photo</span>
+<div class="receipt-upload-area" onclick="document.getElementById('defect-photo').click()">
+  <p>📷 탭하여 결함 사진 촬영</p>
+  <span>Tap to take a photo of the defect</span>
+</div>
+
+<input type="file" id="defect-photo" accept="image/*" capture="environment"
+       onchange="previewDefectPhoto(event)" />
+
+<div id="defect-preview-wrap" style="margin-top:12px; text-align:center; display:none;">
+  <img id="defect-preview" alt="Defect Photo"
+       style="max-width:100%; border-radius:var(--r-sm); border:0.5px solid var(--hairline);" />
+  <p style="font-size:12px;color:var(--r-tx);margin-top:6px;">
+    ✓ 결함 사진이 선택되었습니다 / Defect photo selected
+  </p>
+</div>
         </div>
       </div>
       <button class="btn-primary" onclick="dvirNext()">다음 / Next →</button>
@@ -591,11 +607,12 @@ const PAX_ITEMS = [
 let S = {}, tripSel = '';
 function resetState(){
   S = {
-    driver:'', vehicle:'', trip:'', odo:'',
-    dvir:{}, defect:'', defTxt:'', defTo:'', defTime:'',
-    pax:{}, paxIssue:'', paxTxt:'',
-    fuelQty:'', fuelAmt:'', fuelImgBase64:''
-  };
+  driver:'', vehicle:'', trip:'', odo:'',
+  dvir:{}, defect:'', defTxt:'', defTo:'', defTime:'',
+  defectImgBase64:'',
+  pax:{}, paxIssue:'', paxTxt:'',
+  fuelQty:'', fuelAmt:'', fuelImgBase64:''
+};
   tripSel = '';
 }
 resetState();
@@ -808,6 +825,39 @@ function previewReceipt(event){
   reader.readAsDataURL(file);
 }
 
+function previewDefectPhoto(event){
+  const file = event.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e){
+    const img = new Image();
+
+    img.onload = function(){
+      const canvas = document.createElement('canvas');
+      const MAX = 800;
+      const scale = img.width > MAX ? MAX / img.width : 1;
+
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+
+      S.defectImgBase64 = dataUrl.split(',')[1];
+
+      document.getElementById('defect-preview').src = dataUrl;
+      document.getElementById('defect-preview-wrap').style.display = 'block';
+    };
+
+    img.src = e.target.result;
+  };
+
+  reader.readAsDataURL(file);
+}
+   
 function submitFuel(){
   const qty = document.getElementById('fuel-qty').value.trim();
   const amt = document.getElementById('fuel-amount').value.trim();
@@ -824,46 +874,73 @@ function submitFuel(){
 const NA_ITEMS = new Set(['lift']);
 
 function buildDVIR(){
-  const c = document.getElementById('dvir-items'); c.innerHTML='';
-  DVIR_ITEMS.forEach(item=>{
-    // Default: ok (이상없음) for all items
+  const c = document.getElementById('dvir-items');
+  c.innerHTML = '';
+
+  DVIR_ITEMS.forEach(item => {
+    // 기본값: 모두 이상없음
     S.dvir[item.id] = 'ok';
-    const r = document.createElement('div'); r.className='check-row';
+
+    const r = document.createElement('div');
+    r.className = 'check-row';
+
     const naBtn = NA_ITEMS.has(item.id)
       ? `<div class="tg na" data-id="${item.id}" onclick="selCheck('${item.id}','na',this)">해당없음</div>`
       : '';
-    r.innerHTML=`<span class="check-label">${item.ko}
-       <span class="check-label-en">${item.en}</span></span>
-     <div class="toggle-wrap">
-       <div class="tg ok sel" data-pid="${item.id}" onclick="selPaxItem('${item.id}','ok',this)">✓ 이상없음</div>
-       <div class="tg def" data-pid="${item.id}" onclick="selPaxItem('${item.id}','issue',this)">⚠ 이상있음</div>
-     </div>`;
+
+    r.innerHTML = `
+      <span class="check-label">${item.ko}
+        <span class="check-label-en">${item.en}</span>
+      </span>
+      <div class="toggle-wrap">
+        <div class="tg ok sel" data-id="${item.id}" onclick="selCheck('${item.id}','ok',this)">✓ 이상없음</div>
+        <div class="tg def" data-id="${item.id}" onclick="selCheck('${item.id}','defect',this)">⚠ 이상있음</div>
+        ${naBtn}
+      </div>
+    `;
+
     c.appendChild(r);
   });
-  ['dn-no','dn-yes'].forEach(id=>document.getElementById(id).classList.remove('sel'));
+
+  // 결함 여부 기본값: 없음
+  S.defect = 'no';
+  S.defTxt = '';
+  S.defTo = '';
+  S.defTime = '';
+  S.defectImgBase64 = '';
+
+  document.getElementById('def-txt').value = '';
+  document.getElementById('def-to').value = '';
+  document.getElementById('def-time').value = '';
+
+  const defectPhoto = document.getElementById('defect-photo');
+  if(defectPhoto) defectPhoto.value = '';
+
+  const defectPreviewWrap = document.getElementById('defect-preview-wrap');
+  if(defectPreviewWrap) defectPreviewWrap.style.display = 'none';
+
   document.getElementById('def-extra').classList.remove('show');
-  S.defect=''; S.defTxt=''; S.defTo=''; S.defTime='';
-  document.getElementById('def-txt').value='';
-  document.getElementById('def-to').value='';
-  document.getElementById('def-time').value='';
+
+  selDefect('no');
 }
 
-function selCheck(id,val,el){
-  S.dvir[id]=val;
-  // Remove sel from all buttons for this item
-  document.querySelectorAll(`[data-id="${id}"]`).forEach(t=>{
+function selCheck(id, val, el){
+  S.dvir[id] = val;
+
+  // 같은 항목의 버튼 선택 해제
+  document.querySelectorAll(`[data-id="${id}"]`).forEach(t => {
     t.classList.remove('sel');
-    // Also reset border for toggle-wrap separation
   });
+
   el.classList.add('sel');
-  // Auto-trigger defect yes when ⚠ 이상있음 selected
-  if(val==='defect') selDefect('yes');
-  // If switching back to ok/na, auto-clear defect if no other defect items
-  if(val!=='defect'){
-    const anyDefect = DVIR_ITEMS.some(i => S.dvir[i.id]==='defect');
-    if(!anyDefect){
-      selDefect('no');
-    }
+
+  // 하나라도 이상있음이면 결함 발견됨 = 있음
+  const anyDefect = DVIR_ITEMS.some(i => S.dvir[i.id] === 'defect');
+
+  if(anyDefect){
+    selDefect('yes');
+  } else {
+    selDefect('no');
   }
 }
 function selDefect(v){
@@ -1060,6 +1137,7 @@ async function sendToSheets(){
     defectDesc:       isFuel?'':S.defTxt,
     defectReportedTo: isFuel?'':S.defTo,
     defectTime:       isFuel?'':S.defTime,
+    defectImg:        isFuel?'':S.defectImgBase64,
     paxSeats:      (isFuel||S.trip==='pre')?'N/A':(S.pax.seats||'N/A'),
     paxWheelchair: (isFuel||S.trip==='pre')?'N/A':(S.pax.wheelchair||'N/A'),
     paxFloor:      (isFuel||S.trip==='pre')?'N/A':(S.pax.floor||'N/A'),
