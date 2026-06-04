@@ -340,31 +340,31 @@ textarea {
          </select>
       </div>
 
-      <div class="card" id="odo-card" style="display:none;">
-        <span class="lbl">주행거리 <span class="lbl-sub">Odometer Reading</span></span>
-        <input type="text" id="odo" placeholder="예: 45,230" inputmode="numeric" />
-        <div id="odo-hint" style="display:none; margin-top:10px; padding:10px 12px;
-          background:#f0f4ff; border-radius:var(--r-sm); border:1px solid #c2d5ff;">
-          <p style="font-size:16px; color:#1a3a8a; font-weight:600; margin-bottom:2px;" id="odo-hint-text"></p>
-          <p style="font-size:14px; color:#4a6a9a;">전날 도착 후 주행거리 자동 불러옴<br>
-            <span style="font-size:13px;">Last Post-Trip odometer — tap to use</span></p>
-          <button onclick="useLastOdo()" style="margin-top:8px; width:100%; padding:12px;
-            font-size:18px; font-weight:600; background:#1a3a8a; color:#fff;
-            border:none; border-radius:var(--r-sm); cursor:pointer;">
-            이 값 사용 / Use This Value
-          </button>
-        </div>
-      </div>
-
       <div class="card" id="trip-card" style="display:none;">
-        <span class="lbl">구분 선택 <span class="lbl-sub">Inspection or Fuel</span></span>
-        <div class="trip-group">
-          <div class="trip-btn" id="tb-pre"  onclick="selTrip('pre')">출발 전<span class="sub">Pre-Trip</span></div>
-          <div class="trip-btn" id="tb-post" onclick="selTrip('post')">도착 후<span class="sub">Post-Trip</span></div>
-          <div class="trip-btn" id="tb-fuel" onclick="selTrip('fuel')">주유<span class="sub">Fuel Log</span></div>
-        </div>
-        <div class="trip-note" id="trip-note"></div>
-      </div>
+  <span class="lbl">구분 선택 <span class="lbl-sub">Inspection or Fuel</span></span>
+  <div class="trip-group">
+    <div class="trip-btn" id="tb-pre"  onclick="selTrip('pre')">출발 전<span class="sub">Pre-Trip</span></div>
+    <div class="trip-btn" id="tb-post" onclick="selTrip('post')">도착 후<span class="sub">Post-Trip</span></div>
+    <div class="trip-btn" id="tb-fuel" onclick="selTrip('fuel')">주유<span class="sub">Fuel Log</span></div>
+  </div>
+  <div class="trip-note" id="trip-note"></div>
+</div>
+
+<div class="card" id="odo-card" style="display:none;">
+  <span class="lbl">주행거리 <span class="lbl-sub">Odometer Reading</span></span>
+  <input type="text" id="odo" placeholder="예: 45,230" inputmode="numeric" />
+  <div id="odo-hint" style="display:none; margin-top:10px; padding:10px 12px;
+    background:#f0f4ff; border-radius:var(--r-sm); border:1px solid #c2d5ff;">
+    <p style="font-size:16px; color:#1a3a8a; font-weight:600; margin-bottom:2px;" id="odo-hint-text"></p>
+    <p style="font-size:14px; color:#4a6a9a;">전날 도착 후 주행거리 자동 불러옴<br>
+      <span style="font-size:13px;">Last Post-Trip odometer — tap to use</span></p>
+    <button onclick="useLastOdo()" style="margin-top:8px; width:100%; padding:12px;
+      font-size:18px; font-weight:600; background:#1a3a8a; color:#fff;
+      border:none; border-radius:var(--r-sm); cursor:pointer;">
+      이 값 사용 / Use This Value
+    </button>
+  </div>
+</div>
 
       <button class="btn-primary" id="start-btn" style="display:none;" onclick="startForm()">시작 / Begin →</button>
     </div>
