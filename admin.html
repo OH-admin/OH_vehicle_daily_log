@@ -669,6 +669,17 @@ function getDisplayDateTime(row){
   if(d) return d + ' ET';
   return '';
 }
+
+function fmtOdo(value){
+  if(value === null || value === undefined || value === '') return '—';
+
+  const clean = String(value).replace(/,/g, '').trim();
+  const num = Number(clean);
+
+  if(isNaN(num)) return value;
+
+  return num.toLocaleString('en-US');
+}
    
 // ── Load ─────────────────────────────────────────────────
 async function loadData(){
@@ -946,7 +957,7 @@ function renderInspections(){
       <td>${fmtTime(r[COL.time])}</td>
       <td style="font-size:12px;white-space:nowrap;">${r[COL.driver]||'—'}</td>
       <td><strong>${r[COL.vehicle]||'—'}</strong></td>
-      <td>${r[COL.odometer]||'—'}</td>
+      <td style="text-align:right;">${fmtOdo(r[COL.odometer])}</td>
       <td>${tripBadge(r[COL.tripType])}${isM?' <span class="badge b-manual">Manual</span>':''}
           ${hasDef?' <span class="badge b-def">Defect</span>':''}</td>
       <td class="act-group">
@@ -990,7 +1001,7 @@ function renderFuelLog(){
       <td>${fmtTime(r[COL.time])}</td>
       <td style="font-size:12px;white-space:nowrap;">${r[COL.driver]||'—'}</td>
       <td><strong>${r[COL.vehicle]||'—'}</strong></td>
-      <td>${r[COL.odometer]||'—'}</td>
+      <td style="text-align:right;">${fmtOdo(r[COL.odometer])}</td>
       <td><strong>${qty.toFixed(3)}</strong> gal</td>
       <td>$${amt.toFixed(2)}</td>
       <td style="font-size:12px;color:var(--ink-muted);">${ppg}</td>
@@ -1216,7 +1227,7 @@ function generateReport(){
       const fStr=isF?`${r[COL.fuelQty]} gal / $${r[COL.fuelAmt]}`:'—';
       const defBadge=r[COL.defectFound]==='yes'?'<span class="badge b-def">Defect</span>':'<span class="badge b-ok">OK</span>';
       listRows.push(`<tr><td>${dispDate(r[COL.date])}</td><td>${fmtTime(r[COL.time])}</td>
-        <td style="font-size:12px;">${r[COL.driver]||'—'}</td><td>${r[COL.odometer]||'—'}</td>
+        <td style="font-size:12px;">${r[COL.driver]||'—'}</td><td style="text-align:right;">${fmtOdo(r[COL.odometer])}</td>
         <td>${r[COL.tripType]}</td><td>${fStr}</td><td>${defBadge}</td></tr>`);
     });
     const dist=(maxO>0&&minO!==Infinity)?maxO-minO:0;
