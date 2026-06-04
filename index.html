@@ -562,24 +562,12 @@ textarea {
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyWBwZzTwhR3aZ1HVB2VI9y5S-Q-VVVACog5qVT9k4JBh28vk5a4eXHQHdSdDXWPrIrdg/exec';
 const SAVED_DRIVER_KEY = 'ohadc_saved_driver';
 const SAVED_OTHER_DRIVER_KEY = 'ohadc_saved_other_driver';
-   
-const VEHICLES = {
-  'O25890':'#A - O2 5890',
-  'O25891':'#B - O2 5891',
-  'O29872':'#C - O2 9872',
-  'O24260':'#1 - O2 4260',
-  'O25893':'#3 - O2 5893',
-  'O25894':'#4 - O2 5894',
-  'O25895':'#5 - O2 5895',
-  'O25896':'#6 - O2 5896',
-  'O24277':'#7 - O2 4277',
-  'O24288':'#2 - O2 4288',
-  'O24289':'#8 - O2 4289',
-  'O24284':'#9 - O2 4284'
-};
+// 동적으로 로드된 차량 목록 (Sheets Vehicles 시트 기준)
+let VEHICLES_MAP = {}; // id → displayName (빠른 조회용)
+let VEHICLES_LIST = []; // 전체 목록
 
 function vehicleDisplay(v){
-  return VEHICLES[v] || v || '';
+  return VEHICLES_MAP[v] || v || '';
 }
 
 const DVIR_ITEMS = [
@@ -625,19 +613,68 @@ function goTo(id){
 
 async function loadDrivers(){
   try {
-    const res = await fetch(APPS_SCRIPT_URL + '?action=getDrivers');
-    const json = await res.json();
+    // 드라이버 + 차량 동시 로드
+    const [driverRes, vehicleRes] = await Promise.all([
+      fetch(APPS_SCRIPT_URL + '?action=getDrivers'),
+      fetch(APPS_SCRIPT_URL + '?action=getVehicles')
+    ]);
 
-    if(json.result !== 'success' || !Array.isArray(json.drivers)){
-      console.log('Drivers load failed:', json);
+    const driverJson  = await driverRes.json();
+    const vehicleJson = await vehicleRes.json();
+
+    // ── 차량 목록 처리 ──
+    if(vehicleJson.result === 'success' && Array.isArray(vehicleJson.vehicles) && vehicleJson.vehicles.length){
+      VEHICLES_LIST = vehicleJson.vehicles;
+      VEHICLES_MAP  = {};
+      vehicleJson.vehicles.forEach(v => { VEHICLES_MAP[v.id] = v.displayName; });
+
+      const vehSel = document.getElementById('veh-sel');
+      vehSel.innerHTML = '';
+      vehicleJson.vehicles.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.id;
+        opt.textContent = v.displayName;
+        vehSel.appendChild(opt);
+      });
+    } else {
+      // Sheets 로드 실패 시 기존 하드코딩 fallback
+      console.log('Vehicles load failed — using hardcoded list');
+      const fallback = [
+        {id:'O25890', displayName:'#A - O2 5890'},
+        {id:'O25891', displayName:'#B - O2 5891'},
+        {id:'O29872', displayName:'#C - O2 9872'},
+        {id:'O24260', displayName:'#1 - O2 4260'},
+        {id:'O25893', displayName:'#3 - O2 5893'},
+        {id:'O25894', displayName:'#4 - O2 5894'},
+        {id:'O25895', displayName:'#5 - O2 5895'},
+        {id:'O25896', displayName:'#6 - O2 5896'},
+        {id:'O24277', displayName:'#7 - O2 4277'},
+        {id:'O24288', displayName:'#2 - O2 4288'},
+        {id:'O24289', displayName:'#8 - O2 4289'},
+        {id:'O24284', displayName:'#9 - O2 4284'}
+      ];
+      VEHICLES_LIST = fallback;
+      const vehSel = document.getElementById('veh-sel');
+      vehSel.innerHTML = '';
+      fallback.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.id;
+        opt.textContent = v.displayName;
+        vehSel.appendChild(opt);
+      });
+      fallback.forEach(v => { VEHICLES_MAP[v.id] = v.displayName; });
+    }
+
+    // ── 드라이버 목록 처리 ──
+    if(driverJson.result !== 'success' || !Array.isArray(driverJson.drivers)){
+      console.log('Drivers load failed:', driverJson);
       return;
     }
 
     const sel = document.getElementById('drv-sel');
-
     sel.innerHTML = '<option value="">— 이름을 선택하세요 —</option>';
 
-    json.drivers.forEach(d => {
+    driverJson.drivers.forEach(d => {
       const opt = document.createElement('option');
       opt.value = d.driverName;
       opt.textContent = d.koreanName
@@ -1356,7 +1393,7 @@ function generatePrint(){
       ${paxSection}
       <p style="font-size:8px;color:#999;border-top:.5px solid #ccc;padding-top:8px;margin-top:16px;">
         Our Home Adult Day Care &nbsp;|&nbsp; Transportation Safety Program &nbsp;|&nbsp;
-        Vehicle: ${S.vehicle} — ${VEHICLES[S.vehicle]||''} &nbsp;|&nbsp;
+        Vehicle: ${S.vehicle} — ${vehicleDisplay(S.vehicle)} &nbsp;|&nbsp;
         Retain per Records Retention Policy &nbsp;|&nbsp; Printed: ${ds} ${ts}
       </p>
     </div>`;
