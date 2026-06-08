@@ -524,7 +524,12 @@ const PAX_EN   = [
 
 let allData = [], filteredData = [];
 let mDvir = {}, editRowId = null, editReceiptUrl = '';
-
+let tableSort = {
+  review: { key: '', dir: 'asc' },
+  insp:   { key: '', dir: 'asc' },
+  fuel:   { key: '', dir: 'asc' }
+};
+   
 // ── Clock ───────────────────────────────────────────────
 function tick(){
   const ny = new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
@@ -683,6 +688,82 @@ function fmtOdo(value){
 
   return num.toLocaleString('en-US');
 }
+
+function sortArrow(table, key){
+  if(!tableSort[table] || tableSort[table].key !== key) return ' ↕';
+  return tableSort[table].dir === 'asc' ? ' ▲' : ' ▼';
+}
+
+function setTableSort(table, key){
+  if(!tableSort[table]) return;
+
+  if(tableSort[table].key === key){
+    tableSort[table].dir = tableSort[table].dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    tableSort[table].key = key;
+    tableSort[table].dir = 'asc';
+  }
+
+  if(table === 'review') renderOpenIssues();
+  if(table === 'insp') renderInspections();
+  if(table === 'fuel') renderFuelLog();
+}
+
+function normalizeSortValue(value, type){
+  if(value === null || value === undefined) return '';
+
+  if(type === 'number'){
+    const n = Number(String(value).replace(/,/g, '').replace('$', '').trim());
+    return isNaN(n) ? -Infinity : n;
+  }
+
+  if(type === 'time'){
+    const t = fmtTime(value);
+    return t || '';
+  }
+
+  if(type === 'date'){
+    return fmtDate(value) || '';
+  }
+
+  return String(value).toLowerCase();
+}
+
+function sortArrayByConfig(arr, table, getterMap){
+  const config = tableSort[table];
+
+  if(!config || !config.key || !getterMap[config.key]) return arr;
+
+  const { getter, type } = getterMap[config.key];
+
+  arr.sort((a, b) => {
+    const av = normalizeSortValue(getter(a), type);
+    const bv = normalizeSortValue(getter(b), type);
+
+    if(type === 'number'){
+      return config.dir === 'asc' ? av - bv : bv - av;
+    }
+
+    const result = String(av).localeCompare(String(bv), undefined, {
+      numeric: true,
+      sensitivity: 'base'
+    });
+
+    return config.dir === 'asc' ? result : -result;
+  });
+
+  return arr;
+}
+
+function sortableTh(table, key, label, alignRight){
+  return `
+    <th onclick="setTableSort('${table}','${key}')"
+        style="cursor:pointer;user-select:none;${alignRight ? 'text-align:right;' : ''}"
+        title="Click to sort">
+      ${label}${sortArrow(table, key)}
+    </th>
+  `;
+}
    
 // ── Load ─────────────────────────────────────────────────
 async function loadData(){
@@ -755,7 +836,20 @@ function renderOpenIssues(){
     <span style="color:var(--a-tx);font-weight:600;">MEDIUM: ${medCount}</span>
   `;
 
-  const rows = openIssues.slice(0, 10).map(issue => {
+  const reviewRows = [...openIssues];
+
+sortArrayByConfig(reviewRows, 'review', {
+  severity:    { getter: i => i.severity, type: 'text' },
+  issueType:   { getter: i => i.issueType, type: 'text' },
+  time:        { getter: i => i.time, type: 'time' },
+  driver:      { getter: i => i.driver, type: 'text' },
+  vehicle:     { getter: i => i.vehicle, type: 'text' },
+  odometer:    { getter: i => i.odometer, type: 'number' },
+  description: { getter: i => i.description, type: 'text' },
+  photo:       { getter: i => i.photoUrl, type: 'text' }
+});
+
+const rows = reviewRows.slice(0, 10).map(issue => {
     const photo = issue.photoUrl && String(issue.photoUrl).startsWith('http')
       ? `<a href="${issue.photoUrl}" target="_blank" style="color:var(--blue);">Photo</a>`
       : '—';
@@ -782,19 +876,19 @@ function renderOpenIssues(){
   wrap.innerHTML = `
     <div class="t-wrap">
       <table class="main-t">
-        <thead>
-          <tr>
-            <th>Severity</th>
-            <th>Issue</th>
-            <th>Time</th>
-            <th>Driver</th>
-            <th>Vehicle</th>
-            <th>Odometer</th>
-            <th>Description</th>
-            <th>Photo</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
+       <thead>
+  <tr>
+    ${sortableTh('review','severity','Severity')}
+    ${sortableTh('review','issueType','Issue')}
+    ${sortableTh('review','time','Time')}
+    ${sortableTh('review','driver','Driver')}
+    ${sortableTh('review','vehicle','Vehicle')}
+    ${sortableTh('review','odometer','Odometer')}
+    ${sortableTh('review','description','Description')}
+    ${sortableTh('review','photo','Photo')}
+    <th>Actions</th>
+  </tr>
+</thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
@@ -1083,7 +1177,18 @@ function renderMissingInspections(){
 
 // ── Inspection table ──────────────────────────────────────
 function renderInspections(){
-  const rows = filteredData.filter(r => r[COL.tripType] !== 'Fuel Log');
+ const rows = filteredData.filter(r => r[COL.tripType] !== 'Fuel Log');
+
+sortArrayByConfig(rows, 'insp', {
+  date:       { getter: r => r[COL.date], type: 'date' },
+  time:       { getter: r => r[COL.time], type: 'time' },
+  driver:     { getter: r => r[COL.driver], type: 'text' },
+  vehicle:    { getter: r => r[COL.vehicle], type: 'text' },
+  odometer:   { getter: r => r[COL.odometer], type: 'number' },
+  tripType:   { getter: r => r[COL.tripType], type: 'text' },
+  defect:     { getter: r => r[COL.defectFound], type: 'text' },
+  photo:      { getter: r => r[COL.receiptUrl], type: 'text' }
+});
   document.getElementById('insp-title').textContent =
     `Inspections (${rows.length})`;
 
@@ -1136,17 +1241,19 @@ function renderInspections(){
 
   document.getElementById('insp-wrap').innerHTML = `
     <table class="main-t">
-     <thead><tr>
-  <th>Date</th>
-  <th>Time</th>
-  <th>Driver</th>
-  <th>Vehicle</th>
-  <th style="text-align:right;">Odometer</th>
-  <th>Type</th>
-  <th>Defect Report</th>
-  <th>Photo</th>
-  <th>Actions</th>
-</tr></thead>
+     <thead>
+  <tr>
+    ${sortableTh('insp','date','Date')}
+    ${sortableTh('insp','time','Time')}
+    ${sortableTh('insp','driver','Driver')}
+    ${sortableTh('insp','vehicle','Vehicle')}
+    ${sortableTh('insp','odometer','Odometer', true)}
+    ${sortableTh('insp','tripType','Type')}
+    ${sortableTh('insp','defect','Defect Report')}
+    ${sortableTh('insp','photo','Photo')}
+    <th>Actions</th>
+  </tr>
+</thead>
       </tr></thead>
       <tbody>${html}</tbody>
     </table>`;
@@ -1154,7 +1261,26 @@ function renderInspections(){
 
 // ── Fuel log table ────────────────────────────────────────
 function renderFuelLog(){
-  const rows = filteredData.filter(r => r[COL.tripType]==='Fuel Log');
+  const rows = filteredData.filter(r => r[COL.tripType] === 'Fuel Log');
+
+sortArrayByConfig(rows, 'fuel', {
+  date:      { getter: r => r[COL.date], type: 'date' },
+  time:      { getter: r => r[COL.time], type: 'time' },
+  driver:    { getter: r => r[COL.driver], type: 'text' },
+  vehicle:   { getter: r => r[COL.vehicle], type: 'text' },
+  odometer:  { getter: r => r[COL.odometer], type: 'number' },
+  qty:       { getter: r => r[COL.fuelQty], type: 'number' },
+  amount:    { getter: r => r[COL.fuelAmt], type: 'number' },
+  unitPrice: { 
+    getter: r => {
+      const qty = parseFloat(r[COL.fuelQty]) || 0;
+      const amt = parseFloat(r[COL.fuelAmt]) || 0;
+      return qty > 0 ? amt / qty : 0;
+    }, 
+    type: 'number' 
+  },
+  receipt:   { getter: r => r[COL.receiptUrl], type: 'text' }
+});
   document.getElementById('fuel-title').textContent = `Fuel Log (${rows.length})`;
 
   if(!rows.length){
@@ -1190,11 +1316,20 @@ function renderFuelLog(){
 
   document.getElementById('fuel-wrap').innerHTML = `
     <table class="main-t">
-      <thead><tr>
-        <th>Date</th><th>Time</th><th>Driver</th><th>Vehicle</th>
-        <th>Odometer</th><th>Qty (gal)</th><th>Amount</th><th>Unit Price</th>
-        <th>Receipt</th><th>Actions</th>
-      </tr></thead>
+      <thead>
+  <tr>
+    ${sortableTh('fuel','date','Date')}
+    ${sortableTh('fuel','time','Time')}
+    ${sortableTh('fuel','driver','Driver')}
+    ${sortableTh('fuel','vehicle','Vehicle')}
+    ${sortableTh('fuel','odometer','Odometer', true)}
+    ${sortableTh('fuel','qty','Qty (gal)', true)}
+    ${sortableTh('fuel','amount','Amount', true)}
+    ${sortableTh('fuel','unitPrice','Unit Price', true)}
+    ${sortableTh('fuel','receipt','Receipt')}
+    <th>Actions</th>
+  </tr>
+</thead>
       <tbody>${html}</tbody>
     </table>`;
 }
