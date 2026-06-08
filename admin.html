@@ -1111,6 +1111,8 @@ async function loadData(){
     allData = json.data || [];
     vehicleMaster = json.vehicles || [];
 
+   rebuildVehicleFilterOptions();
+     
     document.getElementById('data-count').textContent =
       allData.length + ' total records';
 
@@ -2147,6 +2149,69 @@ function getVehicleUnitLabel(vehicleId){
   return match ? match[1] : '';
 }
 
+function getVehicleOptionLabel(vehicleId){
+  const id = String(vehicleId || '').trim();
+  const unit = getVehicleUnitLabel(id);
+
+  if(unit){
+    return `${unit} - ${id}`;
+  }
+
+  const fallbackMap = {
+    'O24260': '#1',
+    'O24288': '#2',
+    'O25893': '#3',
+    'O25894': '#4',
+    'O25895': '#5',
+    'O25896': '#6',
+    'O24277': '#7',
+    'O24289': '#8',
+    'O24284': '#9',
+    'O25890': '#A',
+    'O25891': '#B',
+    'O29872': '#C'
+  };
+
+  return fallbackMap[id] ? `${fallbackMap[id]} - ${id}` : id;
+}
+
+function rebuildVehicleFilterOptions(){
+  const orderedVehicles = [
+    'O24260',
+    'O24288',
+    'O25893',
+    'O25894',
+    'O25895',
+    'O25896',
+    'O24277',
+    'O24289',
+    'O24284',
+    'O25890',
+    'O25891',
+    'O29872'
+  ];
+
+  // Search & Overview vehicle filter
+  const fVehicle = document.getElementById('f-vehicle');
+  if(fVehicle){
+    fVehicle.innerHTML =
+      '<option value="ALL">All Vehicles</option>' +
+      orderedVehicles.map(v => {
+        return `<option value="${v}">${getVehicleOptionLabel(v)}</option>`;
+      }).join('');
+  }
+
+  // Monthly Report vehicle filter
+  const rVehicle = document.getElementById('r-vehicle-sel');
+  if(rVehicle){
+    rVehicle.innerHTML =
+      '<option value="ALL">All Vehicles — Summary</option>' +
+      orderedVehicles.map(v => {
+        return `<option value="${v}">${getVehicleOptionLabel(v)}</option>`;
+      }).join('');
+  }
+}
+   
 function getVehicleUnitSortKey(vehicleId){
   const id = String(vehicleId || '').trim();
   const label = getVehicleUnitLabel(id);
