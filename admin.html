@@ -1464,7 +1464,9 @@ function renderEfficiencyTable(){
   // Rows
   let tbody = '';
   sortedMonths.forEach(mk => {
-    const label = new Date(mk+'-01').toLocaleString('en-US',{month:'short',year:'numeric'});
+    const [yy, mm] = mk.split('-').map(Number);
+const label = new Date(yy, mm - 1, 1, 12, 0, 0)
+  .toLocaleString('en-US', { month:'short', year:'numeric' });
     let row = `<tr><td>${label}</td>`;
     let fleetDist = 0, fleetFuel = 0;
     sortedVehicles.forEach(v => {
@@ -1991,10 +1993,12 @@ function generateReport(){
 
   if(!mStr) return;
 
-  const label = new Date(mStr + '-01').toLocaleString('en-US', {
-    month: 'long',
-    year: 'numeric'
-  });
+  const [reportYear, reportMonth] = mStr.split('-').map(Number);
+
+const label = new Date(reportYear, reportMonth - 1, 1, 12, 0, 0).toLocaleString('en-US', {
+  month: 'long',
+  year: 'numeric'
+});
 
   const monthRows = allData.filter(r => {
     const d = fmtDate(r[COL.date]);
