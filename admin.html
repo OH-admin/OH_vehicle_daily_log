@@ -1505,28 +1505,37 @@ function applyFilters(){
 
   filteredData = allData.filter(r => {
     const d = fmtDate(r[COL.date]);
+
     if(from && d < from) return false;
-    if(to   && d > to)   return false;
-    if(veh  && r[COL.vehicle] !== veh) return false;
-    if(drv  && String(r[COL.driver] || '').trim() !== drv) return false;
+    if(to && d > to) return false;
+
+    // All Vehicles / All Drivers 처리
+    if(veh && veh !== 'ALL' && r[COL.vehicle] !== veh) return false;
+    if(drv && drv !== 'ALL' && String(r[COL.driver] || '').trim() !== drv) return false;
+
     return true;
   });
 
-  filteredData.sort((a,b) => {
-    const ka = sortKey(a), kb = sortKey(b);
-    return sort==='desc' ? kb.localeCompare(ka) : ka.localeCompare(kb);
+  filteredData.sort((a, b) => {
+    const ka = sortKey(a);
+    const kb = sortKey(b);
+    return sort === 'desc' ? kb.localeCompare(ka) : ka.localeCompare(kb);
   });
 
   tablePage.insp = 1;
   tablePage.fuel = 1;
 
-  document.getElementById('loading-state').style.display='none';
+  document.getElementById('loading-state').style.display = 'none';
   document.getElementById('results-wrap').style.display = 'flex';
 
+  // Search & Overview 상단 MPG/KPI 삭제했으므로 호출하지 않음
+  // renderStats();
+  // renderEfficiencyTable();
+
   renderMissingInspections();
-renderInspections();
-renderFuelLog();
-renderOpenIssues();
+  renderInspections();
+  renderFuelLog();
+  renderOpenIssues();
 }
 
 // ── Stats ─────────────────────────────────────────────────
