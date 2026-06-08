@@ -312,6 +312,22 @@ textarea {
     </div>
     <div class="page-pad">
 
+<!-- 이 폰 주인 자동 표시 배너 -->
+      <div class="card-green" id="me-banner" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div>
+            <div style="font-size:15px;color:var(--ink2);letter-spacing:-0.12px;">이 기기 사용자 / This device</div>
+            <div style="font-size:21px;font-weight:700;color:var(--ink);margin-top:2px;" id="me-name"></div>
+            <div style="font-size:15px;color:var(--ink2);margin-top:2px;" id="me-vehicle"></div>
+          </div>
+          <button onclick="changeMe()" style="flex-shrink:0;padding:11px 16px;font-size:16px;
+            font-weight:600;background:var(--parchment);color:var(--blue);border:1px solid var(--hairline);
+            border-radius:var(--r-pill);cursor:pointer;font-family:var(--font);">
+            변경<br><span style="font-size:12px;font-weight:400;">Not me</span>
+          </button>
+        </div>
+      </div>
+       
       <div class="card">
         <span class="lbl">운전자 선택 <span class="lbl-sub">Select Driver</span></span>
         <select id="drv-sel" onchange="onDriverChange()">
@@ -562,6 +578,8 @@ textarea {
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyWBwZzTwhR3aZ1HVB2VI9y5S-Q-VVVACog5qVT9k4JBh28vk5a4eXHQHdSdDXWPrIrdg/exec';
 const SAVED_DRIVER_KEY = 'ohadc_saved_driver';
 const SAVED_OTHER_DRIVER_KEY = 'ohadc_saved_other_driver';
+const SAVED_VEHICLE_KEY = 'ohadc_saved_vehicle';
+const REMEMBER_ME_KEY = 'ohadc_remember_me';
 // 동적으로 로드된 차량 목록 (Sheets Vehicles 시트 기준)
 let VEHICLES_MAP = {}; // id → displayName (빠른 조회용)
 let VEHICLES_LIST = []; // 전체 목록
@@ -701,7 +719,7 @@ function onDriverChange(){
 
   document.getElementById('other-name-wrap').style.display = v === 'OTHER' ? 'block' : 'none';
 
-  if (v) {
+  if (v && isRememberOn()) {
     try {
       localStorage.setItem(SAVED_DRIVER_KEY, v);
     } catch(e) {}
@@ -722,7 +740,15 @@ function onDriverChange(){
 function getVehicleKey(){
   return 'lastOdo_' + (document.getElementById('veh-sel').value || '');
 }
+
+   
 function checkLastOdo(){
+  if(isRememberOn()){
+    try {
+      const veh = document.getElementById('veh-sel').value;
+      if(veh) localStorage.setItem(SAVED_VEHICLE_KEY, veh);
+    } catch(e){}
+  }
   const key = getVehicleKey();
   try {
     const saved = localStorage.getItem(key);
@@ -793,26 +819,89 @@ function getDriverName(){
   return v;
 }
 
+function isRememberOn(){
+  try { return localStorage.getItem(REMEMBER_ME_KEY) === '1'; } catch(e){ return false; }
+}
+
+function onRememberToggle(){
+  const on = document.getElementById('remember-me').checked;
+  try {
+    if(on){
+      localStorage.setItem(REMEMBER_ME_KEY, '1');
+      // 현재 선택값 즉시 저장
+      const drv = document.getElementById('drv-sel').value;
+      const veh = document.getElementById('veh-sel').value;
+      if(drv) localStorage.setItem(SAVED_DRIVER_KEY, drv);
+      if(veh) localStorage.setItem(SAVED_VEHICLE_KEY, veh);
+    } else {
+      localStorage.setItem(REMEMBER_ME_KEY, '0');
+    }
+  } catch(e){}
+}
+
+// "변경 / Not me" — 자동 채움 해제하고 직접 고르기
+function changeMe(){
+  try { localStorage.setItem(REMEMBER_ME_KEY, '0'); } catch(e){}
+  document.getElementById('me-banner').style.display = 'none';
+  const cb = document.getElementById('remember-me');
+  if(cb) cb.checked = false;
+}
+
+function showMeBanner(driverDisplay, vehicleDisplayText){
+  const b = document.getElementById('me-banner');
+  if(!b) return;
+  document.getElementById('me-name').textContent = driverDisplay || '';
+  document.getElementById('me-vehicle').textContent = vehicleDisplayText || '';
+  b.style.display = 'block';
+}
+
 function restoreSavedDriver(){
   try {
     const savedDriver = localStorage.getItem(SAVED_DRIVER_KEY);
     const savedOtherDriver = localStorage.getItem(SAVED_OTHER_DRIVER_KEY);
+    const savedVehicle = localStorage.getItem(SAVED_VEHICLE_KEY);
+    const rememberOn = isRememberOn();
 
-    if (!savedDriver) return;
+    const cb = document.getElementById('remember-me');
+    if(cb) cb.checked = rememberOn;
+
+    if(!savedDriver) return;
 
     const sel = document.getElementById('drv-sel');
     const exists = Array.from(sel.options).some(opt => opt.value === savedDriver);
+    if(!exists) return;
 
-    if (exists) {
-      sel.value = savedDriver;
+    sel.value = savedDriver;
 
-      if (savedDriver === 'OTHER' && savedOtherDriver) {
-        document.getElementById('other-name').value = savedOtherDriver;
-      }
-
-      onDriverChange();
+    if(savedDriver === 'OTHER' && savedOtherDriver){
+      document.getElementById('other-name').value = savedOtherDriver;
     }
-  } catch(e) {}
+
+    onDriverChange(); // 차량/구분/odo 카드 표시 + checkLastOdo
+
+    // 저장된 지정 차량 복원
+    if(savedVehicle){
+      const vehSel = document.getElementById('veh-sel');
+      const vExists = Array.from(vehSel.options).some(opt => opt.value === savedVehicle);
+      if(vExists){
+        vehSel.value = savedVehicle;
+        checkLastOdo();
+      }
+    }
+
+    // "내 기기로 기억"이 켜져 있으면 상단 배너로 본인 표시
+    if(rememberOn){
+      const driverText = savedDriver === 'OTHER'
+        ? (savedOtherDriver || 'Other')
+        : (sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : savedDriver);
+
+      const vehText = savedVehicle
+        ? ('🚐 ' + (typeof vehicleDisplay === 'function' ? vehicleDisplay(savedVehicle) : savedVehicle))
+        : '';
+
+      showMeBanner('👤 ' + driverText, vehText);
+    }
+  } catch(e){}
 }
    
 // ── Start ─────────────────────────────────────────────────
