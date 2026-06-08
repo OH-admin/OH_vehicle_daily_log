@@ -1167,9 +1167,9 @@ function renderOpenIssues(){
         <td>${photo}</td>
         <td style="vertical-align:middle;">
   <div class="act-group">
-    <button class="btn btn-g btn-sm" onclick="printRecord('${getRowIndex(r)}')">Print</button>
-    <button class="btn btn-b btn-sm" onclick="editRecord('${getRowIndex(r)}')">Edit</button>
-    <button class="btn btn-r btn-sm" onclick="deleteRecord('${getRowIndex(r)}')">Del</button>
+    <button class="btn btn-b btn-sm" onclick="editIssueRecord('${getIssueSourceRow(issue)}')">Edit</button>
+    <button class="btn btn-g btn-sm" onclick="updateIssueStatus('${issue.rowIndex}','RESOLVED')">Resolve</button>
+    <button class="btn btn-r btn-sm" onclick="deleteReviewIssue('${issue.rowIndex}')">Delete</button>
   </div>
 </td>
       </tr>
@@ -1644,11 +1644,11 @@ sortArrayByConfig(rows, 'fuel', {
       <td style="font-size:12px;color:var(--ink-muted);">${ppg}</td>
       <td>${link}</td>
      <td style="vertical-align:middle;">
-     <div class="act-group">
-       <button class="btn btn-g btn-sm" onclick="printRecord(${globalIdx})">Print</button>
-       <button class="btn btn-b btn-sm" onclick="editRecord('${r[COL.rowIndex]}')">Edit</button>
-       <button class="btn btn-r btn-sm" onclick="deleteRecord('${getRowIndex(r)}')">Del</button>
-     </div>
+  <div class="act-group">
+    <button class="btn btn-g btn-sm" onclick="printRecord('${getRowIndex(r)}')">Print</button>
+    <button class="btn btn-b btn-sm" onclick="editRecord('${getRowIndex(r)}')">Edit</button>
+    <button class="btn btn-r btn-sm" onclick="deleteRecord('${getRowIndex(r)}')">Del</button>
+  </div>
 </td>
     </tr>`;
   }).join('');
@@ -1754,28 +1754,7 @@ function editIssueRecord(sourceRowId){
   editRecord(rowIdStr);
 }
 
-function editIssueRecord(sourceRowId){
-  if(!sourceRowId){
-    alert('Cannot edit: source row number is missing from this review item.');
-    return;
-  }
 
-  const rowIdStr = String(sourceRowId).trim();
-
-  const r = allData.find(x => String(x[COL.rowIndex]).trim() === rowIdStr);
-
-  if(!r){
-    alert(
-      'Cannot find the original inspection record for this review item.\n\n' +
-      'Source row: ' + rowIdStr + '\n\n' +
-      'This usually means the Review Queue item does not have a correct rowNo/sourceRowIndex.'
-    );
-    return;
-  }
-
-  editRecord(r[COL.rowIndex]);
-}
-   
 // ── Edit ──────────────────────────────────────────────────
 function editRecord(rowId){
   const rowIdStr = String(rowId || '').trim();
