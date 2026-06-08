@@ -1783,90 +1783,338 @@ function resetFilters(){
   applyFilters();
 }
 
+function parseNum(value){
+  if(value === null || value === undefined || value === '') return 0;
+  const n = Number(String(value).replace(/,/g, '').replace('$', '').trim());
+  return isNaN(n) ? 0 : n;
+}
+
+function getReportRowDateTime(r){
+  const d = fmtDate(r[COL.date]) || '';
+  const t = fmtTime(r[COL.time]) || '00:00';
+  return d + 'T' + t;
+}
+
+function getMonthlyOdoStats(rows){
+  const odoRows = rows
+    .filter(r => r[COL.tripType] !== 'Fuel Log')
+    .map(r => ({
+      row: r,
+      key: getReportRowDateTime(r),
+      odo: parseNum(r[COL.odometer])
+    }))
+    .filter(x => x.odo > 0)
+    .sort((a, b) => a.key.localeCompare(b.key));
+
+  if(!odoRows.length){
+    return {
+      firstOdo: 0,
+      lastOdo: 0,
+      miles: 0,
+      firstDate: '',
+      lastDate: ''
+    };
+  }
+
+  const first = odoRows[0];
+  const last = odoRows[odoRows.length - 1];
+  const miles = last.odo >= first.odo ? last.odo - first.odo : 0;
+
+  return {
+    firstOdo: first.odo,
+    lastOdo: last.odo,
+    miles: miles,
+    firstDate: dispDate(first.row[COL.date]),
+    lastDate: dispDate(last.row[COL.date])
+  };
+}
+
+function getReportBucketKey(vehicle, driver){
+  return vehicle + '||' + driver;
+}
+   
 // ── Monthly report ────────────────────────────────────────
 function generateReport(){
   const mStr = document.getElementById('r-month').value;
   const vSel = document.getElementById('r-vehicle-sel').value;
-  const dSel = document.getElementById('r-driver-sel').value;
+  const dSel = document.getElementById('r-driver-sel') ? document.getElementById('r-driver-sel').value : 'ALL';
+
   if(!mStr) return;
 
-  if(vSel==='ALL'){
-    const map={};
-    allData.forEach(r=>{
-  const d = fmtDate(r[COL.date]);
-  if(!d || d.slice(0,7) !== mStr) return;
+  const label = new Date(mStr + '-01').toLocaleString('en-US', {
+    month: 'long',
+    year: 'numeric'
+  });
 
-  if(dSel !== 'ALL' && String(r[COL.driver] || '').trim() !== dSel) return;
+  const monthRows = allData.filter(r => {
+    const d = fmtDate(r[COL.date]);
+    if(!d || d.slice(0,7) !== mStr) return false;
 
-  const v = r[COL.vehicle];
-  if(!v) return;
-      if(!map[v]) map[v]={trips:0,minOdo:Infinity,maxOdo:0,fuelQty:0,fuelAmt:0,defects:0};
-      if(r[COL.tripType]==='Fuel Log'){
-        map[v].fuelQty+=parseFloat(r[COL.fuelQty]||0);
-        map[v].fuelAmt+=parseFloat(r[COL.fuelAmt]||0);
-      } else {
-        map[v].trips++;
-        if(r[COL.defectFound]==='yes') map[v].defects++;
-      }
-      const odo=parseFloat(r[COL.odometer]);
-      if(!isNaN(odo)&&odo>0){if(odo<map[v].minOdo)map[v].minOdo=odo;if(odo>map[v].maxOdo)map[v].maxOdo=odo;}
-    });
-    const rows=Object.keys(map).sort().map(v=>{
-      const dist=(map[v].maxOdo>0&&map[v].minOdo!==Infinity)?map[v].maxOdo-map[v].minOdo:0;
-      const ppg=map[v].fuelQty>0?(map[v].fuelAmt/map[v].fuelQty).toFixed(3):0;
-      const mpg=map[v].fuelQty>0&&dist>0?(dist/map[v].fuelQty).toFixed(1):'—';
-      return `<tr><td><strong>${v}</strong></td><td>${map[v].trips}</td>
-        <td>${dist>0?dist.toLocaleString()+' mi':'—'}</td>
-        <td>${map[v].fuelQty.toFixed(3)} gal</td>
-        <td>$${map[v].fuelAmt.toFixed(2)}<span style="font-size:11px;color:var(--ink-muted);"> ($${ppg}/gal)</span></td>
-        <td style="color:var(--b-tx);font-weight:700;">${mpg}</td>
-        <td><span class="badge ${map[v].defects>0?'b-def':'b-ok'}">${map[v].defects}</span></td></tr>`;
+    if(vSel !== 'ALL' && r[COL.vehicle] !== vSel) return false;
+    if(dSel !== 'ALL' && String(r[COL.driver] || '').trim() !== dSel) return false;
+
+    return true;
+  });
+
+  const inspectionRows = monthRows.filter(r => r[COL.tripType] !== 'Fuel Log');
+  const fuelRows = monthRows.filter(r => r[COL.tripType] === 'Fuel Log');
+
+  // 차량 + 기사 기준 summary bucket
+  const buckets = {};
+
+  monthRows.forEach(r => {
+    const vehicle = String(r[COL.vehicle] || '—').trim();
+    const driver = String(r[COL.driver] || '—').trim();
+
+    if(!vehicle || vehicle === '—') return;
+
+    const key = getReportBucketKey(vehicle, driver);
+
+    if(!buckets[key]){
+      buckets[key] = {
+        vehicle: vehicle,
+        driver: driver,
+        rows: [],
+        inspectionRows: [],
+        fuelRows: [],
+        fuelQty: 0,
+        fuelAmt: 0,
+        defects: 0
+      };
+    }
+
+    buckets[key].rows.push(r);
+
+    if(r[COL.tripType] === 'Fuel Log'){
+      buckets[key].fuelRows.push(r);
+      buckets[key].fuelQty += parseNum(r[COL.fuelQty]);
+      buckets[key].fuelAmt += parseNum(r[COL.fuelAmt]);
+    } else {
+      buckets[key].inspectionRows.push(r);
+      if(r[COL.defectFound] === 'yes') buckets[key].defects++;
+    }
+  });
+
+  const summaryRows = Object.keys(buckets).sort().map(key => {
+    const b = buckets[key];
+    const odo = getMonthlyOdoStats(b.rows);
+
+    const mpg = b.fuelQty > 0 && odo.miles > 0
+      ? (odo.miles / b.fuelQty).toFixed(1)
+      : '—';
+
+    const ppg = b.fuelQty > 0
+      ? '$' + (b.fuelAmt / b.fuelQty).toFixed(3)
+      : '—';
+
+    const driverNote = dSel !== 'ALL'
+      ? '<span style="font-size:11px;color:var(--a-tx);">est.</span>'
+      : '';
+
+    return `
+      <tr>
+        <td><strong>${escapeHtml(b.vehicle)}</strong></td>
+        <td style="font-size:12px;white-space:nowrap;">${escapeHtml(b.driver)}</td>
+        <td style="text-align:right;">${b.inspectionRows.length}</td>
+        <td style="text-align:right;">${b.fuelRows.length}</td>
+        <td style="text-align:right;font-variant-numeric:tabular-nums;">${odo.firstOdo ? fmtOdo(odo.firstOdo) : '—'}</td>
+        <td style="text-align:right;font-variant-numeric:tabular-nums;">${odo.lastOdo ? fmtOdo(odo.lastOdo) : '—'}</td>
+        <td style="text-align:right;font-weight:700;">${odo.miles > 0 ? fmtOdo(odo.miles) + ' mi' : '—'} ${driverNote}</td>
+        <td style="text-align:right;">${b.fuelQty.toFixed(3)} gal</td>
+        <td style="text-align:right;">$${b.fuelAmt.toFixed(2)}</td>
+        <td style="text-align:right;">${ppg}</td>
+        <td style="text-align:right;color:var(--b-tx);font-weight:700;">${mpg}</td>
+        <td style="text-align:center;">
+          <span class="badge ${b.defects > 0 ? 'b-def' : 'b-ok'}">${b.defects}</span>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  const totalFuelQty = fuelRows.reduce((sum, r) => sum + parseNum(r[COL.fuelQty]), 0);
+  const totalFuelAmt = fuelRows.reduce((sum, r) => sum + parseNum(r[COL.fuelAmt]), 0);
+
+  // 전체 차량 월간 miles는 차량별로 한 번씩 계산해서 합산
+  const vehicleMap = {};
+  monthRows.forEach(r => {
+    const vehicle = String(r[COL.vehicle] || '').trim();
+    if(!vehicle) return;
+    if(!vehicleMap[vehicle]) vehicleMap[vehicle] = [];
+    vehicleMap[vehicle].push(r);
+  });
+
+  let totalMiles = 0;
+  Object.keys(vehicleMap).forEach(v => {
+    const odo = getMonthlyOdoStats(vehicleMap[v]);
+    totalMiles += odo.miles || 0;
+  });
+
+  const fleetMpg = totalFuelQty > 0 && totalMiles > 0
+    ? (totalMiles / totalFuelQty).toFixed(1)
+    : '—';
+
+  const titleVehicle = vSel === 'ALL' ? 'All Vehicles' : 'Vehicle ' + vSel;
+  const titleDriver = dSel === 'ALL' ? 'All Drivers' : 'Driver: ' + dSel;
+
+  document.getElementById('report-title').textContent =
+    `${label} — ${titleVehicle} — ${titleDriver}`;
+
+  const summaryHtml = `
+    <div style="
+      background:#f0f4ff;
+      border:1px solid #c2d5ff;
+      padding:14px 18px;
+      margin-bottom:16px;
+      border-radius:var(--r-sm);
+      display:flex;
+      gap:24px;
+      font-size:14px;
+      flex-wrap:wrap;
+    ">
+      <div><strong>Total Inspection Records:</strong> ${inspectionRows.length}</div>
+      <div><strong>Total Fuel Logs:</strong> ${fuelRows.length}</div>
+      <div><strong>Monthly Miles:</strong> ${totalMiles > 0 ? fmtOdo(totalMiles) + ' mi' : '—'}</div>
+      <div><strong>Total Fuel:</strong> ${totalFuelQty.toFixed(3)} gal</div>
+      <div><strong>Total Fuel Cost:</strong> $${totalFuelAmt.toFixed(2)}</div>
+      <div><strong style="color:var(--b-tx);">MPG: ${fleetMpg}</strong></div>
+    </div>
+    ${dSel !== 'ALL' ? `
+      <div style="
+        background:var(--a-bg);
+        border:1px solid var(--a-bd);
+        color:var(--a-tx);
+        padding:10px 14px;
+        border-radius:var(--r-sm);
+        font-size:12px;
+        margin-bottom:14px;
+        line-height:1.5;
+      ">
+        Driver-filtered mileage is estimated from vehicle odometer readings within this driver's filtered records.
+        Because vehicle odometer is cumulative, exact driver mileage requires trip-level start/end odometer or GPS trip distance.
+      </div>
+    ` : ''}
+  `;
+
+  const vehicleDriverSummaryHtml = `
+    <div class="sec-title">Vehicle / Driver Monthly Mileage & Fuel Summary</div>
+    <table class="main-t">
+      <thead>
+        <tr>
+          <th>Vehicle</th>
+          <th>Driver</th>
+          <th style="text-align:right;">Inspections</th>
+          <th style="text-align:right;">Fuel Logs</th>
+          <th style="text-align:right;">First Odometer</th>
+          <th style="text-align:right;">Last Odometer</th>
+          <th style="text-align:right;">Monthly Miles</th>
+          <th style="text-align:right;">Fuel Qty</th>
+          <th style="text-align:right;">Fuel Cost</th>
+          <th style="text-align:right;">$/gal</th>
+          <th style="text-align:right;">MPG</th>
+          <th style="text-align:center;">Defects</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${summaryRows || '<tr><td colspan="12" style="text-align:center;color:var(--ink-muted);">No summary data</td></tr>'}
+      </tbody>
+    </table>
+  `;
+
+  const inspectionDetailRows = inspectionRows
+    .sort((a,b) => getReportRowDateTime(a).localeCompare(getReportRowDateTime(b)))
+    .map(r => {
+      const defBadge = r[COL.defectFound] === 'yes'
+        ? '<span class="badge b-def">Defect</span>'
+        : '<span class="badge b-ok">OK</span>';
+
+      return `
+        <tr>
+          <td style="white-space:nowrap;">${dispDate(r[COL.date])}</td>
+          <td>${fmtTime(r[COL.time])}</td>
+          <td style="font-size:12px;white-space:nowrap;">${escapeHtml(r[COL.driver] || '—')}</td>
+          <td><strong>${escapeHtml(r[COL.vehicle] || '—')}</strong></td>
+          <td style="text-align:right;font-variant-numeric:tabular-nums;">${fmtOdo(r[COL.odometer])}</td>
+          <td>${escapeHtml(r[COL.tripType] || '')}</td>
+          <td>${defBadge}</td>
+        </tr>
+      `;
     }).join('');
-    const label=new Date(mStr+'-01').toLocaleString('en-US',{month:'long',year:'numeric'});
-    document.getElementById('report-title').textContent =   `${label} — All Vehicles Summary${dSel !== 'ALL' ? ' — Driver: ' + dSel : ''}`;
-    document.getElementById('report-table-wrap').innerHTML=`<table class="main-t">
-      <thead><tr><th>Vehicle</th><th>Inspections</th><th>Est. Miles</th>
-        <th>Fuel (gal)</th><th>Fuel Cost ($/gal)</th><th>MPG</th><th>Defects</th></tr></thead>
-      <tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:var(--ink-muted);">No data</td></tr>'}</tbody>
-    </table>`;
-  } else {
-    const listRows=[];
-    let minO=Infinity,maxO=0,tQ=0,tA=0;
-    allData.forEach(r=>{
-  const d = fmtDate(r[COL.date]);
-  if(!d || d.slice(0,7) !== mStr || r[COL.vehicle] !== vSel) return;
 
-  if(dSel !== 'ALL' && String(r[COL.driver] || '').trim() !== dSel) return;
-      const odo=parseFloat(r[COL.odometer]);
-      if(!isNaN(odo)&&odo>0){if(odo<minO)minO=odo;if(odo>maxO)maxO=odo;}
-      const isF=r[COL.tripType]==='Fuel Log';
-      if(isF){tQ+=parseFloat(r[COL.fuelQty]||0);tA+=parseFloat(r[COL.fuelAmt]||0);}
-      const fStr=isF?`${r[COL.fuelQty]} gal / $${r[COL.fuelAmt]}`:'—';
-      const defBadge=r[COL.defectFound]==='yes'?'<span class="badge b-def">Defect</span>':'<span class="badge b-ok">OK</span>';
-      listRows.push(`<tr><td>${dispDate(r[COL.date])}</td><td>${fmtTime(r[COL.time])}</td>
-        <td style="font-size:12px;">${r[COL.driver]||'—'}</td><td style="text-align:right;">${fmtOdo(r[COL.odometer])}</td>
-        <td>${r[COL.tripType]}</td><td>${fStr}</td><td>${defBadge}</td></tr>`);
-    });
-    const dist=(maxO>0&&minO!==Infinity)?maxO-minO:0;
-    const mpg=tQ>0&&dist>0?(dist/tQ).toFixed(1):'—';
-    const ppg=tQ>0?(tA/tQ).toFixed(3):0;
-    const sumHtml=`<div style="background:#f0f4ff;border:1px solid #c2d5ff;padding:14px 18px;
-      margin-bottom:16px;border-radius:var(--r-sm);display:flex;gap:24px;
-      font-size:14px;flex-wrap:wrap;">
-      <div><strong>Est. Miles:</strong> ${dist>0?dist.toLocaleString()+' mi':'—'}</div>
-      <div><strong>Total Fuel:</strong> ${tQ.toFixed(3)} gal</div>
-      <div><strong>Fuel Cost:</strong> $${tA.toFixed(2)} ($${ppg}/gal)</div>
-      <div><strong style="color:var(--b-tx);">MPG: ${mpg}</strong></div>
-    </div>`;
-    const label=new Date(mStr+'-01').toLocaleString('en-US',{month:'long',year:'numeric'});
-    document.getElementById('report-title').textContent =   `${label} — Vehicle ${vSel}${dSel !== 'ALL' ? ' — Driver: ' + dSel : ''}`;
-    document.getElementById('report-table-wrap').innerHTML=sumHtml+`<table class="main-t">
-      <thead><tr><th>Date</th><th>Time</th><th>Driver</th><th>Odometer</th>
-        <th>Type</th><th>Fuel</th><th>Defect</th></tr></thead>
-      <tbody>${listRows.join('')||'<tr><td colspan="7" style="text-align:center;color:var(--ink-muted);">No data</td></tr>'}</tbody>
-    </table>`;
-  }
-  document.getElementById('report-output').style.display='block';
+  const fuelDetailRows = fuelRows
+    .sort((a,b) => getReportRowDateTime(a).localeCompare(getReportRowDateTime(b)))
+    .map(r => {
+      const qty = parseNum(r[COL.fuelQty]);
+      const amt = parseNum(r[COL.fuelAmt]);
+      const ppg = qty > 0 ? '$' + (amt / qty).toFixed(3) : '—';
+
+      const receipt = r[COL.receiptUrl] && String(r[COL.receiptUrl]).startsWith('http')
+        ? `<a href="${r[COL.receiptUrl]}" target="_blank" style="color:var(--blue);">Receipt</a>`
+        : '—';
+
+      return `
+        <tr>
+          <td style="white-space:nowrap;">${dispDate(r[COL.date])}</td>
+          <td>${fmtTime(r[COL.time])}</td>
+          <td style="font-size:12px;white-space:nowrap;">${escapeHtml(r[COL.driver] || '—')}</td>
+          <td><strong>${escapeHtml(r[COL.vehicle] || '—')}</strong></td>
+          <td style="text-align:right;font-variant-numeric:tabular-nums;">${fmtOdo(r[COL.odometer])}</td>
+          <td style="text-align:right;">${qty.toFixed(3)} gal</td>
+          <td style="text-align:right;">$${amt.toFixed(2)}</td>
+          <td style="text-align:right;">${ppg}</td>
+          <td>${receipt}</td>
+        </tr>
+      `;
+    }).join('');
+
+  const inspectionHtml = `
+    <div class="sec-title" style="margin-top:22px;">Inspection Records</div>
+    <table class="main-t">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Driver</th>
+          <th>Vehicle</th>
+          <th style="text-align:right;">Odometer</th>
+          <th>Type</th>
+          <th>Defect</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${inspectionDetailRows || '<tr><td colspan="7" style="text-align:center;color:var(--ink-muted);">No inspection records</td></tr>'}
+      </tbody>
+    </table>
+  `;
+
+  const fuelHtml = `
+    <div class="sec-title" style="margin-top:22px;">Fuel Log Records</div>
+    <table class="main-t">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Driver</th>
+          <th>Vehicle</th>
+          <th style="text-align:right;">Odometer</th>
+          <th style="text-align:right;">Qty</th>
+          <th style="text-align:right;">Amount</th>
+          <th style="text-align:right;">$/gal</th>
+          <th>Receipt</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${fuelDetailRows || '<tr><td colspan="9" style="text-align:center;color:var(--ink-muted);">No fuel records</td></tr>'}
+      </tbody>
+    </table>
+  `;
+
+  document.getElementById('report-table-wrap').innerHTML =
+    summaryHtml +
+    vehicleDriverSummaryHtml +
+    inspectionHtml +
+    fuelHtml;
+
+  document.getElementById('report-output').style.display = 'block';
 }
 
 async function sendEmailReport(){
