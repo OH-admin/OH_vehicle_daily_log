@@ -113,6 +113,95 @@ html,body { font-family:var(--font); background:var(--parchment); color:var(--in
 .sec-title { font-size:11px;font-weight:600;color:var(--ink-muted);
   text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px; }
 
+.report-kpis{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(180px,1fr));
+  gap:12px;
+  margin:0 0 18px 0;
+}
+
+.report-kpi{
+  border:1px solid var(--hairline);
+  border-radius:18px;
+  background:#fff;
+  padding:16px 18px;
+  min-height:88px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+
+.report-kpi .value{
+  font-size:18px;
+  font-weight:800;
+  line-height:1.2;
+  margin-bottom:6px;
+  font-variant-numeric:tabular-nums;
+}
+
+.report-kpi .label{
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.08em;
+  color:var(--ink-muted);
+  text-transform:uppercase;
+}
+
+.report-kpi.kpi-miles{
+  background:#fbfbfc;
+}
+
+.report-kpi.kpi-cost{
+  background:#f6fbf6;
+  border-color:#78b879;
+}
+.report-kpi.kpi-cost .value{
+  color:#1f5f27;
+}
+
+.report-kpi.kpi-fuel{
+  background:#fbfbfc;
+}
+
+.report-kpi.kpi-mpg{
+  background:#f6f8ff;
+  border-color:#6a95f2;
+}
+.report-kpi.kpi-mpg .value{
+  color:#244a9b;
+}
+
+.report-box{
+  background:#fff;
+  border:1px solid var(--hairline);
+  border-radius:18px;
+  padding:16px 16px 12px 16px;
+  margin-top:18px;
+}
+
+.report-box .sec-title{
+  margin-top:0;
+  margin-bottom:12px;
+}
+
+.report-box .box-meta{
+  font-size:12px;
+  color:var(--ink-muted);
+  margin:-4px 0 12px 0;
+}
+
+@media (max-width: 1100px){
+  .report-kpis{
+    grid-template-columns:repeat(2, minmax(180px,1fr));
+  }
+}
+
+@media (max-width: 640px){
+  .report-kpis{
+    grid-template-columns:1fr;
+  }
+}
+   
 /* ── Form ───────────────────────────────────────────────── */
 .filter-grid,.form-grid { display:grid;
   grid-template-columns:repeat(auto-fit,minmax(155px,1fr));
@@ -1959,66 +2048,79 @@ function generateReport(){
   document.getElementById('report-title').textContent =
     `${label} — ${titleVehicle} — ${titleDriver}`;
 
-  const summaryHtml = `
-    <div style="
-      background:#f0f4ff;
-      border:1px solid #c2d5ff;
-      padding:14px 18px;
-      margin-bottom:16px;
-      border-radius:var(--r-sm);
-      display:flex;
-      gap:24px;
-      font-size:14px;
-      flex-wrap:wrap;
-    ">
-      <div><strong>Total Inspection Records:</strong> ${inspectionRows.length}</div>
-      <div><strong>Total Fuel Logs:</strong> ${fuelRows.length}</div>
-      <div><strong>Monthly Miles:</strong> ${totalMiles > 0 ? fmtOdo(totalMiles) + ' mi' : '—'}</div>
-      <div><strong>Total Fuel:</strong> ${totalFuelQty.toFixed(3)} gal</div>
-      <div><strong>Total Fuel Cost:</strong> $${totalFuelAmt.toFixed(2)}</div>
-      <div><strong style="color:var(--b-tx);">MPG: ${fleetMpg}</strong></div>
+ const summaryHtml = `
+  <div class="report-kpis">
+    <div class="report-kpi kpi-miles">
+      <div class="value">${totalMiles > 0 ? fmtOdo(totalMiles) + ' mi' : '—'}</div>
+      <div class="label">Monthly Miles (Est.)</div>
     </div>
-    ${dSel !== 'ALL' ? `
-      <div style="
-        background:var(--a-bg);
-        border:1px solid var(--a-bd);
-        color:var(--a-tx);
-        padding:10px 14px;
-        border-radius:var(--r-sm);
-        font-size:12px;
-        margin-bottom:14px;
-        line-height:1.5;
-      ">
-        Driver-filtered mileage is estimated from vehicle odometer readings within this driver's filtered records.
-        Because vehicle odometer is cumulative, exact driver mileage requires trip-level start/end odometer or GPS trip distance.
-      </div>
-    ` : ''}
-  `;
+
+    <div class="report-kpi kpi-cost">
+      <div class="value">$${totalFuelAmt.toFixed(2)}</div>
+      <div class="label">Total Fuel Cost</div>
+    </div>
+
+    <div class="report-kpi kpi-fuel">
+      <div class="value">${totalFuelQty.toFixed(3)} gal</div>
+      <div class="label">Total Fuel (Gal)</div>
+    </div>
+
+    <div class="report-kpi kpi-mpg">
+      <div class="value">${fleetMpg}</div>
+      <div class="label">Avg MPG</div>
+    </div>
+  </div>
+
+  ${dSel !== 'ALL' ? `
+    <div style="
+      background:var(--a-bg);
+      border:1px solid var(--a-bd);
+      color:var(--a-tx);
+      padding:10px 14px;
+      border-radius:12px;
+      font-size:12px;
+      margin-bottom:14px;
+      line-height:1.5;
+    ">
+      Driver-filtered mileage is estimated from vehicle odometer readings within this driver's filtered records.
+      Because vehicle odometer is cumulative, exact driver mileage requires trip-level start/end odometer or GPS trip distance.
+    </div>
+  ` : ''}
+`;
 
   const vehicleDriverSummaryHtml = `
+  <div class="report-box">
     <div class="sec-title">Vehicle / Driver Monthly Mileage & Fuel Summary</div>
-    <table class="main-t">
-      <thead>
-        <tr>
-          <th>Vehicle</th>
-          <th>Driver</th>
-          <th style="text-align:right;">Inspections</th>
-          <th style="text-align:right;">Fuel Logs</th>
-          <th style="text-align:right;">First Odometer</th>
-          <th style="text-align:right;">Last Odometer</th>
-          <th style="text-align:right;">Monthly Miles</th>
-          <th style="text-align:right;">Fuel Qty</th>
-          <th style="text-align:right;">Fuel Cost</th>
-          <th style="text-align:right;">$/gal</th>
-          <th style="text-align:right;">MPG</th>
-          <th style="text-align:center;">Defects</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${summaryRows || '<tr><td colspan="12" style="text-align:center;color:var(--ink-muted);">No summary data</td></tr>'}
-      </tbody>
-    </table>
-  `;
+    <div class="box-meta">
+      Inspection records: <strong>${inspectionRows.length}</strong>
+      &nbsp;|&nbsp;
+      Fuel logs: <strong>${fuelRows.length}</strong>
+    </div>
+    <div class="t-wrap">
+      <table class="main-t">
+        <thead>
+          <tr>
+            <th>Vehicle</th>
+            <th>Driver</th>
+            <th style="text-align:right;">Inspections</th>
+            <th style="text-align:right;">Fuel Logs</th>
+            <th style="text-align:right;">First Odometer</th>
+            <th style="text-align:right;">Last Odometer</th>
+            <th style="text-align:right;">Monthly Miles</th>
+            <th style="text-align:right;">Fuel Qty</th>
+            <th style="text-align:right;">Fuel Cost</th>
+            <th style="text-align:right;">$/gal</th>
+            <th style="text-align:right;">MPG</th>
+            <th style="text-align:center;">Defects</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${summaryRows || '<tr><td colspan="12" style="text-align:center;color:var(--ink-muted);">No summary data</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  </div>
+`;
 
   const inspectionDetailRows = inspectionRows
     .sort((a,b) => getReportRowDateTime(a).localeCompare(getReportRowDateTime(b)))
@@ -2067,46 +2169,64 @@ function generateReport(){
     }).join('');
 
   const inspectionHtml = `
-    <div class="sec-title" style="margin-top:22px;">Inspection Records</div>
-    <table class="main-t">
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Time</th>
-          <th>Driver</th>
-          <th>Vehicle</th>
-          <th style="text-align:right;">Odometer</th>
-          <th>Type</th>
-          <th>Defect</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${inspectionDetailRows || '<tr><td colspan="7" style="text-align:center;color:var(--ink-muted);">No inspection records</td></tr>'}
-      </tbody>
-    </table>
-  `;
+  <div class="report-box">
+    <div class="sec-title">Inspection Records</div>
+    <div class="box-meta">
+      Total inspection records: <strong>${inspectionRows.length}</strong>
+    </div>
+    <div class="t-wrap">
+      <table class="main-t">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Driver</th>
+            <th>Vehicle</th>
+            <th style="text-align:right;">Odometer</th>
+            <th>Type</th>
+            <th>Defect</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${inspectionDetailRows || '<tr><td colspan="7" style="text-align:center;color:var(--ink-muted);">No inspection records</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  </div>
+`;
 
   const fuelHtml = `
-    <div class="sec-title" style="margin-top:22px;">Fuel Log Records</div>
-    <table class="main-t">
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Time</th>
-          <th>Driver</th>
-          <th>Vehicle</th>
-          <th style="text-align:right;">Odometer</th>
-          <th style="text-align:right;">Qty</th>
-          <th style="text-align:right;">Amount</th>
-          <th style="text-align:right;">$/gal</th>
-          <th>Receipt</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${fuelDetailRows || '<tr><td colspan="9" style="text-align:center;color:var(--ink-muted);">No fuel records</td></tr>'}
-      </tbody>
-    </table>
-  `;
+  <div class="report-box">
+    <div class="sec-title">Fuel Log Records</div>
+    <div class="box-meta">
+      Total fuel log records: <strong>${fuelRows.length}</strong>
+      &nbsp;|&nbsp;
+      Total fuel: <strong>${totalFuelQty.toFixed(3)} gal</strong>
+      &nbsp;|&nbsp;
+      Total cost: <strong>$${totalFuelAmt.toFixed(2)}</strong>
+    </div>
+    <div class="t-wrap">
+      <table class="main-t">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Driver</th>
+            <th>Vehicle</th>
+            <th style="text-align:right;">Odometer</th>
+            <th style="text-align:right;">Qty</th>
+            <th style="text-align:right;">Amount</th>
+            <th style="text-align:right;">$/gal</th>
+            <th>Receipt</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${fuelDetailRows || '<tr><td colspan="9" style="text-align:center;color:var(--ink-muted);">No fuel records</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  </div>
+`;
 
   document.getElementById('report-table-wrap').innerHTML =
     summaryHtml +
