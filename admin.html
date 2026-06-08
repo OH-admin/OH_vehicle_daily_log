@@ -1166,12 +1166,12 @@ function renderOpenIssues(){
         <td style="font-size:12px;max-width:260px;">${escapeHtml(issue.description || '')}</td>
         <td>${photo}</td>
         <td style="vertical-align:middle;">
-          <div class="act-group">
-            <button class="btn btn-b btn-sm" onclick="editIssueRecord('${getIssueSourceRow(issue)}')">Edit</button>
-            <button class="btn btn-g btn-sm" onclick="updateIssueStatus('${issue.rowIndex}','RESOLVED')">Resolve</button>
-            <button class="btn btn-r btn-sm" onclick="deleteReviewIssue('${issue.rowIndex}')">Delete</button>
-          </div>
-        </td>
+  <div class="act-group">
+    <button class="btn btn-g btn-sm" onclick="printRecord('${getRowIndex(r)}')">Print</button>
+    <button class="btn btn-b btn-sm" onclick="editRecord('${getRowIndex(r)}')">Edit</button>
+    <button class="btn btn-r btn-sm" onclick="deleteRecord('${getRowIndex(r)}')">Del</button>
+  </div>
+</td>
       </tr>
     `;
   }).join('');
@@ -1568,8 +1568,8 @@ sortArrayByConfig(rows, 'insp', {
   <td>${photoLink}</td>
   <td style="vertical-align:middle;">
   <div class="act-group">
-    <button class="btn btn-g btn-sm" onclick="printRecord(${globalIdx})">Print</button>
-    <button class="btn btn-b btn-sm" onclick="editRecord('${r[COL.rowIndex]}')">Edit</button>
+    <button class="btn btn-g btn-sm" onclick="printRecord('${getRowIndex(r)}')">Print</button>
+    <button class="btn btn-b btn-sm" onclick="editRecord('${getRowIndex(r)}')">Edit</button>
     <button class="btn btn-r btn-sm" onclick="deleteRecord('${getRowIndex(r)}')">Del</button>
   </div>
 </td>
@@ -1696,6 +1696,15 @@ function getRowIndex(r){
   return '';
 }
 
+function findRecordByRowIndex(rowId){
+  const rowIdStr = String(rowId || '').trim();
+
+  if(!rowIdStr){
+    return null;
+  }
+
+  return allData.find(r => String(getRowIndex(r)).trim() === rowIdStr) || null;
+}
    
 // ── Delete ────────────────────────────────────────────────
 async function deleteRecord(rowId){
@@ -1732,19 +1741,17 @@ function editIssueRecord(sourceRowId){
   }
 
   const rowIdStr = String(sourceRowId).trim();
-
-  const r = allData.find(x => String(x[COL.rowIndex]).trim() === rowIdStr);
+  const r = findRecordByRowIndex(rowIdStr);
 
   if(!r){
     alert(
       'Cannot find the original inspection record for this review item.\n\n' +
-      'Source row: ' + rowIdStr + '\n\n' +
-      'Please refresh data or check Apps Script getOpenIssues response.'
+      'Source row: ' + rowIdStr
     );
     return;
   }
 
-  editRecord(r[COL.rowIndex]);
+  editRecord(rowIdStr);
 }
 
 function editIssueRecord(sourceRowId){
@@ -1771,8 +1778,8 @@ function editIssueRecord(sourceRowId){
    
 // ── Edit ──────────────────────────────────────────────────
 function editRecord(rowId){
-  const rowIdStr = String(rowId).trim();
-  const r = allData.find(x => String(x[COL.rowIndex]).trim() === rowIdStr);
+  const rowIdStr = String(rowId || '').trim();
+  const r = findRecordByRowIndex(rowIdStr);
 
   if(!r){
     alert('Record not found. RowIndex: ' + rowIdStr);
@@ -2286,9 +2293,13 @@ function exportCSV(type){
 // ════════════════════════════════════════════════════════
 // PRINT — Full Form A-1 / A-2 (Appendix A)
 // ════════════════════════════════════════════════════════
-function printRecord(globalIdx){
-  const r = filteredData[globalIdx];
-  if(!r) return;
+function printRecord(rowId){
+  const r = findRecordByRowIndex(rowId);
+
+  if(!r){
+    alert('Record not found for print. RowIndex: ' + rowId);
+    return;
+  }
 
   const ds   = dispDate(r[COL.date]);
   const ts   = fmtTime(r[COL.time]);
