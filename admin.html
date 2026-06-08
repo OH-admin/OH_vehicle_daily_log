@@ -631,22 +631,46 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyWBwZzTwhR3aZ1
 let ADMIN_TOKEN = localStorage.getItem('OHADC_ADMIN_TOKEN') || '';
    
 const COL = {
-  date:0,time:1,driver:2,vehicle:3,odometer:4,tripType:5,
-  brakes:6,tires:7,lights:8,doors:9,belts:10,lift:11,
-  fluid:12,firstaid:13,dashcam:14,interior:15,
-  defectFound:16,defectDesc:17,defectReportedTo:18,defectTime:19,
-  paxSeats:20,paxWheelchair:21,paxFloor:22,paxRear:23,paxNoPax:24,
-  paxIssueFound:25,paxIssueDesc:26,
+  date:0,
+  time:1,
+  driver:2,
+  vehicle:3,
+  odometer:4,
+  tripType:5,
+
+  brakes:6,
+  tires:7,
+  lights:8,
+  doors:9,
+  belts:10,
+  lift:11,
+  fluid:12,
+  firstaid:13,
+  dashcam:14,
+  interior:15,
+
+  defectFound:16,
+  defectDesc:17,
+  defectReportedTo:18,
+  defectTime:19,
+
+  paxSeats:20,
+  paxWheelchair:21,
+  paxFloor:22,
+  paxRear:23,
+  paxNoPax:24,
+  paxIssueFound:25,
+  paxIssueDesc:26,
+
   fuelQty:27,
   fuelAmt:28,
   receiptUrl:29,
-  entryType:30,
 
-  // AF열 = RecordID
-  recordId:31,
+  // EntryType 삭제 후 RecordID = AE열 / 배열 index 30
+  recordId:30,
 
-  // Apps Script getAll에서 row.push(j + 1)로 추가되는 가상 컬럼
-  rowIndex:32
+  // Apps Script getAll에서 row.push(j + 1)로 붙는 가상 컬럼
+  rowIndex:31
 };
 
 const DVIR_KEYS = ['brakes','tires','lights','doors','belts','lift','fluid','firstaid','dashcam','interior'];
@@ -1102,6 +1126,84 @@ async function loadData(){
   }
 }
 
+async function loadOpenIssues(){
+  const summary = document.getElementById('review-summary');
+  const wrap = document.getElementById('review-wrap');
+
+  if(summary){
+    summary.innerHTML = `
+      <span style="color:var(--ink-muted);">
+        Loading review queue...
+      </span>
+    `;
+  }
+
+  if(wrap){
+    wrap.innerHTML = `
+      <div class="empty-st">
+        Loading review queue...
+      </div>
+    `;
+  }
+
+  try {
+    const res = await fetch(
+      APPS_SCRIPT_URL
+      + '?action=getOpenIssues'
+      + '&token=' + encodeURIComponent(ADMIN_TOKEN)
+    );
+
+    const json = await res.json();
+
+    if(json.result !== 'success'){
+      openIssues = [];
+
+      if(summary){
+        summary.innerHTML = `
+          <strong>0</strong> open review item(s).
+          <span style="color:var(--r-tx);font-weight:400;">
+            ${escapeHtml(json.message || json.msg || 'Failed to load review queue.')}
+          </span>
+        `;
+      }
+
+      if(wrap){
+        wrap.innerHTML = `
+          <div class="empty-st">
+            Failed to load review queue.
+          </div>
+        `;
+      }
+
+      return;
+    }
+
+    openIssues = json.issues || [];
+    tablePage.review = 1;
+    renderOpenIssues();
+
+  } catch(e){
+    openIssues = [];
+
+    if(summary){
+      summary.innerHTML = `
+        <strong>0</strong> open review item(s).
+        <span style="color:var(--r-tx);font-weight:400;">
+          ${escapeHtml(e.message || 'Connection error.')}
+        </span>
+      `;
+    }
+
+    if(wrap){
+      wrap.innerHTML = `
+        <div class="empty-st">
+          Failed to load review queue.
+        </div>
+      `;
+    }
+  }
+}
+   
 function renderOpenIssues(){
   const card = document.getElementById('review-card');
   const summary = document.getElementById('review-summary');
@@ -1306,59 +1408,68 @@ async function updateIssueStatus(rowIndex, status){
 
   try {
     const url = APPS_SCRIPT_URL
-  + '?action=updateIssueStatus'
-  + '&token=' + encodeURIComponent(ADMIN_TOKEN)
-  + '&rowIndex=' + encodeURIComponent(rowIndex)
-  + '&status=' + encodeURIComponent(status);
+      + '?action=updateIssueStatus'
+      + '&token=' + encodeURIComponent(ADMIN_TOKEN)
+      + '&rowIndex=' + encodeURIComponent(rowIndex)
+      + '&status=' + encodeURIComponent(status);
 
-    await fetch(url, { method:'GET', mode:'no-cors' });
+    const res = await fetch(url, { method:'GET' });
+    const json = await res.json();
 
-    setTimeout(() => {
-      loadOpenIssues();
-    }, 1000);
+    if(json.result !== 'success'){
+      alert('Failed: ' + (json.message || json.msg || 'Unknown error'));
+      return;
+    }
+
+    await loadOpenIssues();
 
   } catch(e){
     alert('Failed to update issue: ' + e.message);
   }
 }
+   
 async function deleteReviewIssue(issueRowIndex, sourceRecordId){
   if(!issueRowIndex){
     alert('Delete failed: issue rowIndex is missing.');
     return;
   }
 
-  if(!sourceRecordId){
-    alert(
-      'Cannot delete the original record because SourceRecordID is missing.\n\n' +
-      'This review item may have been created before RecordID was added.\n' +
-      'Please run screening again after RecordID setup.'
-    );
-    return;
-  }
+  const hasSourceRecordId = sourceRecordId && String(sourceRecordId).trim();
 
-  if(!confirm(
-    'Delete this review queue item AND the original Inspection/Fuel record?\n\n' +
-    'Use this only for duplicate or incorrect entries.'
-  )) return;
+  const msg = hasSourceRecordId
+    ? 'Delete this review queue item AND the original Inspection/Fuel record?\n\nUse this only for duplicate or incorrect entries.'
+    : 'SourceRecordID is missing.\n\nThe original DVIR_Log record cannot be safely deleted, but this Review Queue item can be removed from the queue.\n\nRemove this item from Review Queue only?';
+
+  if(!confirm(msg)) return;
 
   try {
-    const url = APPS_SCRIPT_URL
-      + '?action=deleteIssueAndSourceByRecordId'
-      + '&token=' + encodeURIComponent(ADMIN_TOKEN)
-      + '&issueRowIndex=' + encodeURIComponent(issueRowIndex)
-      + '&sourceRecordId=' + encodeURIComponent(sourceRecordId);
+    let url;
 
-    await fetch(url, { method:'GET', mode:'no-cors' });
+    if(hasSourceRecordId){
+      url = APPS_SCRIPT_URL
+        + '?action=deleteIssueAndSourceByRecordId'
+        + '&token=' + encodeURIComponent(ADMIN_TOKEN)
+        + '&issueRowIndex=' + encodeURIComponent(issueRowIndex)
+        + '&sourceRecordId=' + encodeURIComponent(sourceRecordId);
+    } else {
+      url = APPS_SCRIPT_URL
+        + '?action=deleteIssue'
+        + '&token=' + encodeURIComponent(ADMIN_TOKEN)
+        + '&rowIndex=' + encodeURIComponent(issueRowIndex);
+    }
 
-    alert('Delete request sent. Refreshing data...');
+    const res = await fetch(url, { method:'GET' });
+    const json = await res.json();
 
-    setTimeout(() => {
-      loadData();
-      loadOpenIssues();
-    }, 1500);
+    if(json.result !== 'success'){
+      alert('Delete failed: ' + (json.message || json.msg || 'Unknown error'));
+      return;
+    }
+
+    await loadData();
 
   } catch(e){
-    alert('Failed to delete source record: ' + e.message);
+    alert('Failed to delete: ' + e.message);
   }
 }
    
@@ -1366,20 +1477,28 @@ async function runScreeningNow(){
   if(!confirm('Run DVIR screening now?')) return;
 
   try {
-    await fetch(
-  APPS_SCRIPT_URL
-  + '?action=runScreening'
-  + '&token=' + encodeURIComponent(ADMIN_TOKEN),
-  {
-    method:'GET',
-    mode:'no-cors'
-  }
-);
+    const res = await fetch(
+      APPS_SCRIPT_URL
+      + '?action=runScreening'
+      + '&token=' + encodeURIComponent(ADMIN_TOKEN),
+      { method:'GET' }
+    );
 
-    alert('Screening request sent. Refreshing review queue...');
-    setTimeout(() => {
-      loadOpenIssues();
-    }, 2000);
+    const json = await res.json();
+
+    if(json.result !== 'success'){
+      alert('Screening failed: ' + (json.message || json.msg || 'Unknown error'));
+      return;
+    }
+
+    alert(
+      'Screening completed.\n\n' +
+      'Total records: ' + (json.totalRecords || 0) + '\n' +
+      'Issues found: ' + (json.issueCount || 0) + '\n' +
+      'New issues saved: ' + (json.savedCount || 0)
+    );
+
+    await loadOpenIssues();
 
   } catch(e){
     alert('Failed to run screening: ' + e.message);
