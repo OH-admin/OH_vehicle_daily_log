@@ -1403,11 +1403,13 @@ sortArrayByConfig(rows, 'insp', {
       ${hasDef?' <span class="badge b-def">Defect</span>':''}</td>
   <td>${defectReport}</td>
   <td>${photoLink}</td>
-  <td class="act-group">
+  <td style="vertical-align:middle;">
+  <div class="act-group">
     <button class="btn btn-g btn-sm" onclick="printRecord(${globalIdx})">Print</button>
-    <button class="btn btn-b btn-sm" onclick="editRecord(${r[COL.rowIndex]})">Edit</button>
+    <button class="btn btn-b btn-sm" onclick="editRecord('${r[COL.rowIndex]}')">Edit</button>
     <button class="btn btn-r btn-sm" onclick="deleteRecord('${getRowIndex(r)}')">Del</button>
-  </td>
+  </div>
+</td>
 </tr>`;
   }).join('');
 
@@ -1423,7 +1425,7 @@ sortArrayByConfig(rows, 'insp', {
     ${sortableTh('insp','tripType','Type')}
     ${sortableTh('insp','defect','Defect Report')}
     ${sortableTh('insp','photo','Photo')}
-    <th>Actions</th>
+    <th style="min-width:180px;text-align:right;">Actions</th>
   </tr>
 </thead>
       </tr></thead>
@@ -1478,11 +1480,13 @@ sortArrayByConfig(rows, 'fuel', {
       <td>$${amt.toFixed(2)}</td>
       <td style="font-size:12px;color:var(--ink-muted);">${ppg}</td>
       <td>${link}</td>
-      <td class="act-group">
-        <button class="btn btn-g btn-sm" onclick="printRecord(${globalIdx})">Print</button>
-        <button class="btn btn-b btn-sm" onclick="editRecord(${r[COL.rowIndex]})">Edit</button>
-        <button class="btn btn-r btn-sm" onclick="deleteRecord('${getRowIndex(r)}')">Del</button>
-      </td>
+     <td style="vertical-align:middle;">
+     <div class="act-group">
+       <button class="btn btn-g btn-sm" onclick="printRecord(${globalIdx})">Print</button>
+       <button class="btn btn-b btn-sm" onclick="editRecord('${r[COL.rowIndex]}')">Edit</button>
+       <button class="btn btn-r btn-sm" onclick="deleteRecord('${getRowIndex(r)}')">Del</button>
+     </div>
+</td>
     </tr>`;
   }).join('');
 
@@ -1499,7 +1503,7 @@ sortArrayByConfig(rows, 'fuel', {
     ${sortableTh('fuel','amount','Amount', true)}
     ${sortableTh('fuel','unitPrice','Unit Price', true)}
     ${sortableTh('fuel','receipt','Receipt')}
-    <th>Actions</th>
+    <th style="min-width:180px;text-align:right;">Actions</th>
   </tr>
 </thead>
       <tbody>${html}</tbody>
