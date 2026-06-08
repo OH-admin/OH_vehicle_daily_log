@@ -2003,10 +2003,10 @@ function generateReport(){
 
   const [reportYear, reportMonth] = mStr.split('-').map(Number);
 
-const label = new Date(reportYear, reportMonth - 1, 1, 12, 0, 0).toLocaleString('en-US', {
-  month: 'long',
-  year: 'numeric'
-});
+  const label = new Date(reportYear, reportMonth - 1, 1, 12, 0, 0).toLocaleString('en-US', {
+    month: 'long',
+    year: 'numeric'
+  });
 
   const monthRows = allData.filter(r => {
     const d = fmtDate(r[COL.date]);
@@ -2021,10 +2021,9 @@ const label = new Date(reportYear, reportMonth - 1, 1, 12, 0, 0).toLocaleString(
   const inspectionRows = monthRows.filter(r => r[COL.tripType] !== 'Fuel Log');
   const fuelRows = monthRows.filter(r => r[COL.tripType] === 'Fuel Log');
 
-const isDefaultMonthlySummary = vSel === 'ALL' && dSel === 'ALL';
-const showDetailRecords = !isDefaultMonthlySummary;
-   
-  // 차량 + 기사 기준 summary bucket
+  const isDefaultMonthlySummary = vSel === 'ALL' && dSel === 'ALL';
+  const showDetailRecords = !isDefaultMonthlySummary;
+
   const buckets = {};
 
   monthRows.forEach(r => {
@@ -2034,21 +2033,21 @@ const showDetailRecords = !isDefaultMonthlySummary;
     if(!vehicle || vehicle === '—') return;
 
     const key = isDefaultMonthlySummary
-  ? vehicle
-  : getReportBucketKey(vehicle, driver);
+      ? vehicle
+      : getReportBucketKey(vehicle, driver);
 
-if(!buckets[key]){
-  buckets[key] = {
-    vehicle: vehicle,
-    driver: isDefaultMonthlySummary ? 'All Drivers' : driver,
-    rows: [],
-    inspectionRows: [],
-    fuelRows: [],
-    fuelQty: 0,
-    fuelAmt: 0,
-    defects: 0
-  };
-}
+    if(!buckets[key]){
+      buckets[key] = {
+        vehicle: vehicle,
+        driver: isDefaultMonthlySummary ? 'All Drivers' : driver,
+        rows: [],
+        inspectionRows: [],
+        fuelRows: [],
+        fuelQty: 0,
+        fuelAmt: 0,
+        defects: 0
+      };
+    }
 
     buckets[key].rows.push(r);
 
