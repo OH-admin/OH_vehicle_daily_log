@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Our Home ADC — Admin Fleet Log</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>   
 <style>
 /* ═══════════════════════════════════════════════════════
    Apple-inspired design system
@@ -629,6 +630,11 @@ table.main-t tr.defect-row td { background:#fff8f8; }
 // ════════════════════════════════════════════════════════
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyWBwZzTwhR3aZ1HVB2VI9y5S-Q-VVVACog5qVT9k4JBh28vk5a4eXHQHdSdDXWPrIrdg/exec';
 let ADMIN_TOKEN = localStorage.getItem('OHADC_ADMIN_TOKEN') || '';
+let monthlyVehicleChart = null;
+let monthlyVehicleChartState = null;
+let monthlyVehicleChartCompare = false;
+
+
    
 const COL = {
   date:0,
@@ -2255,6 +2261,383 @@ function getMonthlyOdoStats(rows){
 function getReportBucketKey(vehicle, driver){
   return vehicle + '||' + driver;
 }
+
+function getPreviousMonthStr(mStr){
+  const parts = String(mStr || '').split('-').map(Number);
+  const y = parts[0];
+  const m = parts[1];
+
+  if(!y || !m) return '';
+
+  const d = new Date(y, m - 2, 1, 12, 0, 0);
+
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+function getMonthLabelShort(mStr){
+  const parts = String(mStr || '').split('-').map(Number);
+  const y = parts[0];
+  const m = parts[1];
+
+  if(!y || !m) return mStr || '';
+
+  return new Date(y, m - 1, 1, 12, 0, 0).toLocaleString('en-US', {
+    month: 'short',
+    year: 'numeric'
+  });
+}
+
+function buildVehicleMonthlyMetrics(mStr, vSel, dSel){
+  const rows = allData.filter(r => {
+    const d = fmtDate(r[COL.date]);
+    if(!d || d.slice(0,7) !== mStr) return false;
+
+    if(vSel !== 'ALL' && r[COL.vehicle] !== vSel) return false;
+    if(dSel !== 'ALL' && String(r[COL.driver] || '').trim() !== dSel) return false;
+
+    return true;
+  });
+
+  const map = {};
+
+  rows.forEach(r => {
+    const vehicle = String(r[COL.vehicle] || '').trim();
+    if(!vehicle) return;
+
+    if(!map[vehicle]){
+      map[vehicle] = {
+        vehicle: vehicle,
+        rows: [],
+        fuelQty: 0,
+        fuelAmt: 0
+      };
+    }
+
+    map[vehicle].rows.push(r);
+
+    if(r[COL.tripType] === 'Fuel Log'){
+      map[vehicle].fuelQty += parseNum(r[COL.fuelQty]);
+      map[vehicle].fuelAmt += parseNum(r[COL.fuelAmt]);
+    }
+  });
+
+  return Object.keys(map)
+    .sort((a, b) => getVehicleUnitSortKey(a) - getVehicleUnitSortKey(b))
+    .map(vehicle => {
+      const b = map[vehicle];
+      const odo = getMonthlyOdoStats(b.rows);
+      const mpg = b.fuelQty > 0 && odo.miles > 0
+        ? odo.miles / b.fuelQty
+        : 0;
+
+      return {
+        vehicle: vehicle,
+        label: getVehicleUnitLabel(vehicle) || vehicle,
+        display: vehicle,
+        miles: odo.miles || 0,
+        fuelCost: b.fuelAmt || 0,
+        fuelQty: b.fuelQty || 0,
+        mpg: mpg
+      };
+    });
+}
+
+function getMetricDelta(current, previous, key){
+  const c = Number(current && current[key] ? current[key] : 0);
+  const p = Number(previous && previous[key] ? previous[key] : 0);
+  const diff = c - p;
+  const pct = p > 0 ? (diff / p) * 100 : null;
+
+  return {
+    diff: diff,
+    pct: pct
+  };
+}
+
+function formatDeltaHtml(delta, unit, money){
+  if(!delta) return '<span style="color:var(--ink-muted);">—</span>';
+
+  const diff = Number(delta.diff || 0);
+  const pct = delta.pct;
+
+  if(diff === 0){
+    return '<span style="color:var(--ink-muted);font-weight:700;">→ 0</span>';
+  }
+
+  const up = diff > 0;
+  const arrow = up ? '▲' : '▼';
+  const color = up ? 'var(--g-tx)' : 'var(--r-tx)';
+  const absVal = Math.abs(diff);
+
+  let main = '';
+
+  if(money){
+    main = '$' + absVal.toFixed(2);
+  } else if(unit === 'mpg'){
+    main = absVal.toFixed(1) + ' MPG';
+  } else {
+    main = fmtOdo(absVal) + ' mi';
+  }
+
+  const pctText = pct === null
+    ? ''
+    : ' (' + Math.abs(pct).toFixed(1) + '%)';
+
+  return '<span style="color:' + color + ';font-weight:800;">' +
+    arrow + ' ' + main + pctText +
+    '</span>';
+}
+
+function buildMonthlyChartComparisonTable(currentData, previousData, currentLabel, previousLabel){
+  const prevMap = {};
+  previousData.forEach(v => {
+    prevMap[v.vehicle] = v;
+  });
+
+  if(!currentData.length){
+    return '';
+  }
+
+  const rows = currentData.map(cur => {
+    const prev = prevMap[cur.vehicle] || {};
+
+    const milesDelta = getMetricDelta(cur, prev, 'miles');
+    const costDelta = getMetricDelta(cur, prev, 'fuelCost');
+    const mpgDelta = getMetricDelta(cur, prev, 'mpg');
+
+    return `
+      <tr>
+        <td><strong>${vehicleDisplayHtml(cur.vehicle)}</strong></td>
+        <td style="text-align:right;">${cur.miles ? fmtOdo(cur.miles) + ' mi' : '—'}</td>
+        <td style="text-align:right;">${prev.miles ? fmtOdo(prev.miles) + ' mi' : '—'}</td>
+        <td style="text-align:right;">${formatDeltaHtml(milesDelta, 'miles', false)}</td>
+
+        <td style="text-align:right;">$${cur.fuelCost.toFixed(2)}</td>
+        <td style="text-align:right;">${prev.fuelCost ? '$' + prev.fuelCost.toFixed(2) : '—'}</td>
+        <td style="text-align:right;">${formatDeltaHtml(costDelta, 'cost', true)}</td>
+
+        <td style="text-align:right;">${cur.mpg ? cur.mpg.toFixed(1) : '—'}</td>
+        <td style="text-align:right;">${prev.mpg ? prev.mpg.toFixed(1) : '—'}</td>
+        <td style="text-align:right;">${formatDeltaHtml(mpgDelta, 'mpg', false)}</td>
+      </tr>
+    `;
+  }).join('');
+
+  return `
+    <div id="monthly-chart-compare-table" style="display:none;margin-top:14px;">
+      <div class="box-meta">
+        Current: <strong>${currentLabel}</strong>
+        &nbsp;|&nbsp;
+        Previous: <strong>${previousLabel}</strong>
+      </div>
+
+      <div class="t-wrap">
+        <table class="main-t">
+          <thead>
+            <tr>
+              <th>Vehicle</th>
+              <th style="text-align:right;">Miles<br>${currentLabel}</th>
+              <th style="text-align:right;">Miles<br>${previousLabel}</th>
+              <th style="text-align:right;">Miles Change</th>
+
+              <th style="text-align:right;">Fuel Cost<br>${currentLabel}</th>
+              <th style="text-align:right;">Fuel Cost<br>${previousLabel}</th>
+              <th style="text-align:right;">Cost Change</th>
+
+              <th style="text-align:right;">MPG<br>${currentLabel}</th>
+              <th style="text-align:right;">MPG<br>${previousLabel}</th>
+              <th style="text-align:right;">MPG Change</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function toggleMonthlyVehicleCompare(){
+  if(!monthlyVehicleChartState) return;
+
+  monthlyVehicleChartCompare = !monthlyVehicleChartCompare;
+
+  renderMonthlyVehicleChart();
+
+  const btn = document.getElementById('btn-monthly-compare');
+  const table = document.getElementById('monthly-chart-compare-table');
+
+  if(btn){
+    btn.textContent = monthlyVehicleChartCompare
+      ? 'Hide Last Month Compare'
+      : 'Compare with Last Month';
+  }
+
+  if(table){
+    table.style.display = monthlyVehicleChartCompare ? 'block' : 'none';
+  }
+}
+
+function renderMonthlyVehicleChart(){
+  if(!monthlyVehicleChartState) return;
+
+  const canvas = document.getElementById('monthly-vehicle-chart');
+  if(!canvas) return;
+
+  if(monthlyVehicleChart){
+    monthlyVehicleChart.destroy();
+  }
+
+  const state = monthlyVehicleChartState;
+  const current = state.currentData;
+  const previous = state.previousData;
+
+  const labels = current.map(v => v.label);
+
+  const datasets = [
+    {
+      type: 'bar',
+      label: 'Monthly Miles',
+      data: current.map(v => Number(v.miles || 0)),
+      yAxisID: 'yMiles',
+      borderRadius: 6
+    },
+    {
+      type: 'bar',
+      label: 'Fuel Cost ($)',
+      data: current.map(v => Number(v.fuelCost || 0)),
+      yAxisID: 'yCost',
+      borderRadius: 6
+    },
+    {
+      type: 'line',
+      label: 'MPG',
+      data: current.map(v => Number(v.mpg || 0)),
+      yAxisID: 'yMpg',
+      tension: 0.35,
+      pointRadius: 4,
+      pointHoverRadius: 6
+    }
+  ];
+
+  if(monthlyVehicleChartCompare){
+    const prevMap = {};
+    previous.forEach(v => {
+      prevMap[v.vehicle] = v;
+    });
+
+    datasets.push(
+      {
+        type: 'line',
+        label: 'Last Month Miles',
+        data: current.map(v => Number((prevMap[v.vehicle] || {}).miles || 0)),
+        yAxisID: 'yMiles',
+        tension: 0.35,
+        pointRadius: 3,
+        borderDash: [6, 4]
+      },
+      {
+        type: 'line',
+        label: 'Last Month Fuel Cost',
+        data: current.map(v => Number((prevMap[v.vehicle] || {}).fuelCost || 0)),
+        yAxisID: 'yCost',
+        tension: 0.35,
+        pointRadius: 3,
+        borderDash: [6, 4]
+      },
+      {
+        type: 'line',
+        label: 'Last Month MPG',
+        data: current.map(v => Number((prevMap[v.vehicle] || {}).mpg || 0)),
+        yAxisID: 'yMpg',
+        tension: 0.35,
+        pointRadius: 3,
+        borderDash: [3, 3]
+      }
+    );
+  }
+
+  monthlyVehicleChart = new Chart(canvas, {
+    data: {
+      labels: labels,
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          position: 'bottom'
+        },
+        tooltip: {
+          callbacks: {
+            label: function(ctx){
+              const label = ctx.dataset.label || '';
+              const val = Number(ctx.raw || 0);
+
+              if(label.toLowerCase().indexOf('cost') !== -1){
+                return label + ': $' + val.toFixed(2);
+              }
+
+              if(label.toLowerCase().indexOf('mpg') !== -1){
+                return label + ': ' + val.toFixed(1) + ' MPG';
+              }
+
+              return label + ': ' + fmtOdo(val) + ' mi';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            font: { size: 12 }
+          }
+        },
+        yMiles: {
+          type: 'linear',
+          position: 'left',
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Miles'
+          },
+          ticks: {
+            callback: function(value){
+              return fmtOdo(value);
+            }
+          }
+        },
+        yCost: {
+          type: 'linear',
+          position: 'right',
+          beginAtZero: true,
+          grid: {
+            drawOnChartArea: false
+          },
+          title: {
+            display: true,
+            text: 'Fuel Cost ($)'
+          },
+          ticks: {
+            callback: function(value){
+              return '$' + value;
+            }
+          }
+        },
+        yMpg: {
+          type: 'linear',
+          position: 'right',
+          beginAtZero: true,
+          display: false
+        }
+      }
+    }
+  });
+}
    
 // ── Monthly report ────────────────────────────────────────
 function generateReport(){
@@ -2593,13 +2976,82 @@ const avgUnitPrice = totalFuelQty > 0
   </div>
 ` : '';
 
+const previousMonthStr = getPreviousMonthStr(mStr);
+const currentMonthLabel = getMonthLabelShort(mStr);
+const previousMonthLabel = getMonthLabelShort(previousMonthStr);
+
+const currentChartData = buildVehicleMonthlyMetrics(mStr, vSel, dSel);
+const previousChartData = buildVehicleMonthlyMetrics(previousMonthStr, vSel, dSel);
+
+monthlyVehicleChartCompare = false;
+monthlyVehicleChartState = {
+  currentMonth: mStr,
+  previousMonth: previousMonthStr,
+  currentLabel: currentMonthLabel,
+  previousLabel: previousMonthLabel,
+  currentData: currentChartData,
+  previousData: previousChartData
+};
+
+const monthlyVehicleChartHtml = isDefaultMonthlySummary ? `
+  <div class="report-box" id="monthly-vehicle-chart-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+      <div>
+        <div class="sec-title" style="margin-bottom:4px;">Vehicle Monthly Performance Chart</div>
+        <div class="box-meta">
+          Monthly miles, fuel cost, and MPG by vehicle
+          &nbsp;|&nbsp;
+          <strong>${currentMonthLabel}</strong>
+        </div>
+      </div>
+
+      <button
+        class="btn btn-b btn-sm"
+        id="btn-monthly-compare"
+        onclick="toggleMonthlyVehicleCompare()"
+      >
+        Compare with Last Month
+      </button>
+    </div>
+
+    <div style="position:relative;height:360px;width:100%;margin-top:8px;">
+      <canvas id="monthly-vehicle-chart"></canvas>
+    </div>
+
+    <div style="
+      font-size:12px;
+      color:var(--ink-muted);
+      margin-top:10px;
+      line-height:1.5;
+      background:#fbfbfc;
+      border:1px solid var(--hairline);
+      border-radius:12px;
+      padding:10px 12px;
+    ">
+      Bar = monthly miles and fuel cost. Line = MPG. Click the comparison button to overlay last month and show ▲/▼ changes.
+    </div>
+
+    ${buildMonthlyChartComparisonTable(
+      currentChartData,
+      previousChartData,
+      currentMonthLabel,
+      previousMonthLabel
+    )}
+  </div>
+` : '';
+   
 document.getElementById('report-table-wrap').innerHTML =
   summaryHtml +
   vehicleDriverSummaryHtml +
   detailNoticeHtml +
-  (showDetailRecords ? inspectionHtml + fuelHtml : '');
+  (showDetailRecords ? inspectionHtml + fuelHtml : '') +
+  monthlyVehicleChartHtml;
 
-  document.getElementById('report-output').style.display = 'block';
+document.getElementById('report-output').style.display = 'block';
+
+setTimeout(function(){
+  renderMonthlyVehicleChart();
+}, 50);
 }
 
 async function sendEmailReport(){
