@@ -628,28 +628,20 @@ function fmtDate(raw){
 function fmtTime(raw){
   if(!raw && raw!==0) return '';
 
-  const s = String(raw);
+  const s = String(raw).trim();
 
-  if(
-    s.includes('1899-12-30T') ||
-    s.includes('1899-12-31T') ||
-    /^\d{4}-\d{2}-\d{2}T/.test(s)
-  ){
-    const d = new Date(s);
-
-    if(!isNaN(d.getTime())){
-      return new Intl.DateTimeFormat('en-US', {
-        timeZone: 'America/New_York',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      }).format(d);
-    }
+  // Google Sheets / Excel time-only issue:
+  // 1899-12-30T17:34:00.000Z → 17:34
+  // 여기서는 timezone 변환을 하면 안 됨. 시간 숫자만 그대로 추출해야 함.
+  const timeOnlyMatch = s.match(/^\d{4}-\d{2}-\d{2}T(\d{2}):(\d{2})/);
+  if(timeOnlyMatch){
+    return timeOnlyMatch[1] + ':' + timeOnlyMatch[2];
   }
 
-  if(/^\d{1,2}:\d{2}/.test(s)){
-    const parts = s.split(':');
-    return String(parts[0]).padStart(2,'0') + ':' + parts[1];
+  // 17:34, 17:34:00, 5:34 형태 처리
+  const plainTimeMatch = s.match(/^(\d{1,2}):(\d{2})/);
+  if(plainTimeMatch){
+    return String(plainTimeMatch[1]).padStart(2,'0') + ':' + plainTimeMatch[2];
   }
 
   return s;
@@ -772,7 +764,7 @@ function renderOpenIssues(){
       <tr>
         <td><span class="badge ${issue.severity === 'HIGH' ? 'b-def' : 'b-post'}">${issue.severity}</span></td>
         <td>${escapeHtml(issue.issueType)}</td>
-        <td>${escapeHtml(issue.time || '')}</td>
+        <td>${escapeHtml(fmtTime(issue.time))}</td>
         <td>${escapeHtml(issue.driver || '')}</td>
         <td><strong>${escapeHtml(issue.vehicle || '')}</strong></td>
         <td>${escapeHtml(String(issue.odometer || ''))}</td>
@@ -1119,7 +1111,7 @@ function renderInspections(){
           <strong>Defect:</strong> ${r[COL.defectDesc] || 'No description'}<br>
           <span style="color:var(--ink-muted);">
             Reported to: ${r[COL.defectReportedTo] || '—'}
-            ${r[COL.defectTime] ? ' / ' + r[COL.defectTime] : ''}
+            ${r[COL.defectTime] ? ' / ' + fmtTime(r[COL.defectTime]) : ''}
           </span>
         </div>`
      : `<span style="font-size:12px;color:var(--ink-faint);">—</span>`;
