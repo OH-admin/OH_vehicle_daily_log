@@ -1399,11 +1399,11 @@ if(!openIssues.length){
   };
 
   // Search & Overview 필터값 읽기
-  const from = document.getElementById('f-from') ? document.getElementById('f-from').value : '';
-  const to   = document.getElementById('f-to') ? document.getElementById('f-to').value : '';
-  const veh  = document.getElementById('f-vehicle') ? document.getElementById('f-vehicle').value : '';
-  const drv  = document.getElementById('f-driver') ? document.getElementById('f-driver').value : '';
-
+ const from = document.getElementById('f-from') ? document.getElementById('f-from').value : '';
+const to   = document.getElementById('f-to') ? document.getElementById('f-to').value : '';
+const veh  = typeof getFilterValue === 'function' ? getFilterValue('f-vehicle') : 'ALL';
+const drv  = typeof getFilterValue === 'function' ? getFilterValue('f-driver') : 'ALL';
+   
   // Review Queue에도 날짜 / 차량 / 기사 필터 적용
   reviewRows = reviewRows.filter(issue => {
   const d = fmtDate(getIssueDate(issue));
@@ -1418,10 +1418,10 @@ if(!openIssues.length){
   }
 
   // 차량 필터는 차량 정보가 있는 경우에만 적용
-  if(veh && issueVehicle && issueVehicle !== veh) return false;
+  if(veh !== 'ALL' && issueVehicle && issueVehicle !== veh) return false;
 
   // 기사 필터는 기사 정보가 있는 경우에만 적용
-  if(drv && issueDriver && issueDriver !== drv) return false;
+  if(drv !== 'ALL' && issueDriver && issueDriver !== drv) return false;
 
   return true;
 });
@@ -1628,22 +1628,34 @@ function escapeHtml(value){
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }   
+function getFilterValue(id){
+  const el = document.getElementById(id);
+  const v = el ? String(el.value || '').trim() : '';
+
+  // 빈 값과 ALL을 모두 같은 의미로 처리
+  if(!v || v === 'ALL') return 'ALL';
+
+  return v;
+}
+
 function applyFilters(){
   try {
     const from = document.getElementById('f-from') ? document.getElementById('f-from').value : '';
     const to   = document.getElementById('f-to') ? document.getElementById('f-to').value : '';
-    const veh  = document.getElementById('f-vehicle') ? document.getElementById('f-vehicle').value : 'ALL';
-    const drv  = document.getElementById('f-driver') ? document.getElementById('f-driver').value : 'ALL';
+    const veh  = getFilterValue('f-vehicle');
+    const drv  = getFilterValue('f-driver');
     const sort = document.getElementById('f-sort') ? document.getElementById('f-sort').value : 'desc';
 
     filteredData = allData.filter(r => {
       const d = fmtDate(r[COL.date]);
+      const rowVehicle = String(r[COL.vehicle] || '').trim();
+      const rowDriver = String(r[COL.driver] || '').trim();
 
       if(from && d < from) return false;
       if(to && d > to) return false;
 
-      if(veh && veh !== 'ALL' && r[COL.vehicle] !== veh) return false;
-      if(drv && drv !== 'ALL' && String(r[COL.driver] || '').trim() !== drv) return false;
+      if(veh !== 'ALL' && rowVehicle !== veh) return false;
+      if(drv !== 'ALL' && rowDriver !== drv) return false;
 
       return true;
     });
@@ -1656,6 +1668,7 @@ function applyFilters(){
 
     tablePage.insp = 1;
     tablePage.fuel = 1;
+    tablePage.review = 1;
 
     const loading = document.getElementById('loading-state');
     const results = document.getElementById('results-wrap');
@@ -1663,15 +1676,9 @@ function applyFilters(){
     if(loading) loading.style.display = 'none';
     if(results) results.style.display = 'flex';
 
-    // 상단 MPG/KPI 삭제했으므로 호출하지 않음
-    // renderStats();
-    // renderEfficiencyTable();
-
-    // 먼저 핵심 데이터부터 표시
     renderInspections();
     renderFuelLog();
 
-    // 부가 기능은 에러 나도 전체 화면을 막지 않도록 분리
     try {
       renderMissingInspections();
     } catch(e) {
@@ -1700,6 +1707,7 @@ function applyFilters(){
     if(results) results.style.display = 'none';
   }
 }
+   
 // ── Stats ─────────────────────────────────────────────────
 // MPG calculation: use only Post-Trip odometer readings paired with fuel logs
 // Distance = sum of (post-trip odo per day - previous post-trip odo) per vehicle
@@ -1873,8 +1881,13 @@ function renderMissingInspections(){
     return;
   }
 
-  const selectedVehicle = vehicleEl ? vehicleEl.value : 'ALL';
-  const selectedDriver = driverEl ? driverEl.value : 'ALL';
+  const selectedVehicle = typeof getFilterValue === 'function'
+  ? getFilterValue('f-vehicle')
+  : (vehicleEl ? String(vehicleEl.value || '').trim() : 'ALL');
+
+const selectedDriver = typeof getFilterValue === 'function'
+  ? getFilterValue('f-driver')
+  : (driverEl ? String(driverEl.value || '').trim() : 'ALL');
 
   function normalizeTripType(value){
     const t = String(value || '').toLowerCase().replace(/\s+/g, '').replace(/-/g, '');
@@ -2480,8 +2493,12 @@ function resetManual(){
 }
 
 function resetFilters(){
-  document.getElementById('f-vehicle').value = 'ALL';
-  document.getElementById('f-driver').value = '';
+  const v = document.getElementById('f-vehicle');
+  const d = document.getElementById('f-driver');
+
+  if(v) v.value = 'ALL';
+  if(d) d.value = '';
+
   initDates();
   applyFilters();
 }
