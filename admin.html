@@ -656,7 +656,8 @@ const PAX_EN   = [
 
 let allData = [], filteredData = [];
 let mDvir = {}, editRowId = null, editReceiptUrl = '';
-
+let vehicleMaster = [];
+   
 const PAGE_SIZE = 20;
 
 let tablePage = {
@@ -1036,7 +1037,8 @@ async function loadData(){
     const json = await res.json();
 
     allData = json.data || [];
-
+vehicleMaster = json.vehicles || [];
+     
     document.getElementById('data-count').textContent =
       allData.length + ' total records';
 
@@ -1943,6 +1945,58 @@ function resetFilters(){
   applyFilters();
 }
 
+function getVehicleInfo(vehicleId){
+  const id = String(vehicleId || '').trim();
+
+  if(!id || !vehicleMaster || !vehicleMaster.length) return null;
+
+  return vehicleMaster.find(v =>
+    String(v.id || '').trim() === id
+  ) || null;
+}
+
+function getVehicleUnitLabel(vehicleId){
+  const info = getVehicleInfo(vehicleId);
+
+  if(!info || !info.displayName) return '';
+
+  const displayName = String(info.displayName).trim();
+
+  // 예: "#A - O2 5890" → "#A"
+  // 예: "#1 - O2 4260" → "#1"
+  const match = displayName.match(/^(#[A-Za-z0-9]+)/);
+
+  return match ? match[1] : '';
+}
+
+function vehicleDisplayHtml(vehicleId){
+  const id = String(vehicleId || '').trim();
+
+  if(!id) return '—';
+
+  const label = getVehicleUnitLabel(id);
+
+  if(!label){
+    return escapeHtml(id);
+  }
+
+  return `
+    ${escapeHtml(id)}
+    <span style="
+      display:inline-flex;
+      margin-left:6px;
+      padding:1px 7px;
+      border-radius:999px;
+      background:#eef2ff;
+      color:#1a3a8a;
+      font-size:11px;
+      font-weight:700;
+      vertical-align:middle;
+      border:0.5px solid #b7c7ff;
+    ">${escapeHtml(label)}</span>
+  `;
+}
+   
 function parseNum(value){
   if(value === null || value === undefined || value === '') return 0;
   const n = Number(String(value).replace(/,/g, '').replace('$', '').trim());
@@ -2079,7 +2133,7 @@ function generateReport(){
 
     return `
       <tr>
-        <td><strong>${escapeHtml(b.vehicle)}</strong></td>
+        <td><strong>${vehicleDisplayHtml(b.vehicle)}</strong></td>
         <td style="font-size:12px;white-space:nowrap;">${escapeHtml(b.driver)}</td>
         <td style="text-align:right;">${b.inspectionRows.length}</td>
         <td style="text-align:right;">${b.fuelRows.length}</td>
@@ -2221,7 +2275,7 @@ const avgUnitPrice = totalFuelQty > 0
           <td style="white-space:nowrap;">${dispDate(r[COL.date])}</td>
           <td>${fmtTime(r[COL.time])}</td>
           <td style="font-size:12px;white-space:nowrap;">${escapeHtml(r[COL.driver] || '—')}</td>
-          <td><strong>${escapeHtml(r[COL.vehicle] || '—')}</strong></td>
+          <td><strong>${vehicleDisplayHtml(r[COL.vehicle])}</strong></td>
           <td style="text-align:right;font-variant-numeric:tabular-nums;">${fmtOdo(r[COL.odometer])}</td>
           <td>${escapeHtml(r[COL.tripType] || '')}</td>
           <td>${defBadge}</td>
@@ -2245,7 +2299,7 @@ const avgUnitPrice = totalFuelQty > 0
           <td style="white-space:nowrap;">${dispDate(r[COL.date])}</td>
           <td>${fmtTime(r[COL.time])}</td>
           <td style="font-size:12px;white-space:nowrap;">${escapeHtml(r[COL.driver] || '—')}</td>
-          <td><strong>${escapeHtml(r[COL.vehicle] || '—')}</strong></td>
+          <td><strong>${vehicleDisplayHtml(r[COL.vehicle])}</strong></td>
           <td style="text-align:right;font-variant-numeric:tabular-nums;">${fmtOdo(r[COL.odometer])}</td>
           <td style="text-align:right;">${qty.toFixed(3)} gal</td>
           <td style="text-align:right;">$${amt.toFixed(2)}</td>
