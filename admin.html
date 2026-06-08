@@ -1497,47 +1497,77 @@ function escapeHtml(value){
     .replace(/'/g, '&#039;');
 }   
 function applyFilters(){
-  const from = document.getElementById('f-from').value;
-  const to   = document.getElementById('f-to').value;
-  const veh  = document.getElementById('f-vehicle').value;
-  const drv  = document.getElementById('f-driver').value;
-  const sort = document.getElementById('f-sort').value;
+  try {
+    const from = document.getElementById('f-from') ? document.getElementById('f-from').value : '';
+    const to   = document.getElementById('f-to') ? document.getElementById('f-to').value : '';
+    const veh  = document.getElementById('f-vehicle') ? document.getElementById('f-vehicle').value : 'ALL';
+    const drv  = document.getElementById('f-driver') ? document.getElementById('f-driver').value : 'ALL';
+    const sort = document.getElementById('f-sort') ? document.getElementById('f-sort').value : 'desc';
 
-  filteredData = allData.filter(r => {
-    const d = fmtDate(r[COL.date]);
+    filteredData = allData.filter(r => {
+      const d = fmtDate(r[COL.date]);
 
-    if(from && d < from) return false;
-    if(to && d > to) return false;
+      if(from && d < from) return false;
+      if(to && d > to) return false;
 
-    // All Vehicles / All Drivers 처리
-    if(veh && veh !== 'ALL' && r[COL.vehicle] !== veh) return false;
-    if(drv && drv !== 'ALL' && String(r[COL.driver] || '').trim() !== drv) return false;
+      if(veh && veh !== 'ALL' && r[COL.vehicle] !== veh) return false;
+      if(drv && drv !== 'ALL' && String(r[COL.driver] || '').trim() !== drv) return false;
 
-    return true;
-  });
+      return true;
+    });
 
-  filteredData.sort((a, b) => {
-    const ka = sortKey(a);
-    const kb = sortKey(b);
-    return sort === 'desc' ? kb.localeCompare(ka) : ka.localeCompare(kb);
-  });
+    filteredData.sort((a, b) => {
+      const ka = sortKey(a);
+      const kb = sortKey(b);
+      return sort === 'desc' ? kb.localeCompare(ka) : ka.localeCompare(kb);
+    });
 
-  tablePage.insp = 1;
-  tablePage.fuel = 1;
+    tablePage.insp = 1;
+    tablePage.fuel = 1;
 
-  document.getElementById('loading-state').style.display = 'none';
-  document.getElementById('results-wrap').style.display = 'flex';
+    const loading = document.getElementById('loading-state');
+    const results = document.getElementById('results-wrap');
 
-  // Search & Overview 상단 MPG/KPI 삭제했으므로 호출하지 않음
-  // renderStats();
-  // renderEfficiencyTable();
+    if(loading) loading.style.display = 'none';
+    if(results) results.style.display = 'flex';
 
-  renderMissingInspections();
-  renderInspections();
-  renderFuelLog();
-  renderOpenIssues();
+    // 상단 MPG/KPI 삭제했으므로 호출하지 않음
+    // renderStats();
+    // renderEfficiencyTable();
+
+    // 먼저 핵심 데이터부터 표시
+    renderInspections();
+    renderFuelLog();
+
+    // 부가 기능은 에러 나도 전체 화면을 막지 않도록 분리
+    try {
+      renderMissingInspections();
+    } catch(e) {
+      console.error('renderMissingInspections error:', e);
+      const card = document.getElementById('missing-card');
+      if(card) card.style.display = 'none';
+    }
+
+    try {
+      renderOpenIssues();
+    } catch(e) {
+      console.error('renderOpenIssues error:', e);
+    }
+
+  } catch(e) {
+    console.error('applyFilters fatal error:', e);
+
+    const loading = document.getElementById('loading-state');
+    const results = document.getElementById('results-wrap');
+
+    if(loading){
+      loading.innerHTML =
+        '<p style="color:var(--r-tx);font-size:14px;">⚠ Search & Overview failed to render. Check console error.</p>';
+    }
+
+    if(results) results.style.display = 'none';
+  }
 }
-
 // ── Stats ─────────────────────────────────────────────────
 // MPG calculation: use only Post-Trip odometer readings paired with fuel logs
 // Distance = sum of (post-trip odo per day - previous post-trip odo) per vehicle
