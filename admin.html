@@ -1888,17 +1888,6 @@ function renderMissingInspections(){
 function renderInspections(){
   const rows = filteredData.filter(r => r[COL.tripType] !== 'Fuel Log');
 
-  sortArrayByConfig(rows, 'insp', {
-    date:       { getter: r => r[COL.date], type: 'date' },
-    time:       { getter: r => r[COL.time], type: 'time' },
-    driver:     { getter: r => r[COL.driver], type: 'text' },
-    vehicle:    { getter: r => r[COL.vehicle], type: 'text' },
-    odometer:   { getter: r => r[COL.odometer], type: 'number' },
-    tripType:   { getter: r => r[COL.tripType], type: 'text' },
-    defect:     { getter: r => r[COL.defectFound], type: 'text' },
-    photo:      { getter: r => r[COL.receiptUrl], type: 'text' }
-  });
-
   document.getElementById('insp-title').textContent =
     `Inspections (${rows.length})`;
 
@@ -1911,73 +1900,80 @@ function renderInspections(){
   const pageInfo = getPagedRows(rows, 'insp');
 
   const tripBadge = t => {
-    if(t === 'Pre-Trip')  return '<span class="badge b-pre">Pre-Trip</span>';
-    if(t === 'Post-Trip') return '<span class="badge b-post">Post-Trip</span>';
+    if(t === 'Pre-Trip') {
+      return '<span class="badge b-pre">Pre-Trip</span>';
+    }
+
+    if(t === 'Post-Trip') {
+      return '<span class="badge b-post">Post-Trip</span>';
+    }
+
     return '<span class="badge b-both">Both</span>';
   };
 
   const html = pageInfo.rows.map(r => {
-  const hasDef = r[COL.defectFound] === 'yes';
+    const hasDef = r[COL.defectFound] === 'yes';
 
-  const imgUrl = r[COL.receiptUrl];
-  const photoLink = imgUrl && String(imgUrl).startsWith('http')
-    ? `<a href="${imgUrl}" target="_blank" style="color:var(--blue);font-size:12px;font-weight:600;">Photo</a>`
-    : `<span style="font-size:12px;color:var(--ink-faint);">—</span>`;
+    const imgUrl = r[COL.receiptUrl];
+    const photoLink = imgUrl && String(imgUrl).startsWith('http')
+      ? `<a href="${imgUrl}" target="_blank" style="color:var(--blue);font-size:12px;font-weight:600;">Photo</a>`
+      : `<span style="font-size:12px;color:var(--ink-faint);">—</span>`;
 
-  const defectReport = hasDef
-    ? `<div style="font-size:12px;line-height:1.5;color:var(--r-tx);">
-         <strong>Defect:</strong> ${r[COL.defectDesc] || 'No description'}<br>
-         <span style="color:var(--ink-muted);">
-           Reported to: ${r[COL.defectReportedTo] || '—'}
-           ${r[COL.defectTime] ? ' / ' + fmtTime(r[COL.defectTime]) : ''}
-         </span>
-       </div>`
-    : `<span style="font-size:12px;color:var(--ink-faint);">—</span>`;
+    const defectReport = hasDef
+      ? `<div style="font-size:12px;line-height:1.5;color:var(--r-tx);">
+           <strong>Defect:</strong> ${escapeHtml(r[COL.defectDesc] || 'No description')}<br>
+           <span style="color:var(--ink-muted);">
+             Reported to: ${escapeHtml(r[COL.defectReportedTo] || '—')}
+             ${r[COL.defectTime] ? ' / ' + fmtTime(r[COL.defectTime]) : ''}
+           </span>
+         </div>`
+      : `<span style="font-size:12px;color:var(--ink-faint);">—</span>`;
 
-  const isManual = false;
+    const isManual = false;
 
-  return `
-    <tr class="${hasDef ? 'defect-row' : ''}">
-      <td style="white-space:nowrap;">${dispDate(r[COL.date])}</td>
-      <td>${fmtTime(r[COL.time])}</td>
-      <td style="font-size:12px;white-space:nowrap;">${r[COL.driver] || '—'}</td>
-      <td><strong>${r[COL.vehicle] || '—'}</strong></td>
-      <td style="text-align:right; font-variant-numeric:tabular-nums;">${fmtOdo(r[COL.odometer])}</td>
-      <td>
-        ${tripBadge(r[COL.tripType])}
-        ${isManual ? ' <span class="badge b-manual">Manual</span>' : ''}
-        ${hasDef ? ' <span class="badge b-def">Defect</span>' : ''}
-      </td>
-      <td>${defectReport}</td>
-      <td>${photoLink}</td>
-      <td style="vertical-align:middle;">
-        <div class="act-group">
-          <button class="btn btn-g btn-sm" onclick="printRecord('${getRowIndex(r)}')">Print</button>
-          <button class="btn btn-b btn-sm" onclick="editRecord('${getRowIndex(r)}')">Edit</button>
-          <button class="btn btn-r btn-sm" onclick="deleteRecord('${getRowIndex(r)}')">Del</button>
-        </div>
-      </td>
-    </tr>
-  `;
-}).join('');
+    return `
+      <tr class="${hasDef ? 'defect-row' : ''}">
+        <td style="white-space:nowrap;">${dispDate(r[COL.date])}</td>
+        <td>${fmtTime(r[COL.time])}</td>
+        <td style="font-size:12px;white-space:nowrap;">${escapeHtml(r[COL.driver] || '—')}</td>
+        <td><strong>${vehicleDisplayHtml(r[COL.vehicle])}</strong></td>
+        <td style="text-align:right;font-variant-numeric:tabular-nums;">${fmtOdo(r[COL.odometer])}</td>
+        <td>
+          ${tripBadge(r[COL.tripType])}
+          ${isManual ? ' <span class="badge b-manual">Manual</span>' : ''}
+          ${hasDef ? ' <span class="badge b-def">Defect</span>' : ''}
+        </td>
+        <td>${defectReport}</td>
+        <td style="text-align:center;">${photoLink}</td>
+        <td style="text-align:right;white-space:nowrap;">
+          <button class="btn btn-s" onclick="editRecord(${getRowIndex(r)})">Edit</button>
+          <button class="btn btn-d" onclick="deleteRecord(${getRowIndex(r)})">Delete</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
 
   document.getElementById('insp-wrap').innerHTML = `
-    <table class="main-t">
-      <thead>
-        <tr>
-          ${sortableTh('insp','date','Date')}
-          ${sortableTh('insp','time','Time')}
-          ${sortableTh('insp','driver','Driver')}
-          ${sortableTh('insp','vehicle','Vehicle')}
-          ${sortableTh('insp','odometer','Odometer', true)}
-          ${sortableTh('insp','tripType','Type')}
-          ${sortableTh('insp','defect','Defect Report')}
-          ${sortableTh('insp','photo','Photo')}
-          <th style="min-width:180px;text-align:right;">Actions</th>
-        </tr>
-      </thead>
-      <tbody>${html}</tbody>
-    </table>
+    <div class="t-wrap">
+      <table class="main-t">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Driver</th>
+            <th>Vehicle</th>
+            <th style="text-align:right;">Odometer</th>
+            <th>Trip Type</th>
+            <th>Defect Report</th>
+            <th style="text-align:center;">Photo</th>
+            <th style="text-align:right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${html}
+        </tbody>
+      </table>
+    </div>
     ${renderPager('insp', pageInfo)}
   `;
 }
