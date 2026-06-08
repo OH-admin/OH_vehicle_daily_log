@@ -524,6 +524,15 @@ const PAX_EN   = [
 
 let allData = [], filteredData = [];
 let mDvir = {}, editRowId = null, editReceiptUrl = '';
+
+const PAGE_SIZE = 20;
+
+let tablePage = {
+  review: 1,
+  insp: 1,
+  fuel: 1
+};
+
 let tableSort = {
   review: { key: '', dir: 'asc' },
   insp:   { key: '', dir: 'asc' },
@@ -704,6 +713,8 @@ function setTableSort(table, key){
     tableSort[table].dir = 'asc';
   }
 
+  tablePage[table] = 1;
+
   if(table === 'review') renderOpenIssues();
   if(table === 'insp') renderInspections();
   if(table === 'fuel') renderFuelLog();
@@ -764,7 +775,81 @@ function sortableTh(table, key, label, alignRight){
     </th>
   `;
 }
-   
+
+function getPagedRows(rows, table){
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  if(!tablePage[table]) tablePage[table] = 1;
+  if(tablePage[table] > totalPages) tablePage[table] = totalPages;
+  if(tablePage[table] < 1) tablePage[table] = 1;
+
+  const page = tablePage[table];
+  const start = (page - 1) * PAGE_SIZE;
+  const end = start + PAGE_SIZE;
+
+  return {
+    rows: rows.slice(start, end),
+    total,
+    page,
+    totalPages,
+    start,
+    end: Math.min(end, total)
+  };
+}
+
+function changeTablePage(table, direction){
+  tablePage[table] = (tablePage[table] || 1) + direction;
+
+  if(table === 'review') renderOpenIssues();
+  if(table === 'insp') renderInspections();
+  if(table === 'fuel') renderFuelLog();
+}
+
+function renderPager(table, pageInfo){
+  if(!pageInfo || pageInfo.total <= PAGE_SIZE) return '';
+
+  const prevDisabled = pageInfo.page <= 1 ? 'disabled' : '';
+  const nextDisabled = pageInfo.page >= pageInfo.totalPages ? 'disabled' : '';
+
+  return `
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-top:12px;
+      padding-top:10px;
+      border-top:0.5px solid var(--hairline);
+      font-size:12px;
+      color:var(--ink-muted);
+      flex-wrap:wrap;
+    ">
+      <div>
+        Showing <strong>${pageInfo.start + 1}</strong>–<strong>${pageInfo.end}</strong>
+        of <strong>${pageInfo.total}</strong>
+      </div>
+
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button class="btn btn-pearl btn-sm"
+                onclick="changeTablePage('${table}', -1)"
+                ${prevDisabled}>
+          Previous
+        </button>
+
+        <span style="font-size:12px;color:var(--ink-muted);padding:0 4px;">
+          Page ${pageInfo.page} of ${pageInfo.totalPages}
+        </span>
+
+        <button class="btn btn-pearl btn-sm"
+                onclick="changeTablePage('${table}', 1)"
+                ${nextDisabled}>
+          Next
+        </button>
+      </div>
+    </div>
+  `;
+}   
 // ── Load ─────────────────────────────────────────────────
 async function loadData(){
   document.getElementById('loading-state').style.display = 'block';
@@ -836,76 +921,122 @@ function renderOpenIssues(){
     <span style="color:var(--a-tx);font-weight:600;">MEDIUM: ${medCount}</span>
   `;
 
-const reviewRows = [...openIssues];
+  const reviewRows = [...openIssues];
 
-// Review Queue 데이터에서 날짜/시간/원본 row를 안전하게 가져오기
-const getIssueDate = issue =>
-  issue.date || issue.recordDate || issue.inspectionDate || issue.logDate || '';
+  // Review Queue issue가 원본 Fleet Log의 rowNo/sourceRowIndex를 가지고 있으면,
+  // allData에서 원본 기록을 찾아 날짜/시간/기사/차량/오도미터를 보완한다.
+  const getIssueSourceRow = issue =>
+    issue.rowNo || issue.sourceRowIndex || issue.recordRowIndex || issue.logRowIndex || '';
 
-const getIssueTime = issue =>
-  issue.time || issue.recordTime || issue.inspectionTime || '';
+  const getSourceRecord = issue => {
+    const sourceRow = String(getIssueSourceRow(issue)).trim();
+    if(!sourceRow) return null;
 
-const getIssueSourceRow = issue =>
-  issue.rowNo || issue.sourceRowIndex || issue.recordRowIndex || issue.logRowIndex || '';
+    return allData.find(r => String(r[COL.rowIndex]).trim() === sourceRow) || null;
+  };
 
-sortArrayByConfig(reviewRows, 'review', {
-  severity:    { getter: i => i.severity, type: 'text' },
-  issueType:   { getter: i => i.issueType, type: 'text' },
-  date:        { getter: i => getIssueDate(i), type: 'date' },
-  time:        { getter: i => getIssueTime(i), type: 'time' },
-  driver:      { getter: i => i.driver, type: 'text' },
-  vehicle:     { getter: i => i.vehicle, type: 'text' },
-  odometer:    { getter: i => i.odometer, type: 'number' },
-  description: { getter: i => i.description, type: 'text' },
-  photo:       { getter: i => i.photoUrl, type: 'text' }
-});
+  const getIssueDate = issue => {
+    if(issue.date || issue.recordDate || issue.inspectionDate || issue.logDate){
+      return issue.date || issue.recordDate || issue.inspectionDate || issue.logDate;
+    }
 
-const rows = reviewRows.slice(0, 10).map(issue => {
-  const photo = issue.photoUrl && String(issue.photoUrl).startsWith('http')
-    ? `<a href="${issue.photoUrl}" target="_blank" style="color:var(--blue);">Photo</a>`
-    : '—';
+    const src = getSourceRecord(issue);
+    return src ? src[COL.date] : '';
+  };
 
-  return `
-    <tr>
-      <td><span class="badge ${issue.severity === 'HIGH' ? 'b-def' : 'b-post'}">${escapeHtml(issue.severity || '')}</span></td>
-      <td>${escapeHtml(issue.issueType || '')}</td>
-      <td style="white-space:nowrap;">${escapeHtml(dispDate(getIssueDate(issue)))}</td>
-      <td>${escapeHtml(fmtTime(getIssueTime(issue)))}</td>
-      <td>${escapeHtml(issue.driver || '')}</td>
-      <td><strong>${escapeHtml(issue.vehicle || '')}</strong></td>
-      <td style="text-align:right; font-variant-numeric:tabular-nums;">${escapeHtml(fmtOdo(issue.odometer || ''))}</td>
-      <td style="font-size:12px;max-width:260px;">${escapeHtml(issue.description || '')}</td>
-      <td>${photo}</td>
-      <td class="act-group">
-        <button class="btn btn-b btn-sm" onclick="editIssueRecord('${getIssueSourceRow(issue)}')">Edit</button>
-        <button class="btn btn-g btn-sm" onclick="updateIssueStatus('${issue.rowIndex}','RESOLVED')">Resolve</button>
-        <button class="btn btn-r btn-sm" onclick="deleteReviewIssue('${issue.rowIndex}')">Delete</button>
-      </td>
-    </tr>
-  `;
-}).join('');
+  const getIssueTime = issue => {
+    if(issue.time || issue.recordTime || issue.inspectionTime){
+      return issue.time || issue.recordTime || issue.inspectionTime;
+    }
+
+    const src = getSourceRecord(issue);
+    return src ? src[COL.time] : '';
+  };
+
+  const getIssueDriver = issue => {
+    if(issue.driver) return issue.driver;
+    const src = getSourceRecord(issue);
+    return src ? src[COL.driver] : '';
+  };
+
+  const getIssueVehicle = issue => {
+    if(issue.vehicle) return issue.vehicle;
+    const src = getSourceRecord(issue);
+    return src ? src[COL.vehicle] : '';
+  };
+
+  const getIssueOdometer = issue => {
+    if(issue.odometer) return issue.odometer;
+    const src = getSourceRecord(issue);
+    return src ? src[COL.odometer] : '';
+  };
+
+  sortArrayByConfig(reviewRows, 'review', {
+    date:        { getter: i => getIssueDate(i), type: 'date' },
+    time:        { getter: i => getIssueTime(i), type: 'time' },
+    driver:      { getter: i => getIssueDriver(i), type: 'text' },
+    vehicle:     { getter: i => getIssueVehicle(i), type: 'text' },
+    odometer:    { getter: i => getIssueOdometer(i), type: 'number' },
+    severity:    { getter: i => i.severity, type: 'text' },
+    issueType:   { getter: i => i.issueType, type: 'text' },
+    description: { getter: i => i.description, type: 'text' },
+    photo:       { getter: i => i.photoUrl, type: 'text' }
+  });
+
+  const pageInfo = getPagedRows(reviewRows, 'review');
+
+  const rows = pageInfo.rows.map(issue => {
+    const photo = issue.photoUrl && String(issue.photoUrl).startsWith('http')
+      ? `<a href="${issue.photoUrl}" target="_blank" style="color:var(--blue);">Photo</a>`
+      : '—';
+
+    return `
+      <tr>
+        <td style="white-space:nowrap;">${escapeHtml(dispDate(getIssueDate(issue)))}</td>
+        <td>${escapeHtml(fmtTime(getIssueTime(issue)))}</td>
+        <td>${escapeHtml(getIssueDriver(issue) || '')}</td>
+        <td><strong>${escapeHtml(getIssueVehicle(issue) || '')}</strong></td>
+        <td style="text-align:right; font-variant-numeric:tabular-nums;">
+          ${escapeHtml(fmtOdo(getIssueOdometer(issue) || ''))}
+        </td>
+        <td>
+          <span class="badge ${issue.severity === 'HIGH' ? 'b-def' : 'b-post'}">
+            ${escapeHtml(issue.severity || '')}
+          </span>
+        </td>
+        <td>${escapeHtml(issue.issueType || '')}</td>
+        <td style="font-size:12px;max-width:260px;">${escapeHtml(issue.description || '')}</td>
+        <td>${photo}</td>
+        <td class="act-group">
+          <button class="btn btn-b btn-sm" onclick="editIssueRecord('${getIssueSourceRow(issue)}')">Edit</button>
+          <button class="btn btn-g btn-sm" onclick="updateIssueStatus('${issue.rowIndex}','RESOLVED')">Resolve</button>
+          <button class="btn btn-r btn-sm" onclick="deleteReviewIssue('${issue.rowIndex}')">Delete</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
 
   wrap.innerHTML = `
     <div class="t-wrap">
       <table class="main-t">
-   <thead>
-  <tr>
-    ${sortableTh('review','severity','Severity')}
-    ${sortableTh('review','issueType','Issue')}
-    ${sortableTh('review','date','Date')}
-    ${sortableTh('review','time','Time')}
-    ${sortableTh('review','driver','Driver')}
-    ${sortableTh('review','vehicle','Vehicle')}
-    ${sortableTh('review','odometer','Odometer', true)}
-    ${sortableTh('review','description','Description')}
-    ${sortableTh('review','photo','Photo')}
-    <th>Actions</th>
-  </tr>
-</thead>
+        <thead>
+          <tr>
+            ${sortableTh('review','date','Date')}
+            ${sortableTh('review','time','Time')}
+            ${sortableTh('review','driver','Driver')}
+            ${sortableTh('review','vehicle','Vehicle')}
+            ${sortableTh('review','odometer','Odometer', true)}
+            ${sortableTh('review','severity','Severity')}
+            ${sortableTh('review','issueType','Issue')}
+            ${sortableTh('review','description','Description')}
+            ${sortableTh('review','photo','Photo')}
+            <th>Actions</th>
+          </tr>
+        </thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
-    ${openIssues.length > 10 ? `<p style="font-size:12px;color:var(--ink-muted);margin-top:8px;">Showing first 10 of ${openIssues.length} open issues.</p>` : ''}
+    ${renderPager('review', pageInfo)}
   `;
 }
 
@@ -1446,6 +1577,29 @@ function editIssueRecord(sourceRowId){
 
   editRecord(r[COL.rowIndex]);
 }
+
+function editIssueRecord(sourceRowId){
+  if(!sourceRowId){
+    alert('Cannot edit: source row number is missing from this review item.');
+    return;
+  }
+
+  const rowIdStr = String(sourceRowId).trim();
+
+  const r = allData.find(x => String(x[COL.rowIndex]).trim() === rowIdStr);
+
+  if(!r){
+    alert(
+      'Cannot find the original inspection record for this review item.\n\n' +
+      'Source row: ' + rowIdStr + '\n\n' +
+      'This usually means the Review Queue item does not have a correct rowNo/sourceRowIndex.'
+    );
+    return;
+  }
+
+  editRecord(r[COL.rowIndex]);
+}
+   
 // ── Edit ──────────────────────────────────────────────────
 function editRecord(rowId){
   const rowIdStr = String(rowId).trim();
