@@ -1229,7 +1229,7 @@ function renderOpenIssues(){
   <div class="act-group">
     <button class="btn btn-b btn-sm" onclick="editIssueRecord('${getIssueSourceRow(issue)}')">Edit</button>
     <button class="btn btn-g btn-sm" onclick="updateIssueStatus('${issue.rowIndex}','RESOLVED')">Resolve</button>
-    <button class="btn btn-r btn-sm" onclick="deleteReviewIssue('${issue.rowIndex}', '${getIssueSourceRow(issue)}')">Delete</button>
+    <button class="btn btn-r btn-sm" onclick="deleteReviewIssue('${issue.rowIndex}', '${issue.sourceRecordId || ''}')">Delete</button>
   </div>
 </td>
       </tr>
@@ -1280,32 +1280,32 @@ async function updateIssueStatus(rowIndex, status){
     alert('Failed to update issue: ' + e.message);
   }
 }
-async function deleteReviewIssue(issueRowIndex, sourceRowNo){
+async function deleteReviewIssue(issueRowIndex, sourceRecordId){
   if(!issueRowIndex){
     alert('Delete failed: issue rowIndex is missing.');
     return;
   }
 
-  if(!sourceRowNo){
+  if(!sourceRecordId){
     alert(
-      'Cannot delete the original record because the source row number is missing.\n\n' +
-      'This review item can only be resolved or deleted from the review queue.'
+      'Cannot delete the original record because SourceRecordID is missing.\n\n' +
+      'This review item may have been created before RecordID was added.\n' +
+      'Please run screening again after RecordID setup.'
     );
     return;
   }
 
   if(!confirm(
     'Delete this review queue item AND the original Inspection/Fuel record?\n\n' +
-    'Use this only for duplicate or incorrect entries.\n' +
-    'This will remove the original record from the main list.'
+    'Use this only for duplicate or incorrect entries.'
   )) return;
 
   try {
     const url = APPS_SCRIPT_URL
-      + '?action=deleteIssueAndSource'
+      + '?action=deleteIssueAndSourceByRecordId'
       + '&token=' + encodeURIComponent(ADMIN_TOKEN)
       + '&issueRowIndex=' + encodeURIComponent(issueRowIndex)
-      + '&sourceRowNo=' + encodeURIComponent(sourceRowNo);
+      + '&sourceRecordId=' + encodeURIComponent(sourceRecordId);
 
     await fetch(url, { method:'GET', mode:'no-cors' });
 
@@ -1320,6 +1320,7 @@ async function deleteReviewIssue(issueRowIndex, sourceRowNo){
     alert('Failed to delete source record: ' + e.message);
   }
 }
+   
 async function runScreeningNow(){
   if(!confirm('Run DVIR screening now?')) return;
 
