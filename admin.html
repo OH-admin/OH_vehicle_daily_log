@@ -1229,7 +1229,7 @@ function renderOpenIssues(){
   <div class="act-group">
     <button class="btn btn-b btn-sm" onclick="editIssueRecord('${getIssueSourceRow(issue)}')">Edit</button>
     <button class="btn btn-g btn-sm" onclick="updateIssueStatus('${issue.rowIndex}','RESOLVED')">Resolve</button>
-    <button class="btn btn-r btn-sm" onclick="deleteReviewIssue('${issue.rowIndex}')">Delete</button>
+    <button class="btn btn-r btn-sm" onclick="deleteReviewIssue('${issue.rowIndex}', '${getIssueSourceRow(issue)}')">Delete</button>
   </div>
 </td>
       </tr>
@@ -1280,32 +1280,44 @@ async function updateIssueStatus(rowIndex, status){
     alert('Failed to update issue: ' + e.message);
   }
 }
-async function deleteReviewIssue(issueRowIndex){
+async function deleteReviewIssue(issueRowIndex, sourceRowNo){
   if(!issueRowIndex){
     alert('Delete failed: issue rowIndex is missing.');
     return;
   }
 
+  if(!sourceRowNo){
+    alert(
+      'Cannot delete the original record because the source row number is missing.\n\n' +
+      'This review item can only be resolved or deleted from the review queue.'
+    );
+    return;
+  }
+
   if(!confirm(
-    'Delete this review queue item?\n\n' +
-    'Use Delete only for duplicate or false review items.\n' +
-    'For real defects or issues, use Resolve instead.'
+    'Delete this review queue item AND the original Inspection/Fuel record?\n\n' +
+    'Use this only for duplicate or incorrect entries.\n' +
+    'This will remove the original record from the main list.'
   )) return;
 
   try {
     const url = APPS_SCRIPT_URL
-  + '?action=deleteIssue'
-  + '&token=' + encodeURIComponent(ADMIN_TOKEN)
-  + '&rowIndex=' + encodeURIComponent(issueRowIndex);
+      + '?action=deleteIssueAndSource'
+      + '&token=' + encodeURIComponent(ADMIN_TOKEN)
+      + '&issueRowIndex=' + encodeURIComponent(issueRowIndex)
+      + '&sourceRowNo=' + encodeURIComponent(sourceRowNo);
 
     await fetch(url, { method:'GET', mode:'no-cors' });
 
+    alert('Delete request sent. Refreshing data...');
+
     setTimeout(() => {
+      loadData();
       loadOpenIssues();
-    }, 1000);
+    }, 1500);
 
   } catch(e){
-    alert('Failed to delete issue: ' + e.message);
+    alert('Failed to delete source record: ' + e.message);
   }
 }
 async function runScreeningNow(){
