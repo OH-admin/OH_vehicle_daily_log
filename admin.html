@@ -1096,17 +1096,25 @@ function renderOpenIssues(){
 
   // Review Queue에도 날짜 / 차량 / 기사 필터 적용
   reviewRows = reviewRows.filter(issue => {
-    const d = fmtDate(getIssueDate(issue));
-    const issueVehicle = String(getIssueVehicle(issue) || '').trim();
-    const issueDriver = String(getIssueDriver(issue) || '').trim();
+  const d = fmtDate(getIssueDate(issue));
+  const issueVehicle = String(getIssueVehicle(issue) || '').trim();
+  const issueDriver = String(getIssueDriver(issue) || '').trim();
 
+  // 날짜가 확인되는 issue만 날짜 필터 적용
+  // 날짜가 비어 있으면 일단 Review Queue에는 표시되도록 둠
+  if(d){
     if(from && d < from) return false;
     if(to && d > to) return false;
-    if(veh && issueVehicle !== veh) return false;
-    if(drv && issueDriver !== drv) return false;
+  }
 
-    return true;
-  });
+  // 차량 필터는 차량 정보가 있는 경우에만 적용
+  if(veh && issueVehicle && issueVehicle !== veh) return false;
+
+  // 기사 필터는 기사 정보가 있는 경우에만 적용
+  if(drv && issueDriver && issueDriver !== drv) return false;
+
+  return true;
+});
 
   // 필터 결과가 없을 때
   if(!reviewRows.length){
