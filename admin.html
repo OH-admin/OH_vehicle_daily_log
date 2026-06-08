@@ -115,11 +115,19 @@ html,body { font-family:var(--font); background:var(--parchment); color:var(--in
 
 .report-kpis{
   display:grid;
-  grid-template-columns:repeat(4, minmax(180px,1fr));
+  grid-template-columns:repeat(5, minmax(160px,1fr));
   gap:12px;
   margin:0 0 18px 0;
 }
 
+.report-kpi.kpi-unit{
+  background:#fbfbfc;
+}
+
+.report-kpi.kpi-unit .value{
+  color:#333;
+}
+   
 .report-kpi{
   border:1px solid var(--hairline);
   border-radius:18px;
@@ -2022,20 +2030,22 @@ const label = new Date(reportYear, reportMonth - 1, 1, 12, 0, 0).toLocaleString(
 
     if(!vehicle || vehicle === '—') return;
 
-    const key = getReportBucketKey(vehicle, driver);
+    const key = isDefaultMonthlySummary
+  ? vehicle
+  : getReportBucketKey(vehicle, driver);
 
-    if(!buckets[key]){
-      buckets[key] = {
-        vehicle: vehicle,
-        driver: driver,
-        rows: [],
-        inspectionRows: [],
-        fuelRows: [],
-        fuelQty: 0,
-        fuelAmt: 0,
-        defects: 0
-      };
-    }
+if(!buckets[key]){
+  buckets[key] = {
+    vehicle: vehicle,
+    driver: isDefaultMonthlySummary ? 'All Drivers' : driver,
+    rows: [],
+    inspectionRows: [],
+    fuelRows: [],
+    fuelQty: 0,
+    fuelAmt: 0,
+    defects: 0
+  };
+}
 
     buckets[key].rows.push(r);
 
@@ -2107,9 +2117,16 @@ const label = new Date(reportYear, reportMonth - 1, 1, 12, 0, 0).toLocaleString(
     ? (totalMiles / totalFuelQty).toFixed(1)
     : '—';
 
+const avgUnitPrice = totalFuelQty > 0
+  ? '$' + (totalFuelAmt / totalFuelQty).toFixed(3)
+  : '—';   
+   
   const titleVehicle = vSel === 'ALL' ? 'All Vehicles' : 'Vehicle ' + vSel;
   const titleDriver = dSel === 'ALL' ? 'All Drivers' : 'Driver: ' + dSel;
 
+const isDefaultMonthlySummary = vSel === 'ALL' && dSel === 'ALL';
+const showDetailRecords = !isDefaultMonthlySummary;
+   
   document.getElementById('report-title').textContent =
     `${label} — ${titleVehicle} — ${titleDriver}`;
 
@@ -2129,6 +2146,11 @@ const label = new Date(reportYear, reportMonth - 1, 1, 12, 0, 0).toLocaleString(
       <div class="value">${totalFuelQty.toFixed(3)} gal</div>
       <div class="label">Total Fuel (Gal)</div>
     </div>
+
+   <div class="report-kpi kpi-unit">
+     <div class="value">${avgUnitPrice}</div>
+     <div class="label">Avg Unit Price</div>
+   </div>
 
     <div class="report-kpi kpi-mpg">
       <div class="value">${fleetMpg}</div>
@@ -2155,7 +2177,7 @@ const label = new Date(reportYear, reportMonth - 1, 1, 12, 0, 0).toLocaleString(
 
   const vehicleDriverSummaryHtml = `
   <div class="report-box">
-    <div class="sec-title">Vehicle / Driver Monthly Mileage & Fuel Summary</div>
+    <div class="sec-title">   ${isDefaultMonthlySummary     ? 'Vehicle Monthly Mileage & Fuel Summary'     : 'Vehicle / Driver Monthly Mileage & Fuel Summary'} </div>
     <div class="box-meta">
       Inspection records: <strong>${inspectionRows.length}</strong>
       &nbsp;|&nbsp;
@@ -2293,11 +2315,26 @@ const label = new Date(reportYear, reportMonth - 1, 1, 12, 0, 0).toLocaleString(
   </div>
 `;
 
-  document.getElementById('report-table-wrap').innerHTML =
-    summaryHtml +
-    vehicleDriverSummaryHtml +
-    inspectionHtml +
-    fuelHtml;
+  const detailNoticeHtml = isDefaultMonthlySummary ? `
+  <div style="
+    background:#fbfbfc;
+    border:1px solid var(--hairline);
+    color:var(--ink-muted);
+    padding:12px 14px;
+    border-radius:12px;
+    font-size:12px;
+    margin-top:14px;
+    line-height:1.5;
+  ">
+    Showing vehicle-level monthly summary only. Select a specific vehicle or driver to view detailed inspection and fuel log records.
+  </div>
+` : '';
+
+document.getElementById('report-table-wrap').innerHTML =
+  summaryHtml +
+  vehicleDriverSummaryHtml +
+  detailNoticeHtml +
+  (showDetailRecords ? inspectionHtml + fuelHtml : '');
 
   document.getElementById('report-output').style.display = 'block';
 }
