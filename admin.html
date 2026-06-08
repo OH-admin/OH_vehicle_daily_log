@@ -637,7 +637,16 @@ const COL = {
   defectFound:16,defectDesc:17,defectReportedTo:18,defectTime:19,
   paxSeats:20,paxWheelchair:21,paxFloor:22,paxRear:23,paxNoPax:24,
   paxIssueFound:25,paxIssueDesc:26,
-  fuelQty:27,fuelAmt:28,receiptUrl:29,entryType:30,rowIndex:31
+  fuelQty:27,
+  fuelAmt:28,
+  receiptUrl:29,
+  entryType:30,
+
+  // AF열 = RecordID
+  recordId:31,
+
+  // Apps Script getAll에서 row.push(j + 1)로 추가되는 가상 컬럼
+  rowIndex:32
 };
 
 const DVIR_KEYS = ['brakes','tires','lights','doors','belts','lift','fluid','firstaid','dashcam','interior'];
@@ -1033,43 +1042,61 @@ async function loadData(){
   document.getElementById('eff-card').style.display = 'none';
 
   try {
-    const res  = await fetch(   APPS_SCRIPT_URL   + '?action=getAll'   + '&token=' + encodeURIComponent(ADMIN_TOKEN) );
+    const res = await fetch(
+      APPS_SCRIPT_URL
+      + '?action=getAll'
+      + '&token=' + encodeURIComponent(ADMIN_TOKEN)
+    );
+
     const json = await res.json();
 
-    allData = json.data || [];
-vehicleMaster = json.vehicles || [];
-     
-    document.getElementById('data-count').textContent =
-      allData.length + ' total records';
-
-    applyFilters();
-
-    // Review Queue / Screening Issues 불러오기
-    loadOpenIssues();
-
-  } catch(e){
-    document.getElementById('loading-state').innerHTML =
-      `<p style="color:var(--r-tx);font-size:14px;">⚠ Failed to load data. Check your connection and Apps Script URL.</p>`;
-  }
-}
-
-let openIssues = [];
-
-async function loadOpenIssues(){
-  try {
-    const res = await fetch(   APPS_SCRIPT_URL   + '?action=getOpenIssues'   + '&token=' + encodeURIComponent(ADMIN_TOKEN) );
-    const json = await res.json();
-
+    // 중요: Apps Script가 Unauthorized / error를 보내면 여기서 멈추게 함
     if(json.result !== 'success'){
-      console.log('Open issues load failed:', json);
+      allData = [];
+      filteredData = [];
+
+      document.getElementById('data-count').textContent = '0 total records';
+
+      document.getElementById('loading-state').style.display = 'block';
+      document.getElementById('loading-state').innerHTML = `
+        <p style="color:var(--r-tx);font-size:14px;font-weight:600;">
+          ⚠ Failed to load data.
+        </p>
+        <p style="color:var(--ink-muted);font-size:13px;margin-top:6px;">
+          ${escapeHtml(json.message || json.msg || 'Unauthorized or server error. Please sign out and sign in again.')}
+        </p>
+      `;
+
+      // 토큰 만료 가능성이 높으므로 기존 토큰 제거
+      if(String(json.message || '').toLowerCase().includes('unauthorized')){
+        localStorage.removeItem('OHADC_ADMIN_TOKEN');
+        ADMIN_TOKEN = '';
+      }
+
       return;
     }
 
-    openIssues = json.issues || [];
-    renderOpenIssues();
+    allData = json.data || [];
+    vehicleMaster = json.vehicles || [];
+
+    document.getElementById('data-count').textContent =
+      allData.length + ' total records';
+
+    // 로딩 메시지 원상복구
+    document.getElementById('loading-state').innerHTML = `
+      <div class="spinner"></div>
+      <p style="margin-top:12px;color:var(--ink-muted);font-size:14px;">
+        Loading data from Google Sheets...
+      </p>
+    `;
+
+    applyFilters();
+    loadOpenIssues();
 
   } catch(e){
-    console.log('loadOpenIssues error:', e);
+    document.getElementById('loading-state').style.display = 'block';
+    document.getElementById('loading-state').innerHTML =
+      `<p style="color:var(--r-tx);font-size:14px;">⚠ Failed to load data. ${escapeHtml(e.message || '')}</p>`;
   }
 }
 
@@ -1098,7 +1125,7 @@ function renderOpenIssues(){
     const sourceRow = String(getIssueSourceRow(issue)).trim();
     if(!sourceRow) return null;
 
-    return allData.find(r => String(r[COL.rowIndex]).trim() === sourceRow) || null;
+    return allData.find(r => String(getRowIndex(r)).trim() === sourceRow) || null;
   };
 
   const getIssueDate = issue => {
@@ -1378,7 +1405,7 @@ function applyFilters(){
   tablePage.fuel = 1;
 
   document.getElementById('loading-state').style.display='none';
-  document.getElementById('results-wrap').style.display= filteredData.length ? 'flex' : 'none';
+  document.getElementById('results-wrap').style.display = 'flex';
 
   renderStats();
 renderEfficiencyTable();
