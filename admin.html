@@ -383,60 +383,56 @@ table.main-t tr.defect-row td { background:#fff8f8; }
 
 /* 한 줄 행 */
 /* 차량별 3열 행 */
-.miss-veh-row {
+/* 차량 뱃지 카드 그리드 */
+.miss-veh-grid {
   display: grid;
-  grid-template-columns: 200px 1fr 1fr;
-  gap: 12px;
-  align-items: stretch;
-  padding: 9px 12px;
-  border-bottom: 1px solid rgba(0,0,0,.06);
-  font-size: 13px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  padding: 12px;
 }
 
-.miss-veh-row:last-child {
-  border-bottom: none;
-}
-
-/* 열 헤더 줄 */
-.miss-veh-head {
-  display: grid;
-  grid-template-columns: 200px 1fr 1fr;
-  gap: 12px;
-  padding: 5px 12px;
-  background: #fbfbfc;
-  border-bottom: 1px solid var(--hairline);
-  font-size: 10px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  color: var(--ink-muted);
-}
-
-/* 1열: 차량번호 */
-.miss-col-vehicle {
-  display: flex;
-  align-items: center;
-  font-weight: 900;
-  color: var(--ink);
-}
-
-/* 2열 Pre / 3열 Post 공통 */
-.miss-col-pre,
-.miss-col-post {
+/* 차량 한 장 카드 */
+.miss-veh-card {
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: #fff;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 3px;
+  gap: 7px;
 }
 
-.miss-col-pre {
-  border-left: 1px solid rgba(0,0,0,.06);
-  padding-left: 12px;
+/* 카드 상단: 차량번호 + 유닛 뱃지 */
+.miss-card-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--ink);
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(0,0,0,.06);
 }
 
-.miss-col-post {
-  border-left: 1px solid rgba(0,0,0,.06);
-  padding-left: 12px;
+/* 누락 항목 한 줄 (Pre / Post) */
+.miss-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+/* Pre / Post 라벨 칩 */
+.miss-tag {
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .03em;
+  border: 1px solid var(--r-bd);
+  background: var(--r-bg);
+  color: var(--r-tx);
 }
 
 /* 안 한 사람 이름 */
@@ -446,8 +442,8 @@ table.main-t tr.defect-row td { background:#fff8f8; }
   color: var(--r-tx);
 }
 
-/* 모두 완료된 칸 */
-.miss-clear {
+/* 모두 완료된 카드 */
+.miss-allclear {
   font-size: 12px;
   font-weight: 700;
   color: var(--g-tx);
@@ -2007,28 +2003,41 @@ function renderMissingInspections(){
 
     const count = day.vehicleIssues.length;
 
-    const rows = day.vehicleIssues.map(function(item){
+    const cards = day.vehicleIssues.map(function(item){
       const vehLabel = typeof vehicleDisplayHtml === 'function'
         ? vehicleDisplayHtml(item.vehicle)
         : escapeHtml(item.vehicle);
 
-      const preCell = item.hasPre
-        ? '<span class="miss-clear">✓ Done</span>'
-        : (item.preMissingDrivers.map(function(n){
-            return '<span class="miss-name">' + escapeHtml(n) + '</span>';
-          }).join('') || '<span class="miss-name">—</span>');
+      const lines = [];
 
-      const postCell = item.hasPost
-        ? '<span class="miss-clear">✓ Done</span>'
-        : (item.postMissingDrivers.map(function(n){
-            return '<span class="miss-name">' + escapeHtml(n) + '</span>';
-          }).join('') || '<span class="miss-name">—</span>');
+      if(!item.hasPre){
+        const names = item.preMissingDrivers.map(escapeHtml).join(', ') || '—';
+        lines.push(
+          '<div class="miss-line">' +
+            '<span class="miss-tag">PRE</span>' +
+            '<span class="miss-name">' + names + '</span>' +
+          '</div>'
+        );
+      }
+
+      if(!item.hasPost){
+        const names = item.postMissingDrivers.map(escapeHtml).join(', ') || '—';
+        lines.push(
+          '<div class="miss-line">' +
+            '<span class="miss-tag">POST</span>' +
+            '<span class="miss-name">' + names + '</span>' +
+          '</div>'
+        );
+      }
+
+      const body = lines.length
+        ? lines.join('')
+        : '<div class="miss-allclear">✓ All complete</div>';
 
       return `
-        <div class="miss-veh-row">
-          <div class="miss-col-vehicle">${vehLabel}</div>
-          <div class="miss-col-pre">${preCell}</div>
-          <div class="miss-col-post">${postCell}</div>
+        <div class="miss-veh-card">
+          <div class="miss-card-head">${vehLabel}</div>
+          ${body}
         </div>
       `;
     }).join('');
@@ -2036,12 +2045,9 @@ function renderMissingInspections(){
     return `
       <div class="miss-day-block">
         <div class="miss-day-title">${dayLabel} &nbsp;·&nbsp; ${count} vehicle${count > 1 ? 's' : ''} to follow up</div>
-        <div class="miss-veh-head">
-          <div>Vehicle</div>
-          <div>Pre-Trip missing</div>
-          <div>Post-Trip missing</div>
+        <div class="miss-veh-grid">
+          ${cards}
         </div>
-        ${rows}
       </div>
     `;
   }).join('') + (missingDays.length > 3
