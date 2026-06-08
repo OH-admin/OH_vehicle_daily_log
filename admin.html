@@ -338,7 +338,7 @@ table.main-t tr.defect-row td { background:#fff8f8; }
     <div class="g-nav-r">
       <span id="ny-clock" style="font-size:11px;color:rgba(255,255,255,.6);"></span>
       <button class="btn btn-util btn-sm" onclick="loadData()">↻ Refresh</button>
-      <button class="btn btn-util btn-sm" onclick="location.reload()">Sign Out</button>
+      <button class="btn btn-util btn-sm" onclick="signOut()">Sign Out</button>
     </div>
   </nav>
   <div class="sub-nav no-print">
@@ -619,9 +619,9 @@ table.main-t tr.defect-row td { background:#fff8f8; }
 // ════════════════════════════════════════════════════════
 // CONFIG
 // ════════════════════════════════════════════════════════
-const ADMIN_PASSWORD  = 'ohadc2026';
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyWBwZzTwhR3aZ1HVB2VI9y5S-Q-VVVACog5qVT9k4JBh28vk5a4eXHQHdSdDXWPrIrdg/exec';
-
+let ADMIN_TOKEN = localStorage.getItem('OHADC_ADMIN_TOKEN') || '';
+   
 const COL = {
   date:0,time:1,driver:2,vehicle:3,odometer:4,tripType:5,
   brakes:6,tires:7,lights:8,doors:9,belts:10,lift:11,
@@ -674,20 +674,111 @@ setInterval(tick,1000);
 tick();
 
 // ── Login ────────────────────────────────────────────────
-function checkPw(){
-  if(document.getElementById('pw-input').value === ADMIN_PASSWORD){
-    document.getElementById('login-overlay').style.display='none';
-    document.getElementById('main-app').style.display='block';
-    initDates();
-    buildForms();
-    loadData();
-  } else {
-    document.getElementById('login-err').style.display='block';
-    document.getElementById('pw-input').value='';
-    document.getElementById('pw-input').focus();
+async function checkPw(){
+  const pwInput = document.getElementById('pw-input');
+  const errEl = document.getElementById('login-err');
+  const pw = pwInput.value;
+
+  errEl.style.display = 'none';
+
+  if(!pw){
+    errEl.textContent = 'Please enter password.';
+    errEl.style.display = 'block';
+    pwInput.focus();
+    return;
+  }
+
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'login',
+        password: pw
+      })
+    });
+
+    const json = await res.json();
+
+    if(json.result === 'success' && json.token){
+      ADMIN_TOKEN = json.token;
+      localStorage.setItem('OHADC_ADMIN_TOKEN', ADMIN_TOKEN);
+
+      document.getElementById('login-overlay').style.display='none';
+      document.getElementById('main-app').style.display='block';
+
+      initDates();
+      buildForms();
+      loadData();
+
+    } else {
+      errEl.textContent = 'Incorrect password. Please try again.';
+      errEl.style.display = 'block';
+      pwInput.value = '';
+      pwInput.focus();
+    }
+
+  } catch(e){
+    errEl.textContent = 'Login failed. Please check connection.';
+    errEl.style.display = 'block';
   }
 }
 
+// ── Login ────────────────────────────────────────────────
+async function checkPw(){
+  const pwInput = document.getElementById('pw-input');
+  const errEl = document.getElementById('login-err');
+  const pw = pwInput.value;
+
+  errEl.style.display = 'none';
+
+  if(!pw){
+    errEl.textContent = 'Please enter password.';
+    errEl.style.display = 'block';
+    pwInput.focus();
+    return;
+  }
+
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'login',
+        password: pw
+      })
+    });
+
+    const json = await res.json();
+
+    if(json.result === 'success' && json.token){
+      ADMIN_TOKEN = json.token;
+      localStorage.setItem('OHADC_ADMIN_TOKEN', ADMIN_TOKEN);
+
+      document.getElementById('login-overlay').style.display='none';
+      document.getElementById('main-app').style.display='block';
+
+      initDates();
+      buildForms();
+      loadData();
+
+    } else {
+      errEl.textContent = 'Incorrect password. Please try again.';
+      errEl.style.display = 'block';
+      pwInput.value = '';
+      pwInput.focus();
+    }
+
+  } catch(e){
+    errEl.textContent = 'Login failed. Please check connection.';
+    errEl.style.display = 'block';
+  }
+}
+
+function signOut(){
+  ADMIN_TOKEN = '';
+  localStorage.removeItem('OHADC_ADMIN_TOKEN');
+  location.reload();
+}
+   
 function initDates(){
   const ny=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
   const pad=n=>String(n).padStart(2,'0');
@@ -982,7 +1073,7 @@ async function loadData(){
   document.getElementById('eff-card').style.display = 'none';
 
   try {
-    const res  = await fetch(APPS_SCRIPT_URL + '?action=getAll');
+    const res  = await fetch(   APPS_SCRIPT_URL   + '?action=getAll'   + '&token=' + encodeURIComponent(ADMIN_TOKEN) );
     const json = await res.json();
 
     allData = json.data || [];
@@ -1005,7 +1096,7 @@ let openIssues = [];
 
 async function loadOpenIssues(){
   try {
-    const res = await fetch(APPS_SCRIPT_URL + '?action=getOpenIssues');
+    const res = await fetch(   APPS_SCRIPT_URL   + '?action=getOpenIssues'   + '&token=' + encodeURIComponent(ADMIN_TOKEN) );
     const json = await res.json();
 
     if(json.result !== 'success'){
@@ -1213,9 +1304,10 @@ async function updateIssueStatus(rowIndex, status){
 
   try {
     const url = APPS_SCRIPT_URL
-      + '?action=updateIssueStatus'
-      + '&rowIndex=' + encodeURIComponent(rowIndex)
-      + '&status=' + encodeURIComponent(status);
+  + '?action=updateIssueStatus'
+  + '&token=' + encodeURIComponent(ADMIN_TOKEN)
+  + '&rowIndex=' + encodeURIComponent(rowIndex)
+  + '&status=' + encodeURIComponent(status);
 
     await fetch(url, { method:'GET', mode:'no-cors' });
 
@@ -1258,10 +1350,15 @@ async function runScreeningNow(){
   if(!confirm('Run DVIR screening now?')) return;
 
   try {
-    await fetch(APPS_SCRIPT_URL + '?action=runScreening', {
-      method:'GET',
-      mode:'no-cors'
-    });
+    await fetch(
+  APPS_SCRIPT_URL
+  + '?action=runScreening'
+  + '&token=' + encodeURIComponent(ADMIN_TOKEN),
+  {
+    method:'GET',
+    mode:'no-cors'
+  }
+);
 
     alert('Screening request sent. Refreshing review queue...');
     setTimeout(() => {
@@ -1725,15 +1822,15 @@ async function deleteRecord(rowId){
 
   if(!confirm('Delete this record permanently?')) return;
 
-  try {
-    await fetch(APPS_SCRIPT_URL,{
-      method:'POST',
-      mode:'no-cors',
-      body:JSON.stringify({
-        action:'delete',
-        rowIndex:rowId
-      })
-    });
+  await fetch(APPS_SCRIPT_URL,{
+  method:'POST',
+  mode:'no-cors',
+  body:JSON.stringify({
+    action:'delete',
+    token: ADMIN_TOKEN,
+    rowIndex:rowId
+  })
+});
 
     alert('Delete request sent. Refreshing...');
     setTimeout(()=>loadData(),2000);
@@ -1822,16 +1919,20 @@ async function submitManual(){
   if(!date){errEl.style.display='block';errEl.textContent='Date is required.';return;}
   const [y,m,d]=date.split('-');
   const row={
-    action: editRowId?'update':'insert', rowIndex:editRowId, entryType:'manual',
-    date:`${m}/${d}/${y}`, time:document.getElementById('m-time').value,
-    vehicle:document.getElementById('m-vehicle').value,
-    driver:document.getElementById('m-driver').value,
-    odometer:document.getElementById('m-odo').value,
-    tripType:document.getElementById('m-trip').value,
-    fuelQty:document.getElementById('m-fuel-qty').value,
-    fuelAmt:document.getElementById('m-fuel-amt').value,
-    receiptUrl:editReceiptUrl
-  };
+  action: editRowId?'update':'insert',
+  token: ADMIN_TOKEN,
+  rowIndex:editRowId,
+  entryType:'manual',
+  date:`${m}/${d}/${y}`,
+  time:document.getElementById('m-time').value,
+  vehicle:document.getElementById('m-vehicle').value,
+  driver:document.getElementById('m-driver').value,
+  odometer:document.getElementById('m-odo').value,
+  tripType:document.getElementById('m-trip').value,
+  fuelQty:document.getElementById('m-fuel-qty').value,
+  fuelAmt:document.getElementById('m-fuel-amt').value,
+  receiptUrl:editReceiptUrl
+};
   DVIR_KEYS.forEach(k=>row[k]=mDvir[k]);
   const btn=document.getElementById('btn-save');
   btn.disabled=true; btn.textContent='Saving...';
@@ -2243,7 +2344,12 @@ async function sendEmailReport(){
     <p style="font-size:12px;color:#888;">Generated by Our Home Fleet Log</p></div>`;
   try {
     await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',
-      body:JSON.stringify({action:'sendEmail',to:email,subject:title,htmlBody})});
+      body:JSON.stringify({
+  action:'sendEmail',
+  token: ADMIN_TOKEN,
+  to:email,
+  subject:title,
+  htmlBody })});
     alert('Email send request submitted.');
   } catch(e){alert('Error: '+e.message);}
 }
