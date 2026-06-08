@@ -1633,7 +1633,7 @@ function renderEfficiencyTable(){
   });
 
   const sortedMonths   = Object.keys(months).sort();
-  const sortedVehicles = [...vehicles].sort();
+  const sortedVehicles = [...vehicles].sort((a, b) => {   return getVehicleUnitSortKey(a) - getVehicleUnitSortKey(b); });
 
   if(!sortedMonths.length || !sortedVehicles.length){
     document.getElementById('eff-card').style.display='none'; return;
@@ -2141,6 +2141,43 @@ function getVehicleUnitLabel(vehicleId){
   return match ? match[1] : '';
 }
 
+function getVehicleUnitSortKey(vehicleId){
+  const id = String(vehicleId || '').trim();
+  const label = getVehicleUnitLabel(id);
+
+  // Vehicles 시트 displayName에서 #1, #2, #A 등을 읽어 정렬
+  if(label){
+    const raw = label.replace('#', '').trim().toUpperCase();
+
+    if(/^\d+$/.test(raw)){
+      return Number(raw);
+    }
+
+    if(raw.length === 1 && raw >= 'A' && raw <= 'Z'){
+      return 9 + (raw.charCodeAt(0) - 64);
+      // #A = 10, #B = 11, #C = 12
+    }
+  }
+
+  // vehicleMaster 로딩 실패 시 백업 정렬
+  const fallbackMap = {
+    'O24260': 1,
+    'O24288': 2,
+    'O25893': 3,
+    'O25894': 4,
+    'O25895': 5,
+    'O25896': 6,
+    'O24277': 7,
+    'O24289': 8,
+    'O24284': 9,
+    'O25890': 10,
+    'O25891': 11,
+    'O29872': 12
+  };
+
+  return fallbackMap[id] || 999;
+}
+   
 function vehicleDisplayHtml(vehicleId){
   const id = String(vehicleId || '').trim();
 
@@ -2287,7 +2324,7 @@ function generateReport(){
     }
   });
 
-  const summaryRows = Object.keys(buckets).sort().map(key => {
+  const summaryRows = Object.keys(buckets).sort((a, b) => {   const ba = buckets[a];   const bb = buckets[b];    const vehicleSort =     getVehicleUnitSortKey(ba.vehicle) - getVehicleUnitSortKey(bb.vehicle);    if(vehicleSort !== 0) return vehicleSort;    return String(ba.driver || '').localeCompare(String(bb.driver || ''), undefined, {     numeric: true,     sensitivity: 'base'   }); }).map(key => {
     const b = buckets[key];
     const odo = getMonthlyOdoStats(b.rows);
 
