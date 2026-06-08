@@ -836,12 +836,23 @@ function renderOpenIssues(){
     <span style="color:var(--a-tx);font-weight:600;">MEDIUM: ${medCount}</span>
   `;
 
-  const reviewRows = [...openIssues];
+const reviewRows = [...openIssues];
+
+// Review Queue 데이터에서 날짜/시간/원본 row를 안전하게 가져오기
+const getIssueDate = issue =>
+  issue.date || issue.recordDate || issue.inspectionDate || issue.logDate || '';
+
+const getIssueTime = issue =>
+  issue.time || issue.recordTime || issue.inspectionTime || '';
+
+const getIssueSourceRow = issue =>
+  issue.rowNo || issue.sourceRowIndex || issue.recordRowIndex || issue.logRowIndex || '';
 
 sortArrayByConfig(reviewRows, 'review', {
   severity:    { getter: i => i.severity, type: 'text' },
   issueType:   { getter: i => i.issueType, type: 'text' },
-  time:        { getter: i => i.time, type: 'time' },
+  date:        { getter: i => getIssueDate(i), type: 'date' },
+  time:        { getter: i => getIssueTime(i), type: 'time' },
   driver:      { getter: i => i.driver, type: 'text' },
   vehicle:     { getter: i => i.vehicle, type: 'text' },
   odometer:    { getter: i => i.odometer, type: 'number' },
@@ -850,40 +861,42 @@ sortArrayByConfig(reviewRows, 'review', {
 });
 
 const rows = reviewRows.slice(0, 10).map(issue => {
-    const photo = issue.photoUrl && String(issue.photoUrl).startsWith('http')
-      ? `<a href="${issue.photoUrl}" target="_blank" style="color:var(--blue);">Photo</a>`
-      : '—';
+  const photo = issue.photoUrl && String(issue.photoUrl).startsWith('http')
+    ? `<a href="${issue.photoUrl}" target="_blank" style="color:var(--blue);">Photo</a>`
+    : '—';
 
-    return `
-      <tr>
-        <td><span class="badge ${issue.severity === 'HIGH' ? 'b-def' : 'b-post'}">${issue.severity}</span></td>
-        <td>${escapeHtml(issue.issueType)}</td>
-        <td>${escapeHtml(fmtTime(issue.time))}</td>
-        <td>${escapeHtml(issue.driver || '')}</td>
-        <td><strong>${escapeHtml(issue.vehicle || '')}</strong></td>
-        <td>${escapeHtml(String(issue.odometer || ''))}</td>
-        <td style="font-size:12px;max-width:260px;">${escapeHtml(issue.description || '')}</td>
-        <td>${photo}</td>
-        <td class="act-group">
-          <button class="btn btn-b btn-sm" onclick="editRecord('${issue.rowNo}')">Edit</button>
-          <button class="btn btn-g btn-sm" onclick="updateIssueStatus('${issue.rowIndex}','RESOLVED')">Resolve</button>
-          <button class="btn btn-r btn-sm" onclick="updateIssueStatus('${issue.rowIndex}','IGNORED')">Ignore</button>
-        </td>
-      </tr>
-    `;
-  }).join('');
+  return `
+    <tr>
+      <td><span class="badge ${issue.severity === 'HIGH' ? 'b-def' : 'b-post'}">${escapeHtml(issue.severity || '')}</span></td>
+      <td>${escapeHtml(issue.issueType || '')}</td>
+      <td style="white-space:nowrap;">${escapeHtml(dispDate(getIssueDate(issue)))}</td>
+      <td>${escapeHtml(fmtTime(getIssueTime(issue)))}</td>
+      <td>${escapeHtml(issue.driver || '')}</td>
+      <td><strong>${escapeHtml(issue.vehicle || '')}</strong></td>
+      <td style="text-align:right; font-variant-numeric:tabular-nums;">${escapeHtml(fmtOdo(issue.odometer || ''))}</td>
+      <td style="font-size:12px;max-width:260px;">${escapeHtml(issue.description || '')}</td>
+      <td>${photo}</td>
+      <td class="act-group">
+        <button class="btn btn-b btn-sm" onclick="editIssueRecord('${getIssueSourceRow(issue)}')">Edit</button>
+        <button class="btn btn-g btn-sm" onclick="updateIssueStatus('${issue.rowIndex}','RESOLVED')">Resolve</button>
+        <button class="btn btn-r btn-sm" onclick="deleteReviewIssue('${issue.rowIndex}')">Delete</button>
+      </td>
+    </tr>
+  `;
+}).join('');
 
   wrap.innerHTML = `
     <div class="t-wrap">
       <table class="main-t">
-       <thead>
+   <thead>
   <tr>
     ${sortableTh('review','severity','Severity')}
     ${sortableTh('review','issueType','Issue')}
+    ${sortableTh('review','date','Date')}
     ${sortableTh('review','time','Time')}
     ${sortableTh('review','driver','Driver')}
     ${sortableTh('review','vehicle','Vehicle')}
-    ${sortableTh('review','odometer','Odometer')}
+    ${sortableTh('review','odometer','Odometer', true)}
     ${sortableTh('review','description','Description')}
     ${sortableTh('review','photo','Photo')}
     <th>Actions</th>
@@ -915,7 +928,33 @@ async function updateIssueStatus(rowIndex, status){
     alert('Failed to update issue: ' + e.message);
   }
 }
+async function deleteReviewIssue(issueRowIndex){
+  if(!issueRowIndex){
+    alert('Delete failed: issue rowIndex is missing.');
+    return;
+  }
 
+  if(!confirm(
+    'Delete this review queue item?\n\n' +
+    'Use Delete only for duplicate or false review items.\n' +
+    'For real defects or issues, use Resolve instead.'
+  )) return;
+
+  try {
+    const url = APPS_SCRIPT_URL
+      + '?action=deleteIssue'
+      + '&rowIndex=' + encodeURIComponent(issueRowIndex);
+
+    await fetch(url, { method:'GET', mode:'no-cors' });
+
+    setTimeout(() => {
+      loadOpenIssues();
+    }, 1000);
+
+  } catch(e){
+    alert('Failed to delete issue: ' + e.message);
+  }
+}
 async function runScreeningNow(){
   if(!confirm('Run DVIR screening now?')) return;
 
@@ -1386,11 +1425,36 @@ async function deleteRecord(rowId){
     alert('Error: '+e.message);
   }
 }
+function editIssueRecord(sourceRowId){
+  if(!sourceRowId){
+    alert('Cannot edit: source row number is missing from this review item.');
+    return;
+  }
 
+  const rowIdStr = String(sourceRowId).trim();
+
+  const r = allData.find(x => String(x[COL.rowIndex]).trim() === rowIdStr);
+
+  if(!r){
+    alert(
+      'Cannot find the original inspection record for this review item.\n\n' +
+      'Source row: ' + rowIdStr + '\n\n' +
+      'Please refresh data or check Apps Script getOpenIssues response.'
+    );
+    return;
+  }
+
+  editRecord(r[COL.rowIndex]);
+}
 // ── Edit ──────────────────────────────────────────────────
 function editRecord(rowId){
-  const r = allData.find(x=>x[COL.rowIndex]===rowId);
-  if(!r) return;
+  const rowIdStr = String(rowId).trim();
+  const r = allData.find(x => String(x[COL.rowIndex]).trim() === rowIdStr);
+
+  if(!r){
+    alert('Record not found. RowIndex: ' + rowIdStr);
+    return;
+  }
   editRowId=rowId; editReceiptUrl=r[COL.receiptUrl]||'';
   document.getElementById('m-date').value    = fmtDate(r[COL.date]);
   document.getElementById('m-time').value    = fmtTime(r[COL.time]);
