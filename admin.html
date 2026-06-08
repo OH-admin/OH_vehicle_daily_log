@@ -673,55 +673,6 @@ function tick(){
 setInterval(tick,1000); 
 tick();
 
-// ── Login ────────────────────────────────────────────────
-async function checkPw(){
-  const pwInput = document.getElementById('pw-input');
-  const errEl = document.getElementById('login-err');
-  const pw = pwInput.value;
-
-  errEl.style.display = 'none';
-
-  if(!pw){
-    errEl.textContent = 'Please enter password.';
-    errEl.style.display = 'block';
-    pwInput.focus();
-    return;
-  }
-
-  try {
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'login',
-        password: pw
-      })
-    });
-
-    const json = await res.json();
-
-    if(json.result === 'success' && json.token){
-      ADMIN_TOKEN = json.token;
-      localStorage.setItem('OHADC_ADMIN_TOKEN', ADMIN_TOKEN);
-
-      document.getElementById('login-overlay').style.display='none';
-      document.getElementById('main-app').style.display='block';
-
-      initDates();
-      buildForms();
-      loadData();
-
-    } else {
-      errEl.textContent = 'Incorrect password. Please try again.';
-      errEl.style.display = 'block';
-      pwInput.value = '';
-      pwInput.focus();
-    }
-
-  } catch(e){
-    errEl.textContent = 'Login failed. Please check connection.';
-    errEl.style.display = 'block';
-  }
-}
 
 // ── Login ────────────────────────────────────────────────
 async function checkPw(){
@@ -1333,8 +1284,9 @@ async function deleteReviewIssue(issueRowIndex){
 
   try {
     const url = APPS_SCRIPT_URL
-      + '?action=deleteIssue'
-      + '&rowIndex=' + encodeURIComponent(issueRowIndex);
+  + '?action=deleteIssue'
+  + '&token=' + encodeURIComponent(ADMIN_TOKEN)
+  + '&rowIndex=' + encodeURIComponent(issueRowIndex);
 
     await fetch(url, { method:'GET', mode:'no-cors' });
 
@@ -1822,15 +1774,16 @@ async function deleteRecord(rowId){
 
   if(!confirm('Delete this record permanently?')) return;
 
-  await fetch(APPS_SCRIPT_URL,{
-  method:'POST',
-  mode:'no-cors',
-  body:JSON.stringify({
-    action:'delete',
-    token: ADMIN_TOKEN,
-    rowIndex:rowId
-  })
-});
+  try {
+    await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      mode:'no-cors',
+      body:JSON.stringify({
+        action:'delete',
+        token: ADMIN_TOKEN,
+        rowIndex:rowId
+      })
+    });
 
     alert('Delete request sent. Refreshing...');
     setTimeout(()=>loadData(),2000);
@@ -1839,6 +1792,7 @@ async function deleteRecord(rowId){
     alert('Error: '+e.message);
   }
 }
+   
 function editIssueRecord(sourceRowId){
   if(!sourceRowId){
     alert('Cannot edit: source row number is missing from this review item.');
