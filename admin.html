@@ -1744,40 +1744,45 @@ function renderMissingInspections(){
   const selectedVehicle = vehicleEl ? vehicleEl.value : 'ALL';
   const selectedDriver = driverEl ? driverEl.value : 'ALL';
 
-  const vehicles = selectedVehicle && selectedVehicle !== 'ALL'
+  function normalizeTripType(value){
+    const t = String(value || '').toLowerCase().replace(/\s+/g, '').replace(/-/g, '');
+
+    if(t.includes('pre')) return 'pre';
+    if(t.includes('post')) return 'post';
+    if(t.includes('both')) return 'both';
+
+    return '';
+  }
+
+  function hasPreTrip(rows){
+    return rows.some(function(r){
+      const t = normalizeTripType(r[COL.tripType]);
+      return t === 'pre' || t === 'both';
+    });
+  }
+
+  function hasPostTrip(rows){
+    return rows.some(function(r){
+      const t = normalizeTripType(r[COL.tripType]);
+      return t === 'post' || t === 'both';
+    });
+  }
+
+  function driverNameOf(r){
+    return String(r[COL.driver] || '').trim();
+  }
+
+  function vehicleNameOf(r){
+    return String(r[COL.vehicle] || '').trim();
+  }
+
+  const vehiclesToCheck = selectedVehicle && selectedVehicle !== 'ALL'
     ? [selectedVehicle]
     : ALL_VEHICLES.slice().sort(function(a, b){
         return getVehicleUnitSortKey(a) - getVehicleUnitSortKey(b);
       });
 
-  // Search & Overview의 Driver 필터 옵션에서 기사명 목록 가져오기
-  function getDriverListFromFilter(){
-    const sel = document.getElementById('f-driver');
-
-    if(!sel){
-      return [];
-    }
-
-    return Array.from(sel.options)
-      .map(function(opt){
-        return {
-          value: String(opt.value || '').trim(),
-          text: String(opt.textContent || '').trim()
-        };
-      })
-      .filter(function(opt){
-        return opt.value && opt.value !== 'ALL';
-      })
-      .map(function(opt){
-        return opt.value;
-      });
-  }
-
-  const allDrivers = selectedDriver && selectedDriver !== 'ALL'
-    ? [selectedDriver]
-    : getDriverListFromFilter();
-
-  const missing = [];
+  const missingDays = [];
 
   for(let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)){
     const dow = d.getDay();
@@ -1792,216 +1797,200 @@ function renderMissingInspections(){
 
     const dayRows = allData.filter(function(r){
       const rowDate = fmtDate(r[COL.date]);
+      const tripType = normalizeTripType(r[COL.tripType]);
 
       if(rowDate !== dateStr) return false;
       if(r[COL.tripType] === 'Fuel Log') return false;
+      if(!tripType) return false;
 
-      if(selectedVehicle !== 'ALL' && r[COL.vehicle] !== selectedVehicle) return false;
-      if(selectedDriver !== 'ALL' && String(r[COL.driver] || '').trim() !== selectedDriver) return false;
+      if(selectedVehicle !== 'ALL' && vehicleNameOf(r) !== selectedVehicle) return false;
+      if(selectedDriver !== 'ALL' && driverNameOf(r) !== selectedDriver) return false;
 
       return true;
     });
 
-    const vehicleBlocks = [];
+    const vehicleIssues = [];
 
-    vehicles.forEach(function(vehicle){
-      const vehicleRows = dayRows.filter(function(r){
-        return r[COL.vehicle] === vehicle;
+    vehiclesToCheck.forEach(function(vehicle){
+      const rowsForVehicle = dayRows.filter(function(r){
+        return vehicleNameOf(r) === vehicle;
       });
 
-      const driversWithAnyRecord = Array.from(new Set(
-        vehicleRows
-          .map(function(r){ return String(r[COL.driver] || '').trim(); })
-          .filter(Boolean)
-      ));
-
-      // 기사 필터가 ALL이면 전체 기사 중 안 한 사람을 별도 표시
-      const driversToCheck = allDrivers.length
-        ? allDrivers
-        : driversWithAnyRecord;
-
-      const noSubmissionDrivers = driversToCheck.filter(function(driver){
-        return driversWithAnyRecord.indexOf(driver) === -1;
-      });
-
-      const incompleteDrivers = driversWithAnyRecord.map(function(driver){
-        const rows = vehicleRows.filter(function(r){
-          return String(r[COL.driver] || '').trim() === driver;
-        });
-
-        const hasPre = rows.some(function(r){
-          return r[COL.tripType] === 'Pre-Trip';
-        });
-
-        const hasPost = rows.some(function(r){
-          return r[COL.tripType] === 'Post-Trip';
-        });
-
-        return {
-          driver: driver,
-          hasPre: hasPre,
-          hasPost: hasPost
-        };
-      }).filter(function(x){
-        return !x.hasPre || !x.hasPost;
-      });
-
-      if(noSubmissionDrivers.length || incompleteDrivers.length){
-        vehicleBlocks.push({
+      if(!rowsForVehicle.length){
+        vehicleIssues.push({
           vehicle: vehicle,
-          noSubmissionDrivers: noSubmissionDrivers,
-          incompleteDrivers: incompleteDrivers
+          status: 'none',
+          hasPre: false,
+          hasPost: false,
+          drivers: []
+        });
+        return;
+      }
+
+      const hasPre = hasPreTrip(rowsForVehicle);
+      const hasPost = hasPostTrip(rowsForVehicle);
+
+      if(!hasPre || !hasPost){
+        const drivers = Array.from(new Set(
+          rowsForVehicle.map(driverNameOf).filter(Boolean)
+        )).sort();
+
+        vehicleIssues.push({
+          vehicle: vehicle,
+          status: 'incomplete',
+          hasPre: hasPre,
+          hasPost: hasPost,
+          drivers: drivers
         });
       }
     });
 
-    if(vehicleBlocks.length){
-      missing.push({
+    const actualDrivers = Array.from(new Set(
+      dayRows.map(driverNameOf).filter(Boolean)
+    )).sort();
+
+    const driversToCheck = selectedDriver && selectedDriver !== 'ALL'
+      ? [selectedDriver]
+      : actualDrivers;
+
+    const driverIssues = driversToCheck.map(function(driver){
+      const rowsForDriver = dayRows.filter(function(r){
+        return driverNameOf(r) === driver;
+      });
+
+      if(!rowsForDriver.length){
+        return null;
+      }
+
+      const hasPre = hasPreTrip(rowsForDriver);
+      const hasPost = hasPostTrip(rowsForDriver);
+
+      if(hasPre && hasPost){
+        return null;
+      }
+
+      const vehicles = Array.from(new Set(
+        rowsForDriver.map(vehicleNameOf).filter(Boolean)
+      )).sort(function(a, b){
+        return getVehicleUnitSortKey(a) - getVehicleUnitSortKey(b);
+      });
+
+      return {
+        driver: driver,
+        hasPre: hasPre,
+        hasPost: hasPost,
+        vehicles: vehicles
+      };
+    }).filter(Boolean);
+
+    if(vehicleIssues.length || driverIssues.length){
+      missingDays.push({
         date: dateStr,
-        vehicles: vehicleBlocks
+        vehicleIssues: vehicleIssues,
+        driverIssues: driverIssues
       });
     }
   }
 
-  if(!missing.length){
+  if(!missingDays.length){
     card.style.display = 'none';
     return;
   }
 
   card.style.display = 'block';
 
+  // 제목에서 (NY Time) 강제 제거
+  const titleEls = card.querySelectorAll('.sec-title, h2, h3, div');
+  titleEls.forEach(function(el){
+    if(String(el.textContent || '').includes('Missing Inspections')){
+      el.textContent = 'Missing Inspections';
+    }
+  });
+
   if(label){
     label.textContent = 'Most recent 3 business days with missing or incomplete inspections';
   }
 
-  const show = missing.slice(-3).reverse();
+  const show = missingDays.slice(-3).reverse();
 
-  wrap.innerHTML = show.map(function(m){
-    const dayLabel = new Date(m.date + 'T12:00:00').toLocaleDateString('en-US', {
+  wrap.innerHTML = show.map(function(day){
+    const dayLabel = new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
       day: 'numeric'
     });
 
-    const vehicleHtml = m.vehicles.map(function(v){
-      const vehicleLabel = typeof vehicleDisplayHtml === 'function'
-        ? vehicleDisplayHtml(v.vehicle)
-        : escapeHtml(v.vehicle);
+    const vehicleHtml = day.vehicleIssues.length
+      ? day.vehicleIssues.map(function(item){
+          const vehicleLabel = typeof vehicleDisplayHtml === 'function'
+            ? vehicleDisplayHtml(item.vehicle)
+            : escapeHtml(item.vehicle);
 
-      const incompleteHtml = v.incompleteDrivers.length
-        ? `
-          <div style="margin-top:6px;">
-            <div style="font-size:11px;font-weight:800;color:var(--ink-muted);margin-bottom:3px;">
-              Incomplete Pre/Post
+          const pre = item.hasPre
+            ? '<span class="miss-ok">Pre ✓</span>'
+            : '<span class="miss-bad">Pre —</span>';
+
+          const post = item.hasPost
+            ? '<span class="miss-ok">Post ✓</span>'
+            : '<span class="miss-bad">Post —</span>';
+
+          const statusText = item.status === 'none'
+            ? '<span class="miss-bad">No inspection record</span>'
+            : '<span class="miss-muted">Incomplete</span>';
+
+          return `
+            <div class="miss-compact-row">
+              <div class="miss-main-name">${vehicleLabel}</div>
+              <div class="miss-status-text">${statusText}</div>
+              <div class="miss-trip-status">${pre} ${post}</div>
             </div>
-            ${v.incompleteDrivers.map(function(d){
-              const preBadge = d.hasPre
-                ? `<span style="color:var(--g-tx);font-weight:800;">Pre ✓</span>`
-                : `<span style="color:var(--r-tx);font-weight:800;">Pre —</span>`;
+          `;
+        }).join('')
+      : '<div class="miss-empty-line">No vehicle-level missing inspections.</div>';
 
-              const postBadge = d.hasPost
-                ? `<span style="color:var(--g-tx);font-weight:800;">Post ✓</span>`
-                : `<span style="color:var(--r-tx);font-weight:800;">Post —</span>`;
+    const driverHtml = day.driverIssues.length
+      ? day.driverIssues.map(function(item){
+          const pre = item.hasPre
+            ? '<span class="miss-ok">Pre ✓</span>'
+            : '<span class="miss-bad">Pre —</span>';
 
-              return `
-                <div style="
-                  display:flex;
-                  justify-content:space-between;
-                  align-items:center;
-                  gap:8px;
-                  padding:4px 0;
-                  border-top:1px solid rgba(0,0,0,.05);
-                  font-size:12px;
-                ">
-                  <div style="font-weight:700;color:var(--ink);">
-                    ${escapeHtml(d.driver)}
-                  </div>
-                  <div style="display:flex;gap:10px;white-space:nowrap;">
-                    ${preBadge}
-                    ${postBadge}
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        `
-        : '';
+          const post = item.hasPost
+            ? '<span class="miss-ok">Post ✓</span>'
+            : '<span class="miss-bad">Post —</span>';
 
-      const noSubmissionHtml = v.noSubmissionDrivers.length
-        ? `
-          <div style="
-            margin-top:6px;
-            padding:7px 9px;
-            border:1px solid var(--r-bd);
-            background:var(--r-bg);
-            border-radius:8px;
-            font-size:12px;
-            line-height:1.4;
-            color:var(--r-tx);
-          ">
-            <strong>Not Submitted:</strong>
-            ${v.noSubmissionDrivers.map(function(driver){
-              return escapeHtml(driver);
-            }).join(', ')}
-          </div>
-        `
-        : '';
+          const vehicles = item.vehicles.map(function(v){
+            return typeof vehicleDisplayHtml === 'function'
+              ? vehicleDisplayHtml(v)
+              : escapeHtml(v);
+          }).join(', ');
 
-      return `
-        <div style="
-          padding:8px 10px;
-          border:1px solid var(--hairline);
-          background:#fff;
-          border-radius:10px;
-          margin-bottom:7px;
-        ">
-          <div style="
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            gap:8px;
-          ">
-            <div style="font-size:13px;font-weight:800;color:var(--ink);">
-              ${vehicleLabel}
+          return `
+            <div class="miss-compact-row">
+              <div class="miss-main-name">${escapeHtml(item.driver)}</div>
+              <div class="miss-status-text">${vehicles || '—'}</div>
+              <div class="miss-trip-status">${pre} ${post}</div>
             </div>
-            ${v.noSubmissionDrivers.length
-              ? `<div style="font-size:11px;font-weight:800;color:var(--r-tx);white-space:nowrap;">
-                   ${v.noSubmissionDrivers.length} not submitted
-                 </div>`
-              : ''}
-          </div>
-
-          ${noSubmissionHtml}
-          ${incompleteHtml}
-        </div>
-      `;
-    }).join('');
+          `;
+        }).join('')
+      : '<div class="miss-empty-line">No driver-level incomplete inspections from actual records.</div>';
 
     return `
-      <div style="
-        padding:10px 0;
-        border-bottom:0.5px solid var(--hairline);
-        display:grid;
-        grid-template-columns:92px 1fr;
-        gap:10px;
-        align-items:start;
-      ">
-        <div style="
-          font-size:13px;
-          font-weight:800;
-          color:var(--ink);
-          padding-top:4px;
-          white-space:nowrap;
-        ">
-          ${dayLabel}
+      <div class="miss-day-block">
+        <div class="miss-day-title">${dayLabel}</div>
+
+        <div class="miss-section">
+          <div class="miss-section-title">Vehicle Missing</div>
+          ${vehicleHtml}
         </div>
-        <div>${vehicleHtml}</div>
+
+        <div class="miss-section">
+          <div class="miss-section-title">Driver Missing</div>
+          ${driverHtml}
+        </div>
       </div>
     `;
-  }).join('') + (missing.length > 3
-    ? `<p style="font-size:12px;color:var(--ink-muted);margin-top:8px;padding-top:4px;">
-        ...and ${missing.length - 3} more business days with missing or incomplete inspections.
-      </p>`
+  }).join('') + (missingDays.length > 3
+    ? `<p class="miss-more">...and ${missingDays.length - 3} more business days with missing or incomplete inspections.</p>`
     : '');
 }
 // ── Inspection table ──────────────────────────────────────
