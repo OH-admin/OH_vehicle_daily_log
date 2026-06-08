@@ -382,75 +382,75 @@ table.main-t tr.defect-row td { background:#fff8f8; }
 }
 
 /* 한 줄 행 */
-.miss-compact-row {
+/* 차량별 3열 행 */
+.miss-veh-row {
   display: grid;
-  grid-template-columns: 170px 1fr 150px;
-  gap: 10px;
-  align-items: center;
-  min-height: 36px;
+  grid-template-columns: 200px 1fr 1fr;
+  gap: 12px;
+  align-items: stretch;
   padding: 9px 12px;
   border-bottom: 1px solid rgba(0,0,0,.06);
   font-size: 13px;
 }
 
-.miss-compact-row:last-child {
+.miss-veh-row:last-child {
   border-bottom: none;
 }
 
-/* 차량번호 또는 기사명 */
-.miss-main-name {
-  font-size: 13px;
+/* 열 헤더 줄 */
+.miss-veh-head {
+  display: grid;
+  grid-template-columns: 200px 1fr 1fr;
+  gap: 12px;
+  padding: 5px 12px;
+  background: #fbfbfc;
+  border-bottom: 1px solid var(--hairline);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--ink-muted);
+}
+
+/* 1열: 차량번호 */
+.miss-col-vehicle {
+  display: flex;
+  align-items: center;
   font-weight: 900;
   color: var(--ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-/* 가운데 설명: No inspection record / 차량 목록 */
-.miss-status-text {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ink-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Pre / Post 상태 */
-.miss-trip-status {
+/* 2열 Pre / 3열 Post 공통 */
+.miss-col-pre,
+.miss-col-post {
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  white-space: nowrap;
-  font-size: 11px;
-  font-weight: 900;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
 }
 
-.miss-ok {
-  color: var(--g-tx);
+.miss-col-pre {
+  border-left: 1px solid rgba(0,0,0,.06);
+  padding-left: 12px;
 }
 
-.miss-bad {
+.miss-col-post {
+  border-left: 1px solid rgba(0,0,0,.06);
+  padding-left: 12px;
+}
+
+/* 안 한 사람 이름 */
+.miss-name {
+  font-size: 13px;
+  font-weight: 700;
   color: var(--r-tx);
-  font-weight: 900;
 }
 
-.miss-muted {
-  color: var(--ink-muted);
-  font-weight: 800;
-}
-
-.miss-empty-line {
+/* 모두 완료된 칸 */
+.miss-clear {
   font-size: 12px;
-  color: var(--ink-muted);
-  padding: 6px 9px;
-}
-
-.miss-more {
-  font-size: 12px;
-  color: var(--ink-muted);
-  margin-top: 8px;
+  font-weight: 700;
+  color: var(--g-tx);
 }
 </style>
 </head>
@@ -1943,49 +1943,111 @@ function renderMissingInspections(){
       return true;
     });
 
-    const actualDrivers = Array.from(new Set(
-      dayRows.map(driverNameOf).filter(Boolean)
-    )).sort();
+    // 그날 실제 운행한 차량 목록
+    const vehiclesUsed = Array.from(new Set(
+      dayRows.map(vehicleNameOf).filter(Boolean)
+    )).sort(function(a, b){
+      return getVehicleUnitSortKey(a) - getVehicleUnitSortKey(b);
+    });
 
-    const driversToCheck = selectedDriver && selectedDriver !== 'ALL'
-      ? [selectedDriver]
-      : actualDrivers;
+    const vehicleIssues = [];
 
-    const driverIssues = driversToCheck.map(function(driver){
-      const rowsForDriver = dayRows.filter(function(r){
-        return driverNameOf(r) === driver;
+    vehiclesUsed.forEach(function(vehicle){
+      const rowsForVehicle = dayRows.filter(function(r){
+        return vehicleNameOf(r) === vehicle;
       });
 
-      if(!rowsForDriver.length){
-        return null;
-      }
+      const hasPre = hasPreTrip(rowsForVehicle);
+      const hasPost = hasPostTrip(rowsForVehicle);
 
-      const hasPre = hasPreTrip(rowsForDriver);
-      const hasPost = hasPostTrip(rowsForDriver);
+      // Pre, Post 모두 있으면 문제 없음 → 건너뜀
+      if(hasPre && hasPost) return;
 
-      if(hasPre && hasPost){
-        return null;
-      }
+      // 이 차량을 운행한 기사들
+      const drivers = Array.from(new Set(
+        rowsForVehicle.map(driverNameOf).filter(Boolean)
+      )).sort();
 
-      const vehicles = Array.from(new Set(
-        rowsForDriver.map(vehicleNameOf).filter(Boolean)
-      )).sort(function(a, b){
-        return getVehicleUnitSortKey(a) - getVehicleUnitSortKey(b);
-      });
-
-      return {
-        driver: driver,
+      vehicleIssues.push({
+        vehicle: vehicle,
         hasPre: hasPre,
         hasPost: hasPost,
-        vehicles: vehicles
-      };
-    }).filter(Boolean);
+        // Pre 누락 시 책임 기사 = 이 차량 운행 기사들
+        preMissingDrivers: hasPre ? [] : drivers,
+        postMissingDrivers: hasPost ? [] : drivers
+      });
+    });
 
-    if(driverIssues.length){
+    if(vehicleIssues.length){
       missingDays.push({
         date: dateStr,
-        driverIssues: driverIssues
+        vehicleIssues: vehicleIssues
       });
+    }
+  }
+
+  if(!missingDays.length){
+    card.style.display = 'none';
+    return;
+  }
+
+  card.style.display = 'block';
+
+  if(label){
+    label.textContent = 'Most recent 3 business days needing driver follow-up';
+  }
+
+  const show = missingDays.slice(-3).reverse();
+
+  wrap.innerHTML = show.map(function(day){
+    const dayLabel = new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
+
+    const count = day.vehicleIssues.length;
+
+    const rows = day.vehicleIssues.map(function(item){
+      const vehLabel = typeof vehicleDisplayHtml === 'function'
+        ? vehicleDisplayHtml(item.vehicle)
+        : escapeHtml(item.vehicle);
+
+      const preCell = item.hasPre
+        ? '<span class="miss-clear">✓ Done</span>'
+        : item.preMissingDrivers.map(function(n){
+            return '<span class="miss-name">' + escapeHtml(n) + '</span>';
+          }).join('') || '<span class="miss-name">—</span>';
+
+      const postCell = item.hasPost
+        ? '<span class="miss-clear">✓ Done</span>'
+        : item.postMissingDrivers.map(function(n){
+            return '<span class="miss-name">' + escapeHtml(n) + '</span>';
+          }).join('') || '<span class="miss-name">—</span>';
+
+      return `
+        <div class="miss-veh-row">
+          <div class="miss-col-vehicle">${vehLabel}</div>
+          <div class="miss-col-pre">${preCell}</div>
+          <div class="miss-col-post">${postCell}</div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="miss-day-block">
+        <div class="miss-day-title">${dayLabel} &nbsp;·&nbsp; ${count} vehicle${count > 1 ? 's' : ''} to follow up</div>
+        <div class="miss-veh-head">
+          <div>Vehicle</div>
+          <div>Pre-Trip missing</div>
+          <div>Post-Trip missing</div>
+        </div>
+        ${rows}
+      </div>
+    `;
+  }).join('') + (missingDays.length > 3
+    ? `<p class="miss-more">...and ${missingDays.length - 3} more business days needing follow-up.</p>`
+    : '');
     }
   }
 
