@@ -2021,6 +2021,9 @@ const label = new Date(reportYear, reportMonth - 1, 1, 12, 0, 0).toLocaleString(
   const inspectionRows = monthRows.filter(r => r[COL.tripType] !== 'Fuel Log');
   const fuelRows = monthRows.filter(r => r[COL.tripType] === 'Fuel Log');
 
+const isDefaultMonthlySummary = vSel === 'ALL' && dSel === 'ALL';
+const showDetailRecords = !isDefaultMonthlySummary;
+   
   // 차량 + 기사 기준 summary bucket
   const buckets = {};
 
@@ -2124,9 +2127,7 @@ const avgUnitPrice = totalFuelQty > 0
   const titleVehicle = vSel === 'ALL' ? 'All Vehicles' : 'Vehicle ' + vSel;
   const titleDriver = dSel === 'ALL' ? 'All Drivers' : 'Driver: ' + dSel;
 
-const isDefaultMonthlySummary = vSel === 'ALL' && dSel === 'ALL';
-const showDetailRecords = !isDefaultMonthlySummary;
-   
+
   document.getElementById('report-title').textContent =
     `${label} — ${titleVehicle} — ${titleDriver}`;
 
