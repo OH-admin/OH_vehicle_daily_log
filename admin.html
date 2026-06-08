@@ -470,21 +470,40 @@ table.main-t tr.defect-row td { background:#fff8f8; }
     <div class="tab-content" id="tab-report">
       <div class="card">
         <div class="sec-title">Generate Monthly Fleet Report</div>
-        <div class="filter-grid" style="grid-template-columns:200px 220px 160px;">
-          <div class="fg"><label>Month</label><input type="month" id="r-month" /></div>
-          <div class="fg"><label>Vehicle</label>
-            <select id="r-vehicle-sel">
-              <option value="ALL">All Vehicles — Summary</option>
-              <option>O25890</option><option>O25891</option><option>O29872</option>
-              <option>O24260</option><option>O25893</option><option>O25894</option>
-              <option>O25895</option><option>O25896</option><option>O24277</option>
-              <option>O24288</option><option>O24289</option><option>O24284</option>
-            </select>
-          </div>
-          <div class="fg"><label>&nbsp;</label>
-            <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
-          </div>
-        </div>
+        <div class="filter-grid" style="grid-template-columns:200px 220px 220px 160px;">
+  <div class="fg"><label>Month</label><input type="month" id="r-month" /></div>
+
+  <div class="fg"><label>Vehicle</label>
+    <select id="r-vehicle-sel">
+      <option value="ALL">All Vehicles — Summary</option>
+      <option>O25890</option><option>O25891</option><option>O29872</option>
+      <option>O24260</option><option>O25893</option><option>O25894</option>
+      <option>O25895</option><option>O25896</option><option>O24277</option>
+      <option>O24288</option><option>O24289</option><option>O24284</option>
+    </select>
+  </div>
+
+  <div class="fg"><label>Driver</label>
+    <select id="r-driver-sel">
+      <option value="ALL">All Drivers</option>
+      <option>Chung, Byeong Woo</option>
+      <option>Goag, Chang Bog</option>
+      <option>Kim, Sunggil</option>
+      <option>Kim, Tae Kyun</option>
+      <option>Lee, Eunho</option>
+      <option>Lee, Hakwoon</option>
+      <option>Lee, Jung Jae</option>
+      <option>Maing, Jou Hak</option>
+      <option>You, Kyo Sun</option>
+      <option>Kim, Sungmin</option>
+      <option>Mark</option>
+    </select>
+  </div>
+
+  <div class="fg"><label>&nbsp;</label>
+    <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
+  </div>
+</div>
       </div>
 
       <div class="card" id="report-output" style="display:none;">
@@ -927,20 +946,10 @@ function renderOpenIssues(){
 
   card.style.display = 'block';
 
-  const highCount = openIssues.filter(i => i.severity === 'HIGH').length;
-  const medCount = openIssues.filter(i => i.severity === 'MEDIUM').length;
+  let reviewRows = [...openIssues];
 
-  summary.innerHTML = `
-    <strong>${openIssues.length}</strong> open item(s) need review.
-    <span style="color:var(--r-tx);font-weight:600;">HIGH: ${highCount}</span>
-    &nbsp;|&nbsp;
-    <span style="color:var(--a-tx);font-weight:600;">MEDIUM: ${medCount}</span>
-  `;
-
-  const reviewRows = [...openIssues];
-
-  // Review Queue issue가 원본 Fleet Log의 rowNo/sourceRowIndex를 가지고 있으면,
-  // allData에서 원본 기록을 찾아 날짜/시간/기사/차량/오도미터를 보완한다.
+  // Review Queue issue가 원본 DVIR_Log의 rowNo를 가지고 있으면,
+  // allData에서 원본 기록을 찾아 날짜/시간/기사/차량/오도미터를 보완합니다.
   const getIssueSourceRow = issue =>
     issue.rowNo || issue.sourceRowIndex || issue.recordRowIndex || issue.logRowIndex || '';
 
@@ -952,8 +961,8 @@ function renderOpenIssues(){
   };
 
   const getIssueDate = issue => {
-    if(issue.date || issue.recordDate || issue.inspectionDate || issue.logDate){
-      return issue.date || issue.recordDate || issue.inspectionDate || issue.logDate;
+    if(issue.date || issue.reportDate || issue.recordDate || issue.inspectionDate || issue.logDate){
+      return issue.date || issue.reportDate || issue.recordDate || issue.inspectionDate || issue.logDate;
     }
 
     const src = getSourceRecord(issue);
@@ -971,22 +980,66 @@ function renderOpenIssues(){
 
   const getIssueDriver = issue => {
     if(issue.driver) return issue.driver;
+
     const src = getSourceRecord(issue);
     return src ? src[COL.driver] : '';
   };
 
   const getIssueVehicle = issue => {
     if(issue.vehicle) return issue.vehicle;
+
     const src = getSourceRecord(issue);
     return src ? src[COL.vehicle] : '';
   };
 
   const getIssueOdometer = issue => {
     if(issue.odometer) return issue.odometer;
+
     const src = getSourceRecord(issue);
     return src ? src[COL.odometer] : '';
   };
 
+  // Search & Overview 필터값 읽기
+  const from = document.getElementById('f-from') ? document.getElementById('f-from').value : '';
+  const to   = document.getElementById('f-to') ? document.getElementById('f-to').value : '';
+  const veh  = document.getElementById('f-vehicle') ? document.getElementById('f-vehicle').value : '';
+  const drv  = document.getElementById('f-driver') ? document.getElementById('f-driver').value : '';
+
+  // Review Queue에도 날짜 / 차량 / 기사 필터 적용
+  reviewRows = reviewRows.filter(issue => {
+    const d = fmtDate(getIssueDate(issue));
+    const issueVehicle = String(getIssueVehicle(issue) || '').trim();
+    const issueDriver = String(getIssueDriver(issue) || '').trim();
+
+    if(from && d < from) return false;
+    if(to && d > to) return false;
+    if(veh && issueVehicle !== veh) return false;
+    if(drv && issueDriver !== drv) return false;
+
+    return true;
+  });
+
+  // 필터 결과가 없을 때
+  if(!reviewRows.length){
+    summary.innerHTML = `
+      <strong>0</strong> open item(s) match current filter.
+    `;
+    wrap.innerHTML = '<div class="empty-st">No review queue items match current filter.</div>';
+    return;
+  }
+
+  // 필터 적용 후 기준으로 HIGH / MEDIUM 계산
+  const highCount = reviewRows.filter(i => i.severity === 'HIGH').length;
+  const medCount = reviewRows.filter(i => i.severity === 'MEDIUM').length;
+
+  summary.innerHTML = `
+    <strong>${reviewRows.length}</strong> open item(s) match current filter.
+    <span style="color:var(--r-tx);font-weight:600;">HIGH: ${highCount}</span>
+    &nbsp;|&nbsp;
+    <span style="color:var(--a-tx);font-weight:600;">MEDIUM: ${medCount}</span>
+  `;
+
+  // 헤더 클릭 정렬 적용
   sortArrayByConfig(reviewRows, 'review', {
     date:        { getter: i => getIssueDate(i), type: 'date' },
     time:        { getter: i => getIssueTime(i), type: 'time' },
@@ -1024,12 +1077,12 @@ function renderOpenIssues(){
         <td style="font-size:12px;max-width:260px;">${escapeHtml(issue.description || '')}</td>
         <td>${photo}</td>
         <td style="vertical-align:middle;">
-  <div class="act-group">
-    <button class="btn btn-b btn-sm" onclick="editIssueRecord('${getIssueSourceRow(issue)}')">Edit</button>
-    <button class="btn btn-g btn-sm" onclick="updateIssueStatus('${issue.rowIndex}','RESOLVED')">Resolve</button>
-    <button class="btn btn-r btn-sm" onclick="deleteReviewIssue('${issue.rowIndex}')">Delete</button>
-  </div>
-</td>
+          <div class="act-group">
+            <button class="btn btn-b btn-sm" onclick="editIssueRecord('${getIssueSourceRow(issue)}')">Edit</button>
+            <button class="btn btn-g btn-sm" onclick="updateIssueStatus('${issue.rowIndex}','RESOLVED')">Resolve</button>
+            <button class="btn btn-r btn-sm" onclick="deleteReviewIssue('${issue.rowIndex}')">Delete</button>
+          </div>
+        </td>
       </tr>
     `;
   }).join('');
@@ -1048,7 +1101,7 @@ function renderOpenIssues(){
             ${sortableTh('review','issueType','Issue')}
             ${sortableTh('review','description','Description')}
             ${sortableTh('review','photo','Photo')}
-            <th style="min-width:180px;">Actions</th>
+            <th style="min-width:180px;text-align:right;">Actions</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -1159,10 +1212,11 @@ function applyFilters(){
   document.getElementById('results-wrap').style.display= filteredData.length ? 'flex' : 'none';
 
   renderStats();
-  renderEfficiencyTable();
-  renderMissingInspections();
-  renderInspections();
-  renderFuelLog();
+renderEfficiencyTable();
+renderMissingInspections();
+renderInspections();
+renderFuelLog();
+renderOpenIssues();
 }
 
 // ── Stats ─────────────────────────────────────────────────
@@ -1731,15 +1785,21 @@ function resetFilters(){
 
 // ── Monthly report ────────────────────────────────────────
 function generateReport(){
-  const mStr=document.getElementById('r-month').value;
-  const vSel=document.getElementById('r-vehicle-sel').value;
+  const mStr = document.getElementById('r-month').value;
+  const vSel = document.getElementById('r-vehicle-sel').value;
+  const dSel = document.getElementById('r-driver-sel').value;
   if(!mStr) return;
 
   if(vSel==='ALL'){
     const map={};
     allData.forEach(r=>{
-      const d=fmtDate(r[COL.date]); if(!d||d.slice(0,7)!==mStr) return;
-      const v=r[COL.vehicle]; if(!v) return;
+  const d = fmtDate(r[COL.date]);
+  if(!d || d.slice(0,7) !== mStr) return;
+
+  if(dSel !== 'ALL' && String(r[COL.driver] || '').trim() !== dSel) return;
+
+  const v = r[COL.vehicle];
+  if(!v) return;
       if(!map[v]) map[v]={trips:0,minOdo:Infinity,maxOdo:0,fuelQty:0,fuelAmt:0,defects:0};
       if(r[COL.tripType]==='Fuel Log'){
         map[v].fuelQty+=parseFloat(r[COL.fuelQty]||0);
@@ -1763,7 +1823,7 @@ function generateReport(){
         <td><span class="badge ${map[v].defects>0?'b-def':'b-ok'}">${map[v].defects}</span></td></tr>`;
     }).join('');
     const label=new Date(mStr+'-01').toLocaleString('en-US',{month:'long',year:'numeric'});
-    document.getElementById('report-title').textContent=`${label} — All Vehicles Summary`;
+    document.getElementById('report-title').textContent =   `${label} — All Vehicles Summary${dSel !== 'ALL' ? ' — Driver: ' + dSel : ''}`;
     document.getElementById('report-table-wrap').innerHTML=`<table class="main-t">
       <thead><tr><th>Vehicle</th><th>Inspections</th><th>Est. Miles</th>
         <th>Fuel (gal)</th><th>Fuel Cost ($/gal)</th><th>MPG</th><th>Defects</th></tr></thead>
@@ -1773,7 +1833,10 @@ function generateReport(){
     const listRows=[];
     let minO=Infinity,maxO=0,tQ=0,tA=0;
     allData.forEach(r=>{
-      const d=fmtDate(r[COL.date]); if(!d||d.slice(0,7)!==mStr||r[COL.vehicle]!==vSel) return;
+  const d = fmtDate(r[COL.date]);
+  if(!d || d.slice(0,7) !== mStr || r[COL.vehicle] !== vSel) return;
+
+  if(dSel !== 'ALL' && String(r[COL.driver] || '').trim() !== dSel) return;
       const odo=parseFloat(r[COL.odometer]);
       if(!isNaN(odo)&&odo>0){if(odo<minO)minO=odo;if(odo>maxO)maxO=odo;}
       const isF=r[COL.tripType]==='Fuel Log';
@@ -1796,7 +1859,7 @@ function generateReport(){
       <div><strong style="color:var(--b-tx);">MPG: ${mpg}</strong></div>
     </div>`;
     const label=new Date(mStr+'-01').toLocaleString('en-US',{month:'long',year:'numeric'});
-    document.getElementById('report-title').textContent=`${label} — Vehicle ${vSel}`;
+    document.getElementById('report-title').textContent =   `${label} — Vehicle ${vSel}${dSel !== 'ALL' ? ' — Driver: ' + dSel : ''}`;
     document.getElementById('report-table-wrap').innerHTML=sumHtml+`<table class="main-t">
       <thead><tr><th>Date</th><th>Time</th><th>Driver</th><th>Odometer</th>
         <th>Type</th><th>Fuel</th><th>Defect</th></tr></thead>
