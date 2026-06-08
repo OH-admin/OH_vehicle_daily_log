@@ -2199,9 +2199,12 @@ function renderInspections(){
         </td>
         <td>${defectReport}</td>
         <td style="text-align:center;">${photoLink}</td>
-        <td style="text-align:right;white-space:nowrap;">
-          <button class="btn btn-s" onclick="editRecord(${getRowIndex(r)})">Edit</button>
-          <button class="btn btn-d" onclick="deleteRecord(${getRowIndex(r)})">Delete</button>
+        <td style="vertical-align:middle;">
+          <div class="act-group">
+            <button class="btn btn-g btn-sm" onclick="printRecord('${getRowIndex(r)}')">Print</button>
+            <button class="btn btn-b btn-sm" onclick="editRecord('${getRowIndex(r)}')">Edit</button>
+            <button class="btn btn-r btn-sm" onclick="deleteRecord('${getRowIndex(r)}')">Del</button>
+          </div>
         </td>
       </tr>
     `;
@@ -2220,7 +2223,7 @@ function renderInspections(){
             <th>Trip Type</th>
             <th>Defect Report</th>
             <th style="text-align:center;">Photo</th>
-            <th style="text-align:right;">Action</th>
+           <th style="min-width:180px;text-align:right;">Actions</th>
           </tr>
         </thead>
         <tbody>
