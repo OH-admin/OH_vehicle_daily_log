@@ -1879,20 +1879,18 @@ function renderMissingInspections(){
   }
 
   const selectedVehicle = typeof getFilterValue === 'function'
-  ? getFilterValue('f-vehicle')
-  : (vehicleEl ? String(vehicleEl.value || '').trim() : 'ALL');
+    ? getFilterValue('f-vehicle')
+    : (vehicleEl ? String(vehicleEl.value || '').trim() : 'ALL');
 
-const selectedDriver = typeof getFilterValue === 'function'
-  ? getFilterValue('f-driver')
-  : (driverEl ? String(driverEl.value || '').trim() : 'ALL');
+  const selectedDriver = typeof getFilterValue === 'function'
+    ? getFilterValue('f-driver')
+    : (driverEl ? String(driverEl.value || '').trim() : 'ALL');
 
   function normalizeTripType(value){
     const t = String(value || '').toLowerCase().replace(/\s+/g, '').replace(/-/g, '');
-
     if(t.includes('pre')) return 'pre';
     if(t.includes('post')) return 'post';
     if(t.includes('both')) return 'both';
-
     return '';
   }
 
@@ -1917,12 +1915,6 @@ const selectedDriver = typeof getFilterValue === 'function'
   function vehicleNameOf(r){
     return String(r[COL.vehicle] || '').trim();
   }
-
-  const vehiclesToCheck = selectedVehicle && selectedVehicle !== 'ALL'
-    ? [selectedVehicle]
-    : ALL_VEHICLES.slice().sort(function(a, b){
-        return getVehicleUnitSortKey(a) - getVehicleUnitSortKey(b);
-      });
 
   const missingDays = [];
 
@@ -1949,42 +1941,6 @@ const selectedDriver = typeof getFilterValue === 'function'
       if(selectedDriver !== 'ALL' && driverNameOf(r) !== selectedDriver) return false;
 
       return true;
-    });
-
-    const vehicleIssues = [];
-
-    vehiclesToCheck.forEach(function(vehicle){
-      const rowsForVehicle = dayRows.filter(function(r){
-        return vehicleNameOf(r) === vehicle;
-      });
-
-      if(!rowsForVehicle.length){
-        vehicleIssues.push({
-          vehicle: vehicle,
-          status: 'none',
-          hasPre: false,
-          hasPost: false,
-          drivers: []
-        });
-        return;
-      }
-
-      const hasPre = hasPreTrip(rowsForVehicle);
-      const hasPost = hasPostTrip(rowsForVehicle);
-
-      if(!hasPre || !hasPost){
-        const drivers = Array.from(new Set(
-          rowsForVehicle.map(driverNameOf).filter(Boolean)
-        )).sort();
-
-        vehicleIssues.push({
-          vehicle: vehicle,
-          status: 'incomplete',
-          hasPre: hasPre,
-          hasPost: hasPost,
-          drivers: drivers
-        });
-      }
     });
 
     const actualDrivers = Array.from(new Set(
@@ -2044,7 +2000,7 @@ const selectedDriver = typeof getFilterValue === 'function'
     label.textContent = 'Most recent 3 business days needing driver follow-up';
   }
 
- const show = missingDays.slice(-3).reverse();
+  const show = missingDays.slice(-3).reverse();
 
   wrap.innerHTML = show.map(function(day){
     const dayLabel = new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', {
@@ -2060,9 +2016,9 @@ const selectedDriver = typeof getFilterValue === 'function'
       if(!item.hasPre)  missingParts.push('Pre-Trip');
       if(!item.hasPost) missingParts.push('Post-Trip');
 
-      const missingLabel = missingParts
-        .map(function(p){ return '<span class="miss-bad">' + p + ' missing</span>'; })
-        .join(' · ');
+      const missingLabel = missingParts.map(function(p){
+        return '<span class="miss-bad">' + p + ' missing</span>';
+      }).join(' · ');
 
       const vehicles = item.vehicles.map(function(v){
         return typeof vehicleDisplayHtml === 'function'
@@ -2087,79 +2043,6 @@ const selectedDriver = typeof getFilterValue === 'function'
     `;
   }).join('') + (missingDays.length > 3
     ? `<p class="miss-more">...and ${missingDays.length - 3} more business days needing follow-up.</p>`
-    : '');
-
-    const vehicleHtml = day.vehicleIssues.length
-      ? day.vehicleIssues.map(function(item){
-          const vehicleLabel = typeof vehicleDisplayHtml === 'function'
-            ? vehicleDisplayHtml(item.vehicle)
-            : escapeHtml(item.vehicle);
-
-          const pre = item.hasPre
-            ? '<span class="miss-ok">Pre ✓</span>'
-            : '<span class="miss-bad">Pre —</span>';
-
-          const post = item.hasPost
-            ? '<span class="miss-ok">Post ✓</span>'
-            : '<span class="miss-bad">Post —</span>';
-
-          const statusText = item.status === 'none'
-            ? '<span class="miss-bad">No inspection record</span>'
-            : '<span class="miss-muted">Incomplete</span>';
-
-          return `
-            <div class="miss-compact-row">
-              <div class="miss-main-name">${vehicleLabel}</div>
-              <div class="miss-status-text">${statusText}</div>
-              <div class="miss-trip-status">${pre} ${post}</div>
-            </div>
-          `;
-        }).join('')
-      : '<div class="miss-empty-line">No vehicle-level missing inspections.</div>';
-
-    const driverHtml = day.driverIssues.length
-      ? day.driverIssues.map(function(item){
-          const pre = item.hasPre
-            ? '<span class="miss-ok">Pre ✓</span>'
-            : '<span class="miss-bad">Pre —</span>';
-
-          const post = item.hasPost
-            ? '<span class="miss-ok">Post ✓</span>'
-            : '<span class="miss-bad">Post —</span>';
-
-          const vehicles = item.vehicles.map(function(v){
-            return typeof vehicleDisplayHtml === 'function'
-              ? vehicleDisplayHtml(v)
-              : escapeHtml(v);
-          }).join(', ');
-
-          return `
-            <div class="miss-compact-row">
-              <div class="miss-main-name">${escapeHtml(item.driver)}</div>
-              <div class="miss-status-text">${vehicles || '—'}</div>
-              <div class="miss-trip-status">${pre} ${post}</div>
-            </div>
-          `;
-        }).join('')
-      : '<div class="miss-empty-line">No driver-level incomplete inspections from actual records.</div>';
-
-    return `
-      <div class="miss-day-block">
-        <div class="miss-day-title">${dayLabel}</div>
-
-        <div class="miss-section">
-          <div class="miss-section-title">Vehicle Missing</div>
-          ${vehicleHtml}
-        </div>
-
-        <div class="miss-section">
-          <div class="miss-section-title">Driver Missing</div>
-          ${driverHtml}
-        </div>
-      </div>
-    `;
-  }).join('') + (missingDays.length > 3
-    ? `<p class="miss-more">...and ${missingDays.length - 3} more business days with missing or incomplete inspections.</p>`
     : '');
 }
 // ── Inspection table ──────────────────────────────────────
