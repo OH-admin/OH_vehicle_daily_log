@@ -1972,7 +1972,6 @@ function renderMissingInspections(){
         vehicle: vehicle,
         hasPre: hasPre,
         hasPost: hasPost,
-        // Pre 누락 시 책임 기사 = 이 차량 운행 기사들
         preMissingDrivers: hasPre ? [] : drivers,
         postMissingDrivers: hasPost ? [] : drivers
       });
@@ -2015,15 +2014,15 @@ function renderMissingInspections(){
 
       const preCell = item.hasPre
         ? '<span class="miss-clear">✓ Done</span>'
-        : item.preMissingDrivers.map(function(n){
+        : (item.preMissingDrivers.map(function(n){
             return '<span class="miss-name">' + escapeHtml(n) + '</span>';
-          }).join('') || '<span class="miss-name">—</span>';
+          }).join('') || '<span class="miss-name">—</span>');
 
       const postCell = item.hasPost
         ? '<span class="miss-clear">✓ Done</span>'
-        : item.postMissingDrivers.map(function(n){
+        : (item.postMissingDrivers.map(function(n){
             return '<span class="miss-name">' + escapeHtml(n) + '</span>';
-          }).join('') || '<span class="miss-name">—</span>';
+          }).join('') || '<span class="miss-name">—</span>');
 
       return `
         <div class="miss-veh-row">
@@ -2042,64 +2041,6 @@ function renderMissingInspections(){
           <div>Pre-Trip missing</div>
           <div>Post-Trip missing</div>
         </div>
-        ${rows}
-      </div>
-    `;
-  }).join('') + (missingDays.length > 3
-    ? `<p class="miss-more">...and ${missingDays.length - 3} more business days needing follow-up.</p>`
-    : '');
-    }
-  }
-
-  if(!missingDays.length){
-    card.style.display = 'none';
-    return;
-  }
-
-  card.style.display = 'block';
-
-  if(label){
-    label.textContent = 'Most recent 3 business days needing driver follow-up';
-  }
-
-  const show = missingDays.slice(-3).reverse();
-
-  wrap.innerHTML = show.map(function(day){
-    const dayLabel = new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric'
-    });
-
-    const count = day.driverIssues.length;
-
-    const rows = day.driverIssues.map(function(item){
-      const missingParts = [];
-      if(!item.hasPre)  missingParts.push('Pre-Trip');
-      if(!item.hasPost) missingParts.push('Post-Trip');
-
-      const missingLabel = missingParts.map(function(p){
-        return '<span class="miss-bad">' + p + ' missing</span>';
-      }).join(' · ');
-
-      const vehicles = item.vehicles.map(function(v){
-        return typeof vehicleDisplayHtml === 'function'
-          ? vehicleDisplayHtml(v)
-          : escapeHtml(v);
-      }).join(', ');
-
-      return `
-        <div class="miss-compact-row">
-          <div class="miss-main-name">${escapeHtml(item.driver)}</div>
-          <div class="miss-status-text">${vehicles || '—'}</div>
-          <div class="miss-trip-status">${missingLabel}</div>
-        </div>
-      `;
-    }).join('');
-
-    return `
-      <div class="miss-day-block">
-        <div class="miss-day-title">${dayLabel} &nbsp;·&nbsp; ${count} driver${count > 1 ? 's' : ''} to notify</div>
         ${rows}
       </div>
     `;
