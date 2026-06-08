@@ -717,7 +717,9 @@ async function checkPw(){
     });
 
     const json = await res.json();
-
+console.log('GETALL RESPONSE:', json);
+console.log('DATA LENGTH:', json.data ? json.data.length : 'NO DATA ARRAY');
+console.log('ADMIN_TOKEN:', ADMIN_TOKEN ? 'TOKEN EXISTS' : 'NO TOKEN');
     if(json.result === 'success' && json.token){
       ADMIN_TOKEN = json.token;
       localStorage.setItem('OHADC_ADMIN_TOKEN', ADMIN_TOKEN);
