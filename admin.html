@@ -180,6 +180,14 @@ html,body { font-family:var(--font); background:var(--parchment); color:var(--in
   color:#244a9b;
 }
 
+.report-kpis.kpi-row-1{
+  grid-template-columns:repeat(4, minmax(170px,1fr));
+}
+
+.report-kpis.kpi-row-2{
+  grid-template-columns:repeat(3, minmax(220px,1fr));
+}   
+   
 .report-box{
   background:#fff;
   border:1px solid var(--hairline);
@@ -502,7 +510,7 @@ table.main-t tr.defect-row td { background:#fff8f8; }
       <button class="tab active" onclick="switchTab('search')">Search & Overview</button>
       <button class="tab" onclick="switchTab('manual')">Manual Entry / Edit</button>
       <button class="tab" onclick="switchTab('maintenance')">Maintenance</button>
-      <button class="tab" onclick="switchTab('report')">Monthly Report</button>
+      <button class="tab" onclick="switchTab('report')">Report</button>
     </div>
 
     <!-- ═══ TAB 1: SEARCH ══════════════════════════════════ -->
@@ -731,7 +739,6 @@ table.main-t tr.defect-row td { background:#fff8f8; }
      <div class="quick-btns">
   <button class="btn btn-pearl btn-sm" onclick="setMaintenanceQuick('thismonth')">This Month</button>
   <button class="btn btn-pearl btn-sm" onclick="setMaintenanceQuick('lastmonth')">Last Month</button>
-  <button class="btn btn-pearl btn-sm" onclick="setMaintenanceQuick('quarter')">Quarter</button>
   <button class="btn btn-pearl btn-sm" onclick="setMaintenanceQuick('halfyear')">Half Year</button>
   <button class="btn btn-pearl btn-sm" onclick="setMaintenanceQuick('ytd')">Year to Date</button>
 </div>
@@ -845,7 +852,6 @@ table.main-t tr.defect-row td { background:#fff8f8; }
 <div class="quick-btns" style="margin-top:12px;">
   <button class="btn btn-pearl btn-sm" onclick="setReportQuick('thismonth')">This Month</button>
   <button class="btn btn-pearl btn-sm" onclick="setReportQuick('lastmonth')">Last Month</button>
-  <button class="btn btn-pearl btn-sm" onclick="setReportQuick('quarter')">Quarter</button>
   <button class="btn btn-pearl btn-sm" onclick="setReportQuick('halfyear')">Half Year</button>
   <button class="btn btn-pearl btn-sm" onclick="setReportQuick('ytd')">Year to Date</button>
 </div>
@@ -1127,11 +1133,7 @@ function getPeriodRange(preset){
     to = new Date(today.getFullYear(), today.getMonth(), 0);
   }
 
-  if(preset === 'quarter'){
-    const qStartMonth = Math.floor(today.getMonth() / 3) * 3;
-    from = new Date(today.getFullYear(), qStartMonth, 1);
-    to = today;
-  }
+ 
 
   if(preset === 'halfyear'){
     const hStartMonth = today.getMonth() < 6 ? 0 : 6;
@@ -3277,6 +3279,62 @@ function buildVehicleMonthlyMetrics(mStr, vSel, dSel){
     });
 }
 
+function buildVehiclePeriodMetrics(from, to, vSel, dSel){
+  const rows = allData.filter(r => {
+    const d = fmtDate(r[COL.date]);
+
+    if(!d || d < from || d > to) return false;
+
+    if(vSel !== 'ALL' && r[COL.vehicle] !== vSel) return false;
+    if(dSel !== 'ALL' && String(r[COL.driver] || '').trim() !== dSel) return false;
+
+    return true;
+  });
+
+  const map = {};
+
+  rows.forEach(r => {
+    const vehicle = String(r[COL.vehicle] || '').trim();
+    if(!vehicle) return;
+
+    if(!map[vehicle]){
+      map[vehicle] = {
+        vehicle: vehicle,
+        rows: [],
+        fuelQty: 0,
+        fuelAmt: 0
+      };
+    }
+
+    map[vehicle].rows.push(r);
+
+    if(r[COL.tripType] === 'Fuel Log'){
+      map[vehicle].fuelQty += parseNum(r[COL.fuelQty]);
+      map[vehicle].fuelAmt += parseNum(r[COL.fuelAmt]);
+    }
+  });
+
+  return Object.keys(map)
+    .sort((a, b) => getVehicleUnitSortKey(a) - getVehicleUnitSortKey(b))
+    .map(vehicle => {
+      const b = map[vehicle];
+      const odo = getMonthlyOdoStats(b.rows);
+      const mpg = b.fuelQty > 0 && odo.miles > 0
+        ? odo.miles / b.fuelQty
+        : 0;
+
+      return {
+        vehicle: vehicle,
+        label: getVehicleUnitLabel(vehicle) || vehicle,
+        display: vehicle,
+        miles: odo.miles || 0,
+        fuelCost: b.fuelAmt || 0,
+        fuelQty: b.fuelQty || 0,
+        mpg: mpg
+      };
+    });
+}
+   
 function getMetricDelta(current, previous, key){
   const c = Number(current && current[key] ? current[key] : 0);
   const p = Number(previous && previous[key] ? previous[key] : 0);
@@ -3403,8 +3461,8 @@ function toggleMonthlyVehicleCompare(){
 
   if(btn){
     btn.textContent = monthlyVehicleChartCompare
-      ? 'Hide Last Month Compare'
-      : 'Compare with Last Month';
+  ? 'Hide Previous Period Compare'
+  : 'Compare with Previous Period';
   }
 
   if(table){
@@ -3615,10 +3673,11 @@ function getMaintenanceSummaryForVehicle(mStr, vehicle){
   };
 }
 
-function getMonthlyKpiTotals(mStr, vSel, dSel){
+function getKpiTotalsForPeriod(from, to, vSel, dSel){
   const rows = allData.filter(r => {
     const d = fmtDate(r[COL.date]);
-    if(!d || d.slice(0,7) !== mStr) return false;
+
+    if(!d || d < from || d > to) return false;
 
     if(vSel !== 'ALL' && r[COL.vehicle] !== vSel) return false;
     if(dSel !== 'ALL' && String(r[COL.driver] || '').trim() !== dSel) return false;
@@ -3648,7 +3707,7 @@ function getMonthlyKpiTotals(mStr, vSel, dSel){
     totalMiles += odo.miles || 0;
   });
 
-  const maintenanceRows = getMaintenanceRowsForMonth(mStr, vSel);
+  const maintenanceRows = getMaintenanceRowsForPeriod(from, to, vSel);
   const totalMaintenanceCost = maintenanceRows.reduce((sum, r) => sum + parseNum(r[MCOL.totalPrice]), 0);
 
   const totalVehicleCost = totalFuelAmt + totalMaintenanceCost;
@@ -3669,6 +3728,55 @@ function getMonthlyKpiTotals(mStr, vSel, dSel){
     totalFuelQty,
     avgUnitPrice,
     fleetMpg
+  };
+}
+
+function getPreviousComparablePeriod(period){
+  const from = new Date(period.from + 'T12:00:00');
+  const to = new Date(period.to + 'T12:00:00');
+
+  if(period.type === 'monthly'){
+    const prevStart = new Date(from.getFullYear(), from.getMonth() - 1, 1);
+    const prevEnd = new Date(from.getFullYear(), from.getMonth(), 0);
+
+    const label = prevStart.toLocaleString('en-US', {
+      month:'long',
+      year:'numeric'
+    });
+
+    return {
+      from: dateInputValue(prevStart),
+      to: dateInputValue(prevEnd),
+      label: label
+    };
+  }
+
+  if(period.type === 'ytd'){
+    const currentYear = Number(period.from.slice(0,4));
+    const prevYear = currentYear - 1;
+    const prevFrom = prevYear + '-01-01';
+    const prevTo = prevYear + '-' + period.to.slice(5);
+
+    return {
+      from: prevFrom,
+      to: prevTo,
+      label: 'Previous YTD ' + prevYear
+    };
+  }
+
+  const oneDay = 24 * 60 * 60 * 1000;
+  const days = Math.round((to - from) / oneDay) + 1;
+
+  const prevTo = new Date(from);
+  prevTo.setDate(prevTo.getDate() - 1);
+
+  const prevFrom = new Date(prevTo);
+  prevFrom.setDate(prevFrom.getDate() - days + 1);
+
+  return {
+    from: dateInputValue(prevFrom),
+    to: dateInputValue(prevTo),
+    label: dispDate(dateInputValue(prevFrom)) + ' - ' + dispDate(dateInputValue(prevTo))
   };
 }
 
@@ -3880,18 +3988,23 @@ const avgUnitPrice = totalFuelQty > 0
   ? '$' + (totalFuelAmt / totalFuelQty).toFixed(3)
   : '—';   
 
-const kpiPreviousMonthStr = getPreviousMonthStr(mStr);
-const previousKpis = getMonthlyKpiTotals(kpiPreviousMonthStr, vSel, dSel);
-
 const currentKpis = {
   totalMiles: totalMiles,
   totalFuelAmt: totalFuelAmt,
-  totalMaintenanceCost: typeof totalMaintenanceCost !== 'undefined' ? totalMaintenanceCost : 0,
-  totalVehicleCost: typeof totalVehicleCost !== 'undefined' ? totalVehicleCost : totalFuelAmt,
+  totalMaintenanceCost: totalMaintenanceCost,
+  totalVehicleCost: totalVehicleCost,
   totalFuelQty: totalFuelQty,
   avgUnitPrice: totalFuelQty > 0 ? totalFuelAmt / totalFuelQty : 0,
   fleetMpg: fleetMpg === '—' ? 0 : Number(fleetMpg)
 };
+
+const previousPeriod = getPreviousComparablePeriod(period);
+const previousKpis = getKpiTotalsForPeriod(
+  previousPeriod.from,
+  previousPeriod.to,
+  vSel,
+  dSel
+);
    
   const titleVehicle = vSel === 'ALL' ? 'All Vehicles' : 'Vehicle ' + vSel;
   const titleDriver = dSel === 'ALL' ? 'All Drivers' : 'Driver: ' + dSel;
@@ -3901,13 +4014,33 @@ const currentKpis = {
     `${label} — ${titleVehicle} — ${titleDriver}`;
 
  const summaryHtml = `
-  <div class="report-kpis">
+  <div class="report-kpis kpi-row-1">
     <div class="report-kpi kpi-miles">
       <div class="value">${totalMiles > 0 ? fmtOdo(totalMiles) + ' mi' : '—'}</div>
       ${renderKpiDeltaHtml(currentKpis.totalMiles, previousKpis.totalMiles, 'miles')}
-      <div class="label">Monthly Miles (Est.)</div>
+      <div class="label">Miles</div>
     </div>
 
+    <div class="report-kpi kpi-unit">
+      <div class="value">${avgUnitPrice}</div>
+      ${renderKpiDeltaHtml(currentKpis.avgUnitPrice, previousKpis.avgUnitPrice, 'unit')}
+      <div class="label">Avg Unit Price</div>
+    </div>
+
+    <div class="report-kpi kpi-fuel">
+      <div class="value">${totalFuelQty.toFixed(3)} gal</div>
+      ${renderKpiDeltaHtml(currentKpis.totalFuelQty, previousKpis.totalFuelQty, 'gallon')}
+      <div class="label">Total Fuel</div>
+    </div>
+
+    <div class="report-kpi kpi-mpg">
+      <div class="value">${fleetMpg}</div>
+      ${renderKpiDeltaHtml(currentKpis.fleetMpg, previousKpis.fleetMpg, 'mpg')}
+      <div class="label">Avg MPG</div>
+    </div>
+  </div>
+
+  <div class="report-kpis kpi-row-2">
     <div class="report-kpi kpi-cost">
       <div class="value">$${totalFuelAmt.toFixed(2)}</div>
       ${renderKpiDeltaHtml(currentKpis.totalFuelAmt, previousKpis.totalFuelAmt, 'money')}
@@ -3923,25 +4056,7 @@ const currentKpis = {
     <div class="report-kpi kpi-cost">
       <div class="value">$${currentKpis.totalVehicleCost.toFixed(2)}</div>
       ${renderKpiDeltaHtml(currentKpis.totalVehicleCost, previousKpis.totalVehicleCost, 'money')}
-      <div class="label">Total Vehicle Cost</div>
-    </div>
-
-    <div class="report-kpi kpi-fuel">
-      <div class="value">${totalFuelQty.toFixed(3)} gal</div>
-      ${renderKpiDeltaHtml(currentKpis.totalFuelQty, previousKpis.totalFuelQty, 'gallon')}
-      <div class="label">Total Fuel (Gal)</div>
-    </div>
-
-    <div class="report-kpi kpi-unit">
-      <div class="value">${avgUnitPrice}</div>
-      ${renderKpiDeltaHtml(currentKpis.avgUnitPrice, previousKpis.avgUnitPrice, 'unit')}
-      <div class="label">Avg Unit Price</div>
-    </div>
-
-    <div class="report-kpi kpi-mpg">
-      <div class="value">${fleetMpg}</div>
-      ${renderKpiDeltaHtml(currentKpis.fleetMpg, previousKpis.fleetMpg, 'mpg')}
-      <div class="label">Avg MPG</div>
+      <div class="label">Total Cost</div>
     </div>
   </div>
 
@@ -4174,19 +4289,18 @@ Maintenance lines: <strong>${totalMaintenanceRows.length}</strong>
   </div>
 ` : '';
 
-const previousMonthStr = getPreviousMonthStr(mStr);
-const currentMonthLabel = getMonthLabelShort(mStr);
-const previousMonthLabel = getMonthLabelShort(previousMonthStr);
+const currentPeriodLabel = period.label;
+const previousPeriodLabel = previousPeriod.label;
 
-const currentChartData = buildVehicleMonthlyMetrics(mStr, vSel, dSel);
-const previousChartData = buildVehicleMonthlyMetrics(previousMonthStr, vSel, dSel);
+const currentChartData = buildVehiclePeriodMetrics(period.from, period.to, vSel, dSel);
+const previousChartData = buildVehiclePeriodMetrics(previousPeriod.from, previousPeriod.to, vSel, dSel);
 
 monthlyVehicleChartCompare = false;
 monthlyVehicleChartState = {
-  currentMonth: mStr,
-  previousMonth: previousMonthStr,
-  currentLabel: currentMonthLabel,
-  previousLabel: previousMonthLabel,
+  currentMonth: period.from + ' to ' + period.to,
+  previousMonth: previousPeriod.from + ' to ' + previousPeriod.to,
+  currentLabel: currentPeriodLabel,
+  previousLabel: previousPeriodLabel,
   currentData: currentChartData,
   previousData: previousChartData
 };
@@ -4195,9 +4309,9 @@ const monthlyVehicleChartHtml = isDefaultMonthlySummary ? `
   <div class="report-box" id="monthly-vehicle-chart-box">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
       <div>
-        <div class="sec-title" style="margin-bottom:4px;">Vehicle Monthly Performance Chart</div>
+        <div class="sec-title" style="margin-bottom:4px;">Vehicle Period Performance Chart</div>
         <div class="box-meta">
-          Monthly miles, fuel cost, and MPG by vehicle
+          Miles, fuel cost, and MPG by vehicle for selected period
           &nbsp;|&nbsp;
           <strong>${currentMonthLabel}</strong>
         </div>
