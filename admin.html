@@ -727,6 +727,14 @@ table.main-t tr.defect-row td { background:#fff8f8; }
         <button class="btn btn-pearl" style="flex:1" onclick="resetMaintenanceFilters()">Reset</button>
       </div>
     </div>
+
+     <div class="quick-btns">
+  <button class="btn btn-pearl btn-sm" onclick="setMaintenanceQuick('thismonth')">This Month</button>
+  <button class="btn btn-pearl btn-sm" onclick="setMaintenanceQuick('lastmonth')">Last Month</button>
+  <button class="btn btn-pearl btn-sm" onclick="setMaintenanceQuick('quarter')">Quarter</button>
+  <button class="btn btn-pearl btn-sm" onclick="setMaintenanceQuick('halfyear')">Half Year</button>
+  <button class="btn btn-pearl btn-sm" onclick="setMaintenanceQuick('ytd')">Year to Date</button>
+</div>
   </div>
 
   <div class="stats-grid" id="maintenance-kpis" style="display:none;">
@@ -798,6 +806,15 @@ table.main-t tr.defect-row td { background:#fff8f8; }
     <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
   </div>
 </div>
+
+         <div class="quick-btns" style="margin-top:12px;">
+  <button class="btn btn-pearl btn-sm" onclick="setReportQuick('thismonth')">This Month</button>
+  <button class="btn btn-pearl btn-sm" onclick="setReportQuick('lastmonth')">Last Month</button>
+  <button class="btn btn-pearl btn-sm" onclick="setReportQuick('quarter')">Quarter</button>
+  <button class="btn btn-pearl btn-sm" onclick="setReportQuick('halfyear')">Half Year</button>
+  <button class="btn btn-pearl btn-sm" onclick="setReportQuick('ytd')">Year to Date</button>
+</div>
+         
       </div>
 
       <div class="card" id="report-output" style="display:none;">
@@ -1009,6 +1026,13 @@ function initDates(){
   document.getElementById('f-to').value   = fmt(ny);
   document.getElementById('f-from').value = `${ny.getFullYear()}-${pad(ny.getMonth()+1)}-01`;
   document.getElementById('r-month').value = fmt(ny).slice(0,7);
+   const rYear = document.getElementById('r-year');
+const rFrom = document.getElementById('r-from');
+const rTo = document.getElementById('r-to');
+
+if(rYear) rYear.value = ny.getFullYear();
+if(rFrom) rFrom.value = `${ny.getFullYear()}-01-01`;
+if(rTo) rTo.value = fmt(ny);
 }
 
 // ── Tab ──────────────────────────────────────────────────
@@ -1043,7 +1067,53 @@ function setQuick(p){
   applyFilters();
 }
 
+function getNYToday(){
+  return new Date(new Date().toLocaleString('en-US', {
+    timeZone:'America/New_York'
+  }));
+}
 
+function dateInputValue(d){
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function getPeriodRange(preset){
+  const today = getNYToday();
+  let from, to;
+
+  if(preset === 'thismonth'){
+    from = new Date(today.getFullYear(), today.getMonth(), 1);
+    to = today;
+  }
+
+  if(preset === 'lastmonth'){
+    from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    to = new Date(today.getFullYear(), today.getMonth(), 0);
+  }
+
+  if(preset === 'quarter'){
+    const qStartMonth = Math.floor(today.getMonth() / 3) * 3;
+    from = new Date(today.getFullYear(), qStartMonth, 1);
+    to = today;
+  }
+
+  if(preset === 'halfyear'){
+    const hStartMonth = today.getMonth() < 6 ? 0 : 6;
+    from = new Date(today.getFullYear(), hStartMonth, 1);
+    to = today;
+  }
+
+  if(preset === 'ytd'){
+    from = new Date(today.getFullYear(), 0, 1);
+    to = today;
+  }
+
+  return {
+    from: dateInputValue(from),
+    to: dateInputValue(to)
+  };
+}
    
 function getDisplayDateTime(row){
   const d = dispDate(row[COL.date]);
@@ -2424,6 +2494,18 @@ function resetMaintenanceFilters(){
   applyMaintenanceFilters();
 }
 
+function setMaintenanceQuick(preset){
+  const range = getPeriodRange(preset);
+
+  const fromEl = document.getElementById('mt-from');
+  const toEl = document.getElementById('mt-to');
+
+  if(fromEl) fromEl.value = range.from;
+  if(toEl) toEl.value = range.to;
+
+  applyMaintenanceFilters();
+}   
+   
 function applyMaintenanceFilters(){
   const from = document.getElementById('mt-from') ? document.getElementById('mt-from').value : '';
   const to = document.getElementById('mt-to') ? document.getElementById('mt-to').value : '';
