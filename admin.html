@@ -4091,7 +4091,6 @@ Maintenance lines: <strong>${totalMaintenanceRows.length}</strong>
       <table class="main-t">
         <thead>
           <tr>
-           <tr>
   <th>
     <span class="th-main">Vehicle</span>
   </th>
@@ -4158,7 +4157,6 @@ Maintenance lines: <strong>${totalMaintenanceRows.length}</strong>
     <span class="th-sub">Cost</span>
   </th>
 </tr>
-          </tr>
         </thead>
         <tbody>
           ${summaryRows || '<tr><td colspan="14" style="text-align:center;color:var(--ink-muted);">No summary data</td></tr>'}
@@ -4313,7 +4311,7 @@ const monthlyVehicleChartHtml = isDefaultMonthlySummary ? `
         <div class="box-meta">
           Miles, fuel cost, and MPG by vehicle for selected period
           &nbsp;|&nbsp;
-          <strong>${currentMonthLabel}</strong>
+          <strong>${currentPeriodLabel}</strong>
         </div>
       </div>
 
@@ -4322,7 +4320,7 @@ const monthlyVehicleChartHtml = isDefaultMonthlySummary ? `
         id="btn-monthly-compare"
         onclick="toggleMonthlyVehicleCompare()"
       >
-        Compare with Last Month
+        Compare with Previous Period
       </button>
     </div>
 
@@ -4340,15 +4338,15 @@ const monthlyVehicleChartHtml = isDefaultMonthlySummary ? `
       border-radius:12px;
       padding:10px 12px;
     ">
-      Bar = monthly miles and fuel cost. Line = MPG. Click the comparison button to overlay last month and show ▲/▼ changes.
+      Bar = miles and fuel cost. Line = MPG. Click the comparison button to overlay the previous comparable period and show ▲/▼ changes.
     </div>
 
     ${buildMonthlyChartComparisonTable(
-      currentChartData,
-      previousChartData,
-      currentMonthLabel,
-      previousMonthLabel
-    )}
+  currentChartData,
+  previousChartData,
+  currentPeriodLabel,
+  previousPeriodLabel
+)}
   </div>
 ` : '';
    
