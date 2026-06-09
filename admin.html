@@ -2590,19 +2590,35 @@ function setReportQuick(preset){
   const fromEl = document.getElementById('r-from');
   const toEl = document.getElementById('r-to');
   const monthEl = document.getElementById('r-month');
+  const yearEl = document.getElementById('r-year');
 
-  if(preset === 'thismonth' || preset === 'lastmonth'){
-    if(typeEl) typeEl.value = 'monthly';
-
-    if(monthEl){
-      monthEl.value = range.from.slice(0, 7);
-    }
-  } else {
+  // This Month / Last Month도 from-to 기준으로 강제 통일
+  // Maintenance와 같은 방식이라 데이터 갱신이 가장 안정적임
+  if(preset === 'thismonth' || preset === 'lastmonth' || preset === 'halfyear'){
     if(typeEl) typeEl.value = 'custom';
 
     if(fromEl) fromEl.value = range.from;
     if(toEl) toEl.value = range.to;
+
+    // 보조값도 맞춰둠
+    if(monthEl) monthEl.value = range.from.slice(0, 7);
   }
+
+  // Year to Date는 기존처럼 YTD 타입 유지
+  if(preset === 'ytd'){
+    if(typeEl) typeEl.value = 'ytd';
+
+    if(yearEl){
+      yearEl.value = range.from.slice(0, 4);
+    }
+
+    if(fromEl) fromEl.value = range.from;
+    if(toEl) toEl.value = range.to;
+  }
+
+  toggleReportPeriodFields();
+  generateReport();
+}
 
   toggleReportPeriodFields();
   generateReport();
