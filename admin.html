@@ -271,6 +271,21 @@ table.main-t thead tr { background:var(--parchment); }
 table.main-t th { padding:9px 10px;text-align:left;font-size:10px;font-weight:600;
   color:var(--ink-muted);text-transform:uppercase;letter-spacing:.05em;
   border-bottom:1px solid var(--hairline);white-space:nowrap; }
+   table.main-t th .th-main {
+  display:block;
+  line-height:1.05;
+  white-space:nowrap;
+}
+
+table.main-t th .th-sub {
+  display:block;
+  margin-top:3px;
+  font-size:9px;
+  line-height:1.05;
+  color:var(--ink-faint);
+  letter-spacing:.04em;
+  white-space:nowrap;
+}
 table.main-t td { padding:10px 10px;border-bottom:.5px solid var(--hairline);
   vertical-align:middle; }
 table.main-t tr:hover td { background:#fafafa; }
@@ -3706,21 +3721,72 @@ Maintenance lines: <strong>${totalMaintenanceRows.length}</strong>
       <table class="main-t">
         <thead>
           <tr>
-            <tr>
-  <th>Vehicle</th>
-  <th style="text-align:right;">Inspections</th>
-  <th style="text-align:right;">Fuel Logs</th>
-  <th style="text-align:right;">Maintenance</th>
-  <th style="text-align:right;">First Odometer</th>
-  <th style="text-align:right;">Last Odometer</th>
-  <th style="text-align:right;">Monthly Miles</th>
-  <th style="text-align:right;">Fuel Qty</th>
-  <th style="text-align:right;">Fuel Cost</th>
-  <th style="text-align:right;">$/gal</th>
-  <th style="text-align:right;">MPG</th>
-  <th style="text-align:center;">Defects</th>
-  <th style="text-align:right;">Maintenance Cost</th>
-  <th style="text-align:right;">Total Cost</th>
+           <tr>
+  <th>
+    <span class="th-main">Vehicle</span>
+  </th>
+
+  <th style="text-align:right;">
+    <span class="th-main">Inspection</span>
+    <span class="th-sub">Records</span>
+  </th>
+
+  <th style="text-align:right;">
+    <span class="th-main">Fuel</span>
+    <span class="th-sub">Logs</span>
+  </th>
+
+  <th style="text-align:right;">
+    <span class="th-main">Maintenance</span>
+    <span class="th-sub">Lines</span>
+  </th>
+
+  <th style="text-align:right;">
+    <span class="th-main">First</span>
+    <span class="th-sub">Odometer</span>
+  </th>
+
+  <th style="text-align:right;">
+    <span class="th-main">Last</span>
+    <span class="th-sub">Odometer</span>
+  </th>
+
+  <th style="text-align:right;">
+    <span class="th-main">Monthly</span>
+    <span class="th-sub">Miles</span>
+  </th>
+
+  <th style="text-align:right;">
+    <span class="th-main">Fuel</span>
+    <span class="th-sub">Qty</span>
+  </th>
+
+  <th style="text-align:right;">
+    <span class="th-main">Fuel</span>
+    <span class="th-sub">Cost</span>
+  </th>
+
+  <th style="text-align:right;">
+    <span class="th-main">$/gal</span>
+  </th>
+
+  <th style="text-align:right;">
+    <span class="th-main">MPG</span>
+  </th>
+
+  <th style="text-align:center;">
+    <span class="th-main">Defects</span>
+  </th>
+
+  <th style="text-align:right;">
+    <span class="th-main">Maintenance</span>
+    <span class="th-sub">Cost</span>
+  </th>
+
+  <th style="text-align:right;">
+    <span class="th-main">Total</span>
+    <span class="th-sub">Cost</span>
+  </th>
 </tr>
           </tr>
         </thead>
