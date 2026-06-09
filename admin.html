@@ -771,11 +771,44 @@ table.main-t tr.defect-row td { background:#fff8f8; }
     <!-- ═══ TAB 3: MONTHLY REPORT ══════════════════════════ -->
     <div class="tab-content" id="tab-report">
       <div class="card">
-        <div class="sec-title">Generate Monthly Fleet Report</div>
-        <div class="filter-grid" style="grid-template-columns:200px 220px 220px 160px;">
-  <div class="fg"><label>Month</label><input type="month" id="r-month" /></div>
+        <div class="sec-title">Generate Fleet Report</div>
 
-  <div class="fg"><label>Vehicle</label>
+<!-- Period line -->
+<div class="filter-grid" style="grid-template-columns:180px 180px 150px 170px 170px; margin-bottom:12px;">
+  <div class="fg">
+    <label>Report Type</label>
+    <select id="r-type" onchange="toggleReportPeriodFields()">
+      <option value="monthly">Monthly</option>
+      <option value="ytd">Year to Date</option>
+      <option value="custom">Custom Range</option>
+    </select>
+  </div>
+
+  <div class="fg" id="r-month-wrap">
+    <label>Month</label>
+    <input type="month" id="r-month" />
+  </div>
+
+  <div class="fg" id="r-year-wrap" style="display:none;">
+    <label>Year</label>
+    <input type="number" id="r-year" placeholder="2026" min="2020" max="2100" />
+  </div>
+
+  <div class="fg" id="r-from-wrap" style="display:none;">
+    <label>From</label>
+    <input type="date" id="r-from" />
+  </div>
+
+  <div class="fg" id="r-to-wrap" style="display:none;">
+    <label>To</label>
+    <input type="date" id="r-to" />
+  </div>
+</div>
+
+<!-- Vehicle / Driver line -->
+<div class="filter-grid" style="grid-template-columns:240px 240px 180px;">
+  <div class="fg">
+    <label>Vehicle</label>
     <select id="r-vehicle-sel">
       <option value="ALL">All Vehicles — Summary</option>
       <option>O25890</option><option>O25891</option><option>O29872</option>
@@ -785,7 +818,8 @@ table.main-t tr.defect-row td { background:#fff8f8; }
     </select>
   </div>
 
-  <div class="fg"><label>Driver</label>
+  <div class="fg">
+    <label>Driver</label>
     <select id="r-driver-sel">
       <option value="ALL">All Drivers</option>
       <option>Chung, Byeong Woo</option>
@@ -802,12 +836,13 @@ table.main-t tr.defect-row td { background:#fff8f8; }
     </select>
   </div>
 
-  <div class="fg"><label>&nbsp;</label>
+  <div class="fg">
+    <label>&nbsp;</label>
     <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
   </div>
 </div>
 
-         <div class="quick-btns" style="margin-top:12px;">
+<div class="quick-btns" style="margin-top:12px;">
   <button class="btn btn-pearl btn-sm" onclick="setReportQuick('thismonth')">This Month</button>
   <button class="btn btn-pearl btn-sm" onclick="setReportQuick('lastmonth')">Last Month</button>
   <button class="btn btn-pearl btn-sm" onclick="setReportQuick('quarter')">Quarter</button>
@@ -2505,6 +2540,47 @@ function setMaintenanceQuick(preset){
 
   applyMaintenanceFilters();
 }   
+
+function setReportQuick(preset){
+  const range = getPeriodRange(preset);
+
+  const typeEl = document.getElementById('r-type');
+  const fromEl = document.getElementById('r-from');
+  const toEl = document.getElementById('r-to');
+  const monthEl = document.getElementById('r-month');
+
+  if(preset === 'thismonth' || preset === 'lastmonth'){
+    if(typeEl) typeEl.value = 'monthly';
+
+    if(monthEl){
+      monthEl.value = range.from.slice(0, 7);
+    }
+  } else {
+    if(typeEl) typeEl.value = 'custom';
+
+    if(fromEl) fromEl.value = range.from;
+    if(toEl) toEl.value = range.to;
+  }
+
+  toggleReportPeriodFields();
+  generateReport();
+}
+
+function toggleReportPeriodFields(){
+  const type = document.getElementById('r-type')
+    ? document.getElementById('r-type').value
+    : 'monthly';
+
+  const monthWrap = document.getElementById('r-month-wrap');
+  const yearWrap = document.getElementById('r-year-wrap');
+  const fromWrap = document.getElementById('r-from-wrap');
+  const toWrap = document.getElementById('r-to-wrap');
+
+  if(monthWrap) monthWrap.style.display = type === 'monthly' ? 'block' : 'none';
+  if(yearWrap) yearWrap.style.display = type === 'ytd' ? 'block' : 'none';
+  if(fromWrap) fromWrap.style.display = type === 'custom' ? 'block' : 'none';
+  if(toWrap) toWrap.style.display = type === 'custom' ? 'block' : 'none';
+}
    
 function applyMaintenanceFilters(){
   const from = document.getElementById('mt-from') ? document.getElementById('mt-from').value : '';
