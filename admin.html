@@ -2566,6 +2566,81 @@ function setReportQuick(preset){
   generateReport();
 }
 
+function getSelectedReportPeriod(){
+  const typeEl = document.getElementById('r-type');
+  const type = typeEl ? typeEl.value : 'monthly';
+
+  const today = getNYToday();
+  const todayStr = dateInputValue(today);
+
+  if(type === 'monthly'){
+    const monthEl = document.getElementById('r-month');
+    const mStr = monthEl ? monthEl.value : '';
+
+    if(!mStr) return null;
+
+    const parts = mStr.split('-').map(Number);
+    const y = parts[0];
+    const m = parts[1];
+
+    const fromDate = new Date(y, m - 1, 1);
+    const toDate = new Date(y, m, 0);
+
+    const label = new Date(y, m - 1, 1, 12, 0, 0).toLocaleString('en-US', {
+      month: 'long',
+      year: 'numeric'
+    });
+
+    return {
+      type: 'monthly',
+      from: dateInputValue(fromDate),
+      to: dateInputValue(toDate),
+      monthKey: mStr,
+      label: label
+    };
+  }
+
+  if(type === 'ytd'){
+    const yearEl = document.getElementById('r-year');
+    const year = yearEl && yearEl.value ? Number(yearEl.value) : today.getFullYear();
+
+    const from = year + '-01-01';
+
+    const to = year === today.getFullYear()
+      ? todayStr
+      : year + '-12-31';
+
+    return {
+      type: 'ytd',
+      from: from,
+      to: to,
+      monthKey: String(year),
+      label: 'Year to Date ' + year
+    };
+  }
+
+  if(type === 'custom'){
+    const fromEl = document.getElementById('r-from');
+    const toEl = document.getElementById('r-to');
+
+    const from = fromEl ? fromEl.value : '';
+    const to = toEl ? toEl.value : '';
+
+    if(!from || !to) return null;
+    if(from > to) return null;
+
+    return {
+      type: 'custom',
+      from: from,
+      to: to,
+      monthKey: from.slice(0,7),
+      label: dispDate(from) + ' - ' + dispDate(to)
+    };
+  }
+
+  return null;
+}
+   
 function toggleReportPeriodFields(){
   const type = document.getElementById('r-type')
     ? document.getElementById('r-type').value
@@ -3510,6 +3585,27 @@ function getMaintenanceRowsForMonth(mStr, vehicle){
   });
 }
 
+function getMaintenanceRowsForPeriod(from, to, vehicle){
+  return maintenanceData.filter(r => {
+    const d = fmtDate(r[MCOL.serviceDate]);
+
+    if(!d || d < from || d > to) return false;
+
+    if(vehicle && vehicle !== 'ALL' && String(r[MCOL.vehicle] || '').trim() !== vehicle) return false;
+
+    return true;
+  });
+}
+
+function getMaintenanceSummaryForVehiclePeriod(from, to, vehicle){
+  const rows = getMaintenanceRowsForPeriod(from, to, vehicle);
+
+  return {
+    count: rows.length,
+    cost: rows.reduce((sum, r) => sum + parseNum(r[MCOL.totalPrice]), 0)
+  };
+}
+   
 function getMaintenanceSummaryForVehicle(mStr, vehicle){
   const rows = getMaintenanceRowsForMonth(mStr, vehicle);
 
@@ -3629,28 +3725,29 @@ function renderKpiDeltaHtml(currentValue, previousValue, type){
    
 // ── Monthly report ────────────────────────────────────────
 function generateReport(){
-  const mStr = document.getElementById('r-month').value;
+  const period = getSelectedReportPeriod();
+
+  if(!period || !period.from || !period.to){
+    alert('Please select a valid report period.');
+    return;
+  }
+
+  const mStr = period.monthKey;
   const vSel = document.getElementById('r-vehicle-sel').value;
   const dSel = document.getElementById('r-driver-sel') ? document.getElementById('r-driver-sel').value : 'ALL';
 
-  if(!mStr) return;
-
-  const [reportYear, reportMonth] = mStr.split('-').map(Number);
-
-  const label = new Date(reportYear, reportMonth - 1, 1, 12, 0, 0).toLocaleString('en-US', {
-    month: 'long',
-    year: 'numeric'
-  });
+  const label = period.label;
 
   const monthRows = allData.filter(r => {
-    const d = fmtDate(r[COL.date]);
-    if(!d || d.slice(0,7) !== mStr) return false;
+  const d = fmtDate(r[COL.date]);
 
-    if(vSel !== 'ALL' && r[COL.vehicle] !== vSel) return false;
-    if(dSel !== 'ALL' && String(r[COL.driver] || '').trim() !== dSel) return false;
+  if(!d || d < period.from || d > period.to) return false;
 
-    return true;
-  });
+  if(vSel !== 'ALL' && r[COL.vehicle] !== vSel) return false;
+  if(dSel !== 'ALL' && String(r[COL.driver] || '').trim() !== dSel) return false;
+
+  return true;
+});
 
   const inspectionRows = monthRows.filter(r => r[COL.tripType] !== 'Fuel Log');
   const fuelRows = monthRows.filter(r => r[COL.tripType] === 'Fuel Log');
@@ -3711,7 +3808,7 @@ function generateReport(){
       ? '<span style="font-size:11px;color:var(--a-tx);">est.</span>'
       : '';
 
-    const maint = getMaintenanceSummaryForVehicle(mStr, b.vehicle);
+    const maint = getMaintenanceSummaryForVehiclePeriod(period.from, period.to, b.vehicle);
 const totalCost = b.fuelAmt + maint.cost;
 
 return `
@@ -3756,7 +3853,7 @@ return `
 
   const totalFuelQty = fuelRows.reduce((sum, r) => sum + parseNum(r[COL.fuelQty]), 0);
   const totalFuelAmt = fuelRows.reduce((sum, r) => sum + parseNum(r[COL.fuelAmt]), 0);
-const totalMaintenanceRows = getMaintenanceRowsForMonth(mStr, vSel);
+const totalMaintenanceRows = getMaintenanceRowsForPeriod(period.from, period.to, vSel);
 const totalMaintenanceCost = totalMaintenanceRows.reduce((sum, r) => sum + parseNum(r[MCOL.totalPrice]), 0);
 const totalVehicleCost = totalFuelAmt + totalMaintenanceCost;
    
