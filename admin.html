@@ -2869,15 +2869,16 @@ function renderMaintenanceCharts(){
     systemsSet.add(system);
 
     if(!vehicleMap[vehicle]){
-      vehicleMap[vehicle] = {
-        vehicle,
-        totalCost: 0,
-        count: 0,
-        safety: 0,
-        major: 0,
-        systems: {}
-      };
-    }
+  vehicleMap[vehicle] = {
+    vehicle,
+    totalCost: 0,
+    count: 0,
+    safety: 0,
+    major: 0,
+    repeat: 0,
+    systems: {}
+  };
+}
 
     vehicleMap[vehicle].totalCost += cost;
     vehicleMap[vehicle].count += 1;
@@ -2890,6 +2891,10 @@ function renderMaintenanceCharts(){
       vehicleMap[vehicle].major += 1;
     }
 
+if(String(r[MCOL.repeatIssue] || '').toLowerCase() === 'yes'){
+  vehicleMap[vehicle].repeat += 1;
+}
+     
     if(!vehicleMap[vehicle].systems[system]){
       vehicleMap[vehicle].systems[system] = 0;
     }
@@ -3032,17 +3037,25 @@ function renderMaintenanceCharts(){
       })[0] || '—';
 
       return `
-        <tr>
-          <td><strong>${vehicleDisplayHtml(v.vehicle)}</strong></td>
+       <tr style="${v.repeat > 0 ? 'background:#fff8f8;' : ''}">
+  <td>
+    <strong>${vehicleDisplayHtml(v.vehicle)}</strong>
+    ${v.repeat > 0 ? '<span class="badge b-def" style="margin-left:6px;">Repeat</span>' : ''}
+  </td>
           <td style="text-align:right;font-weight:800;">$${v.totalCost.toFixed(2)}</td>
           <td style="text-align:right;">${v.count}</td>
           <td style="text-align:center;">
             <span class="badge ${v.safety > 0 ? 'b-def' : 'b-ok'}">${v.safety}</span>
           </td>
-          <td style="text-align:center;">
-            <span class="badge ${v.major > 0 ? 'b-post' : 'b-ok'}">${v.major}</span>
-          </td>
-          <td>${escapeHtml(topSystem)}</td>
+         <td style="text-align:center;">
+  <span class="badge ${v.major > 0 ? 'b-post' : 'b-ok'}">${v.major}</span>
+</td>
+
+<td style="text-align:center;">
+  <span class="badge ${v.repeat > 0 ? 'b-def' : 'b-ok'}">${v.repeat}</span>
+</td>
+
+<td>${escapeHtml(topSystem)}</td>
         </tr>
       `;
     }).join('');
@@ -3063,7 +3076,8 @@ function renderMaintenanceCharts(){
                 <th style="text-align:right;">Lines</th>
                 <th style="text-align:center;">Safety</th>
                 <th style="text-align:center;">Major</th>
-                <th>Top System</th>
+<th style="text-align:center;">Repeat</th>
+<th>Top System</th>
               </tr>
             </thead>
             <tbody>
