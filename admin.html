@@ -116,7 +116,7 @@ html,body { font-family:var(--font); background:var(--parchment); color:var(--in
 
 .report-kpis{
   display:grid;
-  grid-template-columns:repeat(5, minmax(160px,1fr));
+  grid-template-columns:repeat(6, minmax(150px,1fr));
   gap:12px;
   margin:0 0 18px 0;
 }
@@ -486,6 +486,7 @@ table.main-t tr.defect-row td { background:#fff8f8; }
     <div class="tabs">
       <button class="tab active" onclick="switchTab('search')">Search & Overview</button>
       <button class="tab" onclick="switchTab('manual')">Manual Entry / Edit</button>
+      <button class="tab" onclick="switchTab('maintenance')">Maintenance</button>
       <button class="tab" onclick="switchTab('report')">Monthly Report</button>
     </div>
 
@@ -665,6 +666,85 @@ table.main-t tr.defect-row td { background:#fff8f8; }
       </div>
     </div><!-- /tab-manual -->
 
+<!-- ═══ TAB 3: MAINTENANCE ═══════════════════════════════ -->
+<div class="tab-content" id="tab-maintenance">
+
+  <div class="card">
+    <div class="sec-title">Maintenance Filter</div>
+
+    <div class="filter-grid">
+      <div class="fg">
+        <label>From</label>
+        <input type="date" id="mt-from" />
+      </div>
+
+      <div class="fg">
+        <label>To</label>
+        <input type="date" id="mt-to" />
+      </div>
+
+      <div class="fg">
+        <label>Vehicle</label>
+        <select id="mt-vehicle">
+          <option value="ALL">All Vehicles</option>
+        </select>
+      </div>
+
+      <div class="fg">
+        <label>System</label>
+        <select id="mt-system">
+          <option value="ALL">All Systems</option>
+          <option>Brake</option>
+          <option>Tire</option>
+          <option>Oil / Maintenance</option>
+          <option>AC</option>
+          <option>Suspension</option>
+          <option>Electrical</option>
+          <option>Engine</option>
+          <option>Body</option>
+          <option>Inspection</option>
+          <option>Other</option>
+        </select>
+      </div>
+
+      <div class="fg" style="display:flex;gap:8px;align-items:flex-end;">
+        <button class="btn btn-primary" style="flex:1" onclick="applyMaintenanceFilters()">Search</button>
+        <button class="btn btn-pearl" style="flex:1" onclick="resetMaintenanceFilters()">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-grid" id="maintenance-kpis" style="display:none;">
+    <div class="s-card">
+      <div class="val" id="mt-total-cost">$0.00</div>
+      <div class="lbl">Maintenance Cost</div>
+    </div>
+    <div class="s-card green">
+      <div class="val" id="mt-count">0</div>
+      <div class="lbl">Invoice Lines</div>
+    </div>
+    <div class="s-card amber">
+      <div class="val" id="mt-safety">0</div>
+      <div class="lbl">Safety Related</div>
+    </div>
+    <div class="s-card blue">
+      <div class="val" id="mt-major">0</div>
+      <div class="lbl">Major Repair</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="sec-title" style="margin-bottom:0;">Maintenance History</div>
+      <button class="btn btn-pearl btn-sm" onclick="exportMaintenanceCSV()">CSV</button>
+    </div>
+    <div class="t-wrap" id="maintenance-wrap">
+      <div class="empty-st">No maintenance records loaded.</div>
+    </div>
+  </div>
+
+</div>
+     
     <!-- ═══ TAB 3: MONTHLY REPORT ══════════════════════════ -->
     <div class="tab-content" id="tab-report">
       <div class="card">
@@ -780,6 +860,30 @@ const COL = {
   rowIndex:31
 };
 
+const MCOL = {
+  recordId:0,
+  vehicle:1,
+  serviceDate:2,
+  vendor:3,
+  invoiceNo:4,
+  category:5,
+  system:6,
+  description:7,
+  qtyHrs:8,
+  unitPrice:9,
+  totalPrice:10,
+  odometer:11,
+  downtimeDays:12,
+  safetyRelated:13,
+  repeatIssue:14,
+  warrantyCovered:15,
+  invoiceLink:16,
+  adminNote:17,
+  createdAt:18,
+  majorRepairFlag:19,
+  rowIndex:20
+};
+   
 const DVIR_KEYS = ['brakes','tires','lights','doors','belts','lift','fluid','firstaid','dashcam','interior'];
 const DVIR_EN   = [
   'Brakes / Steering','Tires / Wheels','Lights / Signals / Mirrors / Windshield',
@@ -794,7 +898,7 @@ const PAX_EN   = [
   'Floor area checked','Rear compartment checked','No passenger left inside vehicle'
 ];
 
-let allData = [], filteredData = [];
+let allData = [], filteredData = []; let maintenanceData = [], filteredMaintenanceData = [];
 let mDvir = {}, editRowId = null, editReceiptUrl = '';
 let vehicleMaster = [];
 let openIssues = [];  
@@ -803,13 +907,15 @@ const PAGE_SIZE = 20;
 let tablePage = {
   review: 1,
   insp: 1,
-  fuel: 1
+  fuel: 1,
+  maint: 1
 };
 
 let tableSort = {
   review: { key: '', dir: 'asc' },
   insp:   { key: '', dir: 'asc' },
-  fuel:   { key: '', dir: 'asc' }
+  fuel:   { key: '', dir: 'asc' },
+  maint:  { key: '', dir: 'asc' }
 };
    
 // ── Clock ───────────────────────────────────────────────
@@ -1121,6 +1227,7 @@ function changeTablePage(table, direction){
   if(table === 'review') renderOpenIssues();
   if(table === 'insp') renderInspections();
   if(table === 'fuel') renderFuelLog();
+  if(table === 'maint') renderMaintenanceTable();
 }
 
 function renderPager(table, pageInfo){
@@ -1225,7 +1332,8 @@ async function loadData(){
     `;
 
     applyFilters();
-    loadOpenIssues();
+loadOpenIssues();
+loadMaintenanceData();
 
   } catch(e){
     document.getElementById('loading-state').style.display = 'block';
@@ -2228,6 +2336,223 @@ sortArrayByConfig(rows, 'fuel', {
     </table>`;
 }
 
+async function loadMaintenanceData(){
+  try {
+    const res = await fetch(
+      APPS_SCRIPT_URL
+      + '?action=getMaintenanceAll'
+      + '&token=' + encodeURIComponent(ADMIN_TOKEN)
+    );
+
+    const json = await res.json();
+
+    if(json.result !== 'success'){
+      maintenanceData = [];
+      filteredMaintenanceData = [];
+      renderMaintenanceTable();
+      return;
+    }
+
+    maintenanceData = json.maintenance || [];
+    initMaintenanceDates();
+    rebuildMaintenanceVehicleOptions();
+    applyMaintenanceFilters();
+
+  } catch(e){
+    maintenanceData = [];
+    filteredMaintenanceData = [];
+    renderMaintenanceTable();
+  }
+}
+
+function initMaintenanceDates(){
+  const fromEl = document.getElementById('mt-from');
+  const toEl = document.getElementById('mt-to');
+
+  if(!fromEl || !toEl) return;
+
+  if(fromEl.value && toEl.value) return;
+
+  const ny = new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const pad = n => String(n).padStart(2,'0');
+  const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+  fromEl.value = `${ny.getFullYear()}-${pad(ny.getMonth()+1)}-01`;
+  toEl.value = fmt(ny);
+}
+
+function rebuildMaintenanceVehicleOptions(){
+  const el = document.getElementById('mt-vehicle');
+  if(!el) return;
+
+  const orderedVehicles = [
+    'O24260','O24288','O25893','O25894','O25895','O25896',
+    'O24277','O24289','O24284','O25890','O25891','O29872'
+  ];
+
+  el.innerHTML =
+    '<option value="ALL">All Vehicles</option>' +
+    orderedVehicles.map(v => {
+      return `<option value="${v}">${getVehicleOptionLabel(v)}</option>`;
+    }).join('');
+}
+
+function resetMaintenanceFilters(){
+  initMaintenanceDates();
+
+  const v = document.getElementById('mt-vehicle');
+  const s = document.getElementById('mt-system');
+
+  if(v) v.value = 'ALL';
+  if(s) s.value = 'ALL';
+
+  applyMaintenanceFilters();
+}
+
+function applyMaintenanceFilters(){
+  const from = document.getElementById('mt-from') ? document.getElementById('mt-from').value : '';
+  const to = document.getElementById('mt-to') ? document.getElementById('mt-to').value : '';
+  const veh = document.getElementById('mt-vehicle') ? document.getElementById('mt-vehicle').value : 'ALL';
+  const sys = document.getElementById('mt-system') ? document.getElementById('mt-system').value : 'ALL';
+
+  filteredMaintenanceData = maintenanceData.filter(r => {
+    const d = fmtDate(r[MCOL.serviceDate]);
+    const rowVehicle = String(r[MCOL.vehicle] || '').trim();
+    const rowSystem = String(r[MCOL.system] || '').trim();
+
+    if(from && d < from) return false;
+    if(to && d > to) return false;
+    if(veh !== 'ALL' && rowVehicle !== veh) return false;
+    if(sys !== 'ALL' && rowSystem !== sys) return false;
+
+    return true;
+  });
+
+  filteredMaintenanceData.sort((a,b) => {
+    const da = fmtDate(a[MCOL.serviceDate]);
+    const db = fmtDate(b[MCOL.serviceDate]);
+
+    if(da !== db) return db.localeCompare(da);
+
+    return String(a[MCOL.invoiceNo] || '').localeCompare(String(b[MCOL.invoiceNo] || ''), undefined, {
+      numeric:true,
+      sensitivity:'base'
+    });
+  });
+
+  tablePage.maint = 1;
+  renderMaintenanceTable();
+}
+
+function renderMaintenanceTable(){
+  const wrap = document.getElementById('maintenance-wrap');
+  if(!wrap) return;
+
+  const totalCost = filteredMaintenanceData.reduce((sum,r) => sum + parseNum(r[MCOL.totalPrice]), 0);
+  const safetyCount = filteredMaintenanceData.filter(r => String(r[MCOL.safetyRelated] || '').toLowerCase() === 'yes').length;
+  const majorCount = filteredMaintenanceData.filter(r => String(r[MCOL.majorRepairFlag] || '').toLowerCase() === 'yes').length;
+
+  const kpis = document.getElementById('maintenance-kpis');
+  if(kpis) kpis.style.display = filteredMaintenanceData.length ? 'grid' : 'none';
+
+  const totalEl = document.getElementById('mt-total-cost');
+  const countEl = document.getElementById('mt-count');
+  const safetyEl = document.getElementById('mt-safety');
+  const majorEl = document.getElementById('mt-major');
+
+  if(totalEl) totalEl.textContent = '$' + totalCost.toFixed(2);
+  if(countEl) countEl.textContent = filteredMaintenanceData.length;
+  if(safetyEl) safetyEl.textContent = safetyCount;
+  if(majorEl) majorEl.textContent = majorCount;
+
+  if(!filteredMaintenanceData.length){
+    wrap.innerHTML = '<div class="empty-st">No maintenance records in range.</div>';
+    return;
+  }
+
+  const pageInfo = getPagedRows(filteredMaintenanceData, 'maint');
+
+  const rowsHtml = pageInfo.rows.map(r => {
+    const link = r[MCOL.invoiceLink] && String(r[MCOL.invoiceLink]).startsWith('http')
+      ? `<a href="${r[MCOL.invoiceLink]}" target="_blank" style="color:var(--blue);font-size:12px;">Invoice</a>`
+      : '—';
+
+    const safety = String(r[MCOL.safetyRelated] || '').toLowerCase() === 'yes'
+      ? '<span class="badge b-def">Safety</span>'
+      : '<span class="badge b-ok">No</span>';
+
+    const major = String(r[MCOL.majorRepairFlag] || '').toLowerCase() === 'yes'
+      ? '<span class="badge b-post">Major</span>'
+      : '—';
+
+    return `
+      <tr>
+        <td style="white-space:nowrap;">${dispDate(r[MCOL.serviceDate])}</td>
+        <td><strong>${vehicleDisplayHtml(r[MCOL.vehicle])}</strong></td>
+        <td>${escapeHtml(r[MCOL.system] || '—')}</td>
+        <td style="font-size:12px;max-width:320px;">${escapeHtml(r[MCOL.description] || '—')}</td>
+        <td style="font-size:12px;white-space:nowrap;">${escapeHtml(r[MCOL.vendor] || '—')}</td>
+        <td style="font-size:12px;">${escapeHtml(r[MCOL.invoiceNo] || '—')}</td>
+        <td style="text-align:right;font-variant-numeric:tabular-nums;">${fmtOdo(r[MCOL.odometer])}</td>
+        <td style="text-align:right;font-weight:700;">$${parseNum(r[MCOL.totalPrice]).toFixed(2)}</td>
+        <td style="text-align:center;">${safety}</td>
+        <td style="text-align:center;">${major}</td>
+        <td>${link}</td>
+      </tr>
+    `;
+  }).join('');
+
+  wrap.innerHTML = `
+    <table class="main-t">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Vehicle</th>
+          <th>System</th>
+          <th>Description</th>
+          <th>Vendor</th>
+          <th>Invoice No</th>
+          <th style="text-align:right;">Odometer</th>
+          <th style="text-align:right;">Cost</th>
+          <th style="text-align:center;">Safety</th>
+          <th style="text-align:center;">Major</th>
+          <th>Invoice</th>
+        </tr>
+      </thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+    ${renderPager('maint', pageInfo)}
+  `;
+}
+
+function exportMaintenanceCSV(){
+  if(!filteredMaintenanceData.length){
+    alert('No maintenance data to export.');
+    return;
+  }
+
+  const headers = [
+    'RecordID','Vehicle No','Service Date','Vendor','Invoice No','Category','System',
+    'Description','Qty/Hrs','Unit Price','Total Price','Odometer','Downtime Days',
+    'Safety Related','Repeat Issue','Warranty Covered','Invoice Link','Admin Note',
+    'Created At','Major Repair Flag'
+  ];
+
+  const csv = [
+    headers.join(','),
+    ...filteredMaintenanceData.map(r => r.slice(0,20).map(v =>
+      `"${String(v || '').replace(/"/g,'""')}"`
+    ).join(','))
+  ].join('\n');
+
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\uFEFF' + csv], {
+    type:'text/csv;charset=utf-8'
+  }));
+  a.download = `Maintenance_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+   
 // ── Row index helper ──────────────────────────────────────
 function getRowIndex(r){
   const idx = r[COL.rowIndex];
@@ -3000,6 +3325,26 @@ function renderMonthlyVehicleChart(){
     }
   });
 }
+
+function getMaintenanceRowsForMonth(mStr, vehicle){
+  return maintenanceData.filter(r => {
+    const d = fmtDate(r[MCOL.serviceDate]);
+    if(!d || d.slice(0,7) !== mStr) return false;
+
+    if(vehicle && vehicle !== 'ALL' && String(r[MCOL.vehicle] || '').trim() !== vehicle) return false;
+
+    return true;
+  });
+}
+
+function getMaintenanceSummaryForVehicle(mStr, vehicle){
+  const rows = getMaintenanceRowsForMonth(mStr, vehicle);
+
+  return {
+    count: rows.length,
+    cost: rows.reduce((sum, r) => sum + parseNum(r[MCOL.totalPrice]), 0)
+  };
+}
    
 // ── Monthly report ────────────────────────────────────────
 function generateReport(){
@@ -3085,29 +3430,55 @@ function generateReport(){
       ? '<span style="font-size:11px;color:var(--a-tx);">est.</span>'
       : '';
 
-    return `
-      <tr>
-        <td><strong>${vehicleDisplayHtml(b.vehicle)}</strong></td>
-        <td style="font-size:12px;white-space:nowrap;">${escapeHtml(b.driver)}</td>
-        <td style="text-align:right;">${b.inspectionRows.length}</td>
-        <td style="text-align:right;">${b.fuelRows.length}</td>
-        <td style="text-align:right;font-variant-numeric:tabular-nums;">${odo.firstOdo ? fmtOdo(odo.firstOdo) : '—'}</td>
-        <td style="text-align:right;font-variant-numeric:tabular-nums;">${odo.lastOdo ? fmtOdo(odo.lastOdo) : '—'}</td>
-        <td style="text-align:right;font-weight:700;">${odo.miles > 0 ? fmtOdo(odo.miles) + ' mi' : '—'} ${driverNote}</td>
-        <td style="text-align:right;">${b.fuelQty.toFixed(3)} gal</td>
-        <td style="text-align:right;">$${b.fuelAmt.toFixed(2)}</td>
-        <td style="text-align:right;">${ppg}</td>
-        <td style="text-align:right;color:var(--b-tx);font-weight:700;">${mpg}</td>
-        <td style="text-align:center;">
-          <span class="badge ${b.defects > 0 ? 'b-def' : 'b-ok'}">${b.defects}</span>
-        </td>
-      </tr>
-    `;
+    const maint = getMaintenanceSummaryForVehicle(mStr, b.vehicle);
+const totalCost = b.fuelAmt + maint.cost;
+
+return `
+  <tr>
+    <td><strong>${vehicleDisplayHtml(b.vehicle)}</strong></td>
+
+    <td style="text-align:right;">${b.inspectionRows.length}</td>
+    <td style="text-align:right;">${b.fuelRows.length}</td>
+    <td style="text-align:right;">${maint.count}</td>
+
+    <td style="text-align:right;font-variant-numeric:tabular-nums;">
+      ${odo.firstOdo ? fmtOdo(odo.firstOdo) : '—'}
+    </td>
+
+    <td style="text-align:right;font-variant-numeric:tabular-nums;">
+      ${odo.lastOdo ? fmtOdo(odo.lastOdo) : '—'}
+    </td>
+
+    <td style="text-align:right;font-weight:700;">
+      ${odo.miles > 0 ? fmtOdo(odo.miles) + ' mi' : '—'} ${driverNote}
+    </td>
+
+    <td style="text-align:right;">${b.fuelQty.toFixed(3)} gal</td>
+    <td style="text-align:right;">$${b.fuelAmt.toFixed(2)}</td>
+    <td style="text-align:right;">${ppg}</td>
+    <td style="text-align:right;color:var(--b-tx);font-weight:700;">${mpg}</td>
+
+    <td style="text-align:center;">
+      <span class="badge ${b.defects > 0 ? 'b-def' : 'b-ok'}">${b.defects}</span>
+    </td>
+
+    <td style="text-align:right;font-weight:700;">
+      $${maint.cost.toFixed(2)}
+    </td>
+
+    <td style="text-align:right;font-weight:800;color:var(--g-tx);">
+      $${totalCost.toFixed(2)}
+    </td>
+  </tr>
+`;
   }).join('');
 
   const totalFuelQty = fuelRows.reduce((sum, r) => sum + parseNum(r[COL.fuelQty]), 0);
   const totalFuelAmt = fuelRows.reduce((sum, r) => sum + parseNum(r[COL.fuelAmt]), 0);
-
+const totalMaintenanceRows = getMaintenanceRowsForMonth(mStr, vSel);
+const totalMaintenanceCost = totalMaintenanceRows.reduce((sum, r) => sum + parseNum(r[MCOL.totalPrice]), 0);
+const totalVehicleCost = totalFuelAmt + totalMaintenanceCost;
+   
   // 전체 차량 월간 miles는 차량별로 한 번씩 계산해서 합산
   const vehicleMap = {};
   monthRows.forEach(r => {
@@ -3166,6 +3537,16 @@ const avgUnitPrice = totalFuelQty > 0
     </div>
   </div>
 
+<div class="report-kpi kpi-cost">
+  <div class="value">$${totalMaintenanceCost.toFixed(2)}</div>
+  <div class="label">Maintenance Cost</div>
+</div>
+
+<div class="report-kpi kpi-cost">
+  <div class="value">$${totalVehicleCost.toFixed(2)}</div>
+  <div class="label">Total Vehicle Cost</div>
+</div>
+
   ${dSel !== 'ALL' ? `
     <div style="
       background:var(--a-bg);
@@ -3188,29 +3569,35 @@ const avgUnitPrice = totalFuelQty > 0
     <div class="sec-title">   ${isDefaultMonthlySummary     ? 'Vehicle Monthly Mileage & Fuel Summary'     : 'Vehicle / Driver Monthly Mileage & Fuel Summary'} </div>
     <div class="box-meta">
       Inspection records: <strong>${inspectionRows.length}</strong>
-      &nbsp;|&nbsp;
-      Fuel logs: <strong>${fuelRows.length}</strong>
+&nbsp;|&nbsp;
+Fuel logs: <strong>${fuelRows.length}</strong>
+&nbsp;|&nbsp;
+Maintenance lines: <strong>${totalMaintenanceRows.length}</strong>
     </div>
     <div class="t-wrap">
       <table class="main-t">
         <thead>
           <tr>
-            <th>Vehicle</th>
-            <th>Driver</th>
-            <th style="text-align:right;">Inspections</th>
-            <th style="text-align:right;">Fuel Logs</th>
-            <th style="text-align:right;">First Odometer</th>
-            <th style="text-align:right;">Last Odometer</th>
-            <th style="text-align:right;">Monthly Miles</th>
-            <th style="text-align:right;">Fuel Qty</th>
-            <th style="text-align:right;">Fuel Cost</th>
-            <th style="text-align:right;">$/gal</th>
-            <th style="text-align:right;">MPG</th>
-            <th style="text-align:center;">Defects</th>
+            <tr>
+  <th>Vehicle</th>
+  <th style="text-align:right;">Inspections</th>
+  <th style="text-align:right;">Fuel Logs</th>
+  <th style="text-align:right;">Maintenance</th>
+  <th style="text-align:right;">First Odometer</th>
+  <th style="text-align:right;">Last Odometer</th>
+  <th style="text-align:right;">Monthly Miles</th>
+  <th style="text-align:right;">Fuel Qty</th>
+  <th style="text-align:right;">Fuel Cost</th>
+  <th style="text-align:right;">$/gal</th>
+  <th style="text-align:right;">MPG</th>
+  <th style="text-align:center;">Defects</th>
+  <th style="text-align:right;">Maintenance Cost</th>
+  <th style="text-align:right;">Total Cost</th>
+</tr>
           </tr>
         </thead>
         <tbody>
-          ${summaryRows || '<tr><td colspan="12" style="text-align:center;color:var(--ink-muted);">No summary data</td></tr>'}
+          ${summaryRows || '<tr><td colspan="14" style="text-align:center;color:var(--ink-muted);">No summary data</td></tr>'}
         </tbody>
       </table>
     </div>
