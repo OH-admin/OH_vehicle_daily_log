@@ -857,10 +857,10 @@ function selTrip(t){
 function getDriverName(){
   const v = document.getElementById('drv-sel').value;
 
-  if (v === 'OTHER') {
+  if(v === 'OTHER'){
     const otherName = document.getElementById('other-name').value.trim();
 
-    if (otherName) {
+    if(otherName){
       try {
         localStorage.setItem(SAVED_OTHER_DRIVER_KEY, otherName);
       } catch(e) {}
@@ -960,30 +960,51 @@ function restoreSavedDriver(){
 // ── Start ─────────────────────────────────────────────────
 function startForm(){
   const drv = getDriverName();
-  if(!drv){ alert('운전자 이름을 선택하거나 입력해주세요.'); return; }
-  if(!tripSel){ alert('점검/주유 구분을 선택해주세요.'); return; }
+
+  if(!drv){
+    alert('운전자 이름을 선택하거나 입력해주세요.');
+    return;
+  }
+
+  if(!tripSel){
+    alert('점검/주유 구분을 선택해주세요.');
+    return;
+  }
+
   let odo = document.getElementById('odo').value.trim();
-odo = odo.replace(/[^\d]/g, '');
 
-if(!odo){
-  alert('주행거리를 입력해주세요.');
-  return;
-}
+  // 마일리지는 정수만 허용
+  odo = odo.replace(/\D/g, '');
 
-document.getElementById('odo').value = Number(odo).toLocaleString('en-US');}
+  if(!odo){
+    alert('주행거리를 입력해주세요.');
+    return;
+  }
+
+  // 화면에도 정수만 남김
+  document.getElementById('odo').value = odo;
+
   S.driver  = drv;
   S.vehicle = document.getElementById('veh-sel').value;
   S.trip    = tripSel;
   S.odo     = odo;
-  if(tripSel==='fuel'){
-    document.getElementById('fuel-meta').textContent = `${S.driver} | ${S.vehicle} | Odo: ${S.odo}`;
-    goTo('fuel'); return;
+
+  if(S.trip === 'fuel'){
+    document.getElementById('fuel-meta').textContent =
+      `${S.driver} | ${S.vehicle} | Odo: ${S.odo}`;
+    goTo('fuel');
+    return;
   }
+
   buildDVIR();
-  const isPre = tripSel==='pre';
-  document.getElementById('prog-dvir').style.width = isPre?'50%':'50%';
+
+  const isPre = S.trip === 'pre';
+
+  document.getElementById('prog-dvir').style.width = isPre ? '50%' : '50%';
   document.getElementById('step-lbl-dvir').textContent = isPre
-    ? '1/1단계 — 차량 점검 (DVIR)' : '1/2단계 — 차량 점검 (DVIR)';
+    ? '1/1단계 — 차량 점검 (DVIR)'
+    : '1/2단계 — 차량 점검 (DVIR)';
+
   goTo('dvir');
 }
 
