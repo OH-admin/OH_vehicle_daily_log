@@ -2468,7 +2468,7 @@ sortArrayByConfig(rows, 'fuel', {
       <td style="white-space:nowrap;">${dispDate(r[COL.date])}</td>
       <td>${fmtTime(r[COL.time])}</td>
       <td style="font-size:12px;white-space:nowrap;">${r[COL.driver]||'—'}</td>
-      <td><strong>${r[COL.vehicle]||'—'}</strong></td>
+      <td><strong>${vehicleDisplayHtml(r[COL.vehicle])}</strong></td>
       <td style="text-align:right;">${fmtOdo(r[COL.odometer])}</td>
       <td><strong>${qty.toFixed(3)}</strong> gal</td>
       <td>$${amt.toFixed(2)}</td>
@@ -3220,6 +3220,21 @@ function editIssueRecord(sourceRowId){
   editRecord(rowIdStr);
 }
 
+function ensureSelectOption(selectId, value){
+  const el = document.getElementById(selectId);
+  const v = String(value || '').trim();
+
+  if(!el || !v) return;
+
+  const exists = Array.from(el.options).some(opt => opt.value === v || opt.textContent === v);
+
+  if(!exists){
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v;
+    el.appendChild(opt);
+  }
+}   
 
 // ── Edit ──────────────────────────────────────────────────
 function editRecord(rowId){
@@ -3233,8 +3248,11 @@ function editRecord(rowId){
   editRowId=rowId; editReceiptUrl=r[COL.receiptUrl]||'';
   document.getElementById('m-date').value    = fmtDate(r[COL.date]);
   document.getElementById('m-time').value    = fmtTime(r[COL.time]);
-  document.getElementById('m-vehicle').value = r[COL.vehicle]||'';
-  document.getElementById('m-driver').value  = r[COL.driver]||'';
+  ensureSelectOption('m-vehicle', r[COL.vehicle]);
+ensureSelectOption('m-driver', r[COL.driver]);
+
+document.getElementById('m-vehicle').value = r[COL.vehicle] || '';
+document.getElementById('m-driver').value  = r[COL.driver] || '';
   document.getElementById('m-odo').value     = r[COL.odometer]||'';
   document.getElementById('m-trip').value    = r[COL.tripType]||'Pre-Trip';
   document.getElementById('m-fuel-qty').value = r[COL.fuelQty]||'';
@@ -3247,6 +3265,8 @@ function editRecord(rowId){
   switchTab('manual');
 }
 
+
+   
 // ── Manual form ───────────────────────────────────────────
 function buildForms(){
   const dc=document.getElementById('m-dvir-items'); dc.innerHTML='';
