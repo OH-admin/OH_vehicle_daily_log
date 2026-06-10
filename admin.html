@@ -3178,24 +3178,41 @@ async function deleteRecord(rowId){
     return;
   }
 
+  if(!ADMIN_TOKEN){
+    alert('Session expired. Please sign in again.');
+    signOut();
+    return;
+  }
+
   if(!confirm('Delete this record permanently?')) return;
 
   try {
-    await fetch(APPS_SCRIPT_URL,{
-      method:'POST',
-      mode:'no-cors',
-      body:JSON.stringify({
-        action:'delete',
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'delete',
         token: ADMIN_TOKEN,
-        rowIndex:rowId
+        rowIndex: rowId
       })
     });
 
-    alert('Delete request sent. Refreshing...');
-    setTimeout(()=>loadData(),2000);
+    const json = await res.json();
+
+    if(json.result !== 'success'){
+      alert('Delete failed: ' + (json.message || json.msg || json.error || 'Unknown error'));
+
+      if(String(json.message || '').toLowerCase().includes('unauthorized')){
+        signOut();
+      }
+
+      return;
+    }
+
+    alert('Deleted.');
+    await loadData();
 
   } catch(e){
-    alert('Error: '+e.message);
+    alert('Delete error: ' + (e.message || e));
   }
 }
    
@@ -3295,35 +3312,86 @@ function toggleManual(){
 }
 
 async function submitManual(){
-  const errEl=document.getElementById('m-err'); const okEl=document.getElementById('m-ok');
-  errEl.style.display='none'; okEl.style.display='none';
-  const date=document.getElementById('m-date').value;
-  if(!date){errEl.style.display='block';errEl.textContent='Date is required.';return;}
-  const [y,m,d]=date.split('-');
-  const row={
-  action: editRowId?'update':'insert',
-  token: ADMIN_TOKEN,
-  rowIndex:editRowId,
-date:`${m}/${d}/${y}`,
-  time:document.getElementById('m-time').value,
-  vehicle:document.getElementById('m-vehicle').value,
-  driver:document.getElementById('m-driver').value,
-  odometer:document.getElementById('m-odo').value,
-  tripType:document.getElementById('m-trip').value,
-  fuelQty:document.getElementById('m-fuel-qty').value,
-  fuelAmt:document.getElementById('m-fuel-amt').value,
-  receiptUrl:editReceiptUrl
-};
-  DVIR_KEYS.forEach(k=>row[k]=mDvir[k]);
-  const btn=document.getElementById('btn-save');
-  btn.disabled=true; btn.textContent='Saving...';
+  const errEl = document.getElementById('m-err');
+  const okEl = document.getElementById('m-ok');
+
+  errEl.style.display = 'none';
+  okEl.style.display = 'none';
+
+  if(!ADMIN_TOKEN){
+    errEl.style.display = 'block';
+    errEl.textContent = 'Session expired. Please sign in again.';
+    signOut();
+    return;
+  }
+
+  const date = document.getElementById('m-date').value;
+
+  if(!date){
+    errEl.style.display = 'block';
+    errEl.textContent = 'Date is required.';
+    return;
+  }
+
+  const [y, m, d] = date.split('-');
+
+  const row = {
+    action: editRowId ? 'update' : 'insert',
+    token: ADMIN_TOKEN,
+    rowIndex: editRowId,
+    date: `${m}/${d}/${y}`,
+    time: document.getElementById('m-time').value,
+    vehicle: document.getElementById('m-vehicle').value,
+    driver: document.getElementById('m-driver').value,
+    odometer: document.getElementById('m-odo').value,
+    tripType: document.getElementById('m-trip').value,
+    fuelQty: document.getElementById('m-fuel-qty').value,
+    fuelAmt: document.getElementById('m-fuel-amt').value,
+    receiptUrl: editReceiptUrl
+  };
+
+  DVIR_KEYS.forEach(k => row[k] = mDvir[k]);
+
+  const btn = document.getElementById('btn-save');
+  const originalText = btn.textContent;
+
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
   try {
-    await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',body:JSON.stringify(row)});
-    okEl.style.display='block';
-    okEl.textContent=`✓ Record saved: ${row.vehicle} / ${row.date}`;
-    resetManual(); setTimeout(()=>loadData(),1500); switchTab('search');
-  } catch(e){ errEl.style.display='block'; errEl.textContent='Error: '+e.message; }
-  finally { btn.disabled=false; btn.textContent='Save Record'; btn.style.background=''; }
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(row)
+    });
+
+    const json = await res.json();
+
+    if(json.result !== 'success'){
+      errEl.style.display = 'block';
+      errEl.textContent = 'Save failed: ' + (json.message || json.msg || json.error || 'Unknown error');
+
+      if(String(json.message || '').toLowerCase().includes('unauthorized')){
+        signOut();
+      }
+
+      return;
+    }
+
+    okEl.style.display = 'block';
+    okEl.textContent = `✓ Record saved: ${row.vehicle} / ${row.date}`;
+
+    resetManual();
+    await loadData();
+    switchTab('search');
+
+  } catch(e){
+    errEl.style.display = 'block';
+    errEl.textContent = 'Error: ' + (e.message || e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText || 'Save Record';
+    btn.style.background = '';
+  }
 }
 
 function resetManual(){
