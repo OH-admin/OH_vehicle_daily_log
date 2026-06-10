@@ -1367,6 +1367,10 @@ if (json.result !== 'success') {
   }
 
 } catch(e) {
+  document.getElementById('done-status').className = 'alert alert-err';
+  document.getElementById('done-status').innerHTML =
+    '제출 화면은 완료되었지만 Google Sheets 저장은 실패했습니다.<span class="sub">Submission screen completed, but Google Sheets save failed.</span>';
+
   ss.className = 'alert alert-err';
   ss.style.display = 'block';
   ss.innerHTML = e.name === 'AbortError'
