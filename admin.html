@@ -536,28 +536,13 @@ table.main-t tr.defect-row td { background:#fff8f8; }
           <div class="fg"><label>To</label><input type="date" id="f-to" /></div>
           <div class="fg"><label>Vehicle</label>
             <select id="f-vehicle">
-              <option value="">All Vehicles</option>
-              <option>O25890</option><option>O25891</option><option>O29872</option>
-              <option>O24260</option><option>O25893</option><option>O25894</option>
-              <option>O25895</option><option>O25896</option><option>O24277</option>
-              <option>O24288</option><option>O24289</option><option>O24284</option>
-            </select>
+  <option value="ALL">All Vehicles</option>
+</select>
           </div>
            <div class="fg"><label>Driver</label>
   <select id="f-driver">
-    <option value="">All Drivers</option>
-    <option>Chung, Byeong Woo</option>
-    <option>Goag, Chang Bog</option>
-    <option>Kim, Sunggil</option>
-    <option>Kim, Tae Kyun</option>
-    <option>Lee, Eunho</option>
-    <option>Lee, Hakwoon</option>
-    <option>Lee, Jung Jae</option>
-    <option>Maing, Jou Hak</option>
-    <option>You, Kyo Sun</option>
-    <option>Kim, Sungmin</option>
-    <option>Mark</option>
-  </select>
+  <option value="ALL">All Drivers</option>
+</select>
 </div>
           <div class="fg" style="display:flex;gap:8px;align-items:flex-end;">
             <button class="btn btn-primary" style="flex:1" onclick="applyFilters()">Search</button>
@@ -645,27 +630,12 @@ table.main-t tr.defect-row td { background:#fff8f8; }
           <div class="fg"><label>Time *</label><input type="time" id="m-time" /></div>
           <div class="fg"><label>Vehicle *</label>
             <select id="m-vehicle">
-              <option value="">Select vehicle</option>
-              <option>O25890</option><option>O25891</option><option>O29872</option>
-              <option>O24260</option><option>O25893</option><option>O25894</option>
-              <option>O25895</option><option>O25896</option><option>O24277</option>
-              <option>O24288</option><option>O24289</option><option>O24284</option>
-            </select>
+  <option value="">Select vehicle</option>
+</select>
           </div>
           <div class="fg"><label>Driver *</label>
             <select id="m-driver">
   <option value="">Select driver</option>
-  <option>Chung, Byeong Woo</option>
-  <option>Goag, Chang Bog</option>
-  <option>Kim, Sunggil</option>
-  <option>Kim, Tae Kyun</option>
-  <option>Lee, Eunho</option>
-  <option>Lee, Hakwoon</option>
-  <option>Lee, Jung Jae</option>
-  <option>Maing, Jou Hak</option>
-  <option>You, Kyo Sun</option>
-  <option>Kim, Sungmin</option>
-  <option>Mark</option>
 </select>
           </div>
          <div class="fg"><label>Odometer</label><input type="number" id="m-odo" placeholder="miles" /></div>
@@ -862,30 +832,15 @@ table.main-t tr.defect-row td { background:#fff8f8; }
   <div class="fg">
     <label>Vehicle</label>
     <select id="r-vehicle-sel">
-      <option value="ALL">All Vehicles — Summary</option>
-      <option>O25890</option><option>O25891</option><option>O29872</option>
-      <option>O24260</option><option>O25893</option><option>O25894</option>
-      <option>O25895</option><option>O25896</option><option>O24277</option>
-      <option>O24288</option><option>O24289</option><option>O24284</option>
-    </select>
+  <option value="ALL">All Vehicles — Summary</option>
+</select>
   </div>
 
   <div class="fg">
     <label>Driver</label>
-    <select id="r-driver-sel">
-      <option value="ALL">All Drivers</option>
-      <option>Chung, Byeong Woo</option>
-      <option>Goag, Chang Bog</option>
-      <option>Kim, Sunggil</option>
-      <option>Kim, Tae Kyun</option>
-      <option>Lee, Eunho</option>
-      <option>Lee, Hakwoon</option>
-      <option>Lee, Jung Jae</option>
-      <option>Maing, Jou Hak</option>
-      <option>You, Kyo Sun</option>
-      <option>Kim, Sungmin</option>
-      <option>Mark</option>
-    </select>
+ <select id="r-driver-sel">
+  <option value="ALL">All Drivers</option>
+</select>
   </div>
 
   <div class="fg">
@@ -1484,9 +1439,10 @@ async function loadData(){
     }
 
     allData = json.data || [];
-    vehicleMaster = json.vehicles || [];
+vehicleMaster = json.vehicles || [];
 
-   rebuildVehicleFilterOptions();
+rebuildVehicleFilterOptions();
+rebuildDriverOptions(json.drivers || []);
      
     document.getElementById('data-count').textContent =
       allData.length + ' total records';
@@ -2108,20 +2064,19 @@ const label = new Date(yy, mm - 1, 1, 12, 0, 0)
 
 
 // ── Missing inspections (weekday NY time) ─────────────────────
-const ALL_VEHICLES = [
-  'O24260',
-  'O24288',
-  'O25893',
-  'O25894',
-  'O25895',
-  'O25896',
-  'O24277',
-  'O24289',
-  'O24284',
-  'O25890',
-  'O25891',
-  'O29872'
-];
+function getAllVehicleIds(){
+  if(vehicleMaster && vehicleMaster.length){
+    return vehicleMaster
+      .map(v => String(v.id || '').trim())
+      .filter(Boolean);
+  }
+
+  return Array.from(new Set(
+    allData
+      .map(r => String(r[COL.vehicle] || '').trim())
+      .filter(Boolean)
+  ));
+}
 
 function renderMissingInspections(){
   const card = document.getElementById('missing-card');
@@ -2549,20 +2504,64 @@ function initMaintenanceDates(){
   toEl.value = fmt(ny);
 }
 
-function rebuildMaintenanceVehicleOptions(){
-  const el = document.getElementById('mt-vehicle');
-  if(!el) return;
+function rebuildDriverOptions(drivers){
+  const list = Array.isArray(drivers)
+    ? drivers.map(d => String(d || '').trim()).filter(Boolean).sort()
+    : [];
 
-  const orderedVehicles = [
-    'O24260','O24288','O25893','O25894','O25895','O25896',
-    'O24277','O24289','O24284','O25890','O25891','O29872'
-  ];
+  const fDriver = document.getElementById('f-driver');
+  if(fDriver){
+    fDriver.innerHTML =
+      '<option value="ALL">All Drivers</option>' +
+      list.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+  }
 
-  el.innerHTML =
-    '<option value="ALL">All Vehicles</option>' +
-    orderedVehicles.map(v => {
-      return `<option value="${v}">${getVehicleOptionLabel(v)}</option>`;
-    }).join('');
+  const mDriver = document.getElementById('m-driver');
+  if(mDriver){
+    mDriver.innerHTML =
+      '<option value="">Select driver</option>' +
+      list.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+  }
+
+  const rDriver = document.getElementById('r-driver-sel');
+  if(rDriver){
+    rDriver.innerHTML =
+      '<option value="ALL">All Drivers</option>' +
+      list.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+  }
+}
+   
+function rebuildVehicleFilterOptions(){
+  const orderedVehicles = getAllVehicleIds().sort((a, b) => {
+    return getVehicleUnitSortKey(a) - getVehicleUnitSortKey(b);
+  });
+
+  const fVehicle = document.getElementById('f-vehicle');
+  if(fVehicle){
+    fVehicle.innerHTML =
+      '<option value="ALL">All Vehicles</option>' +
+      orderedVehicles.map(v => {
+        return `<option value="${escapeHtml(v)}">${getVehicleOptionLabel(v)}</option>`;
+      }).join('');
+  }
+
+  const mVehicle = document.getElementById('m-vehicle');
+  if(mVehicle){
+    mVehicle.innerHTML =
+      '<option value="">Select vehicle</option>' +
+      orderedVehicles.map(v => {
+        return `<option value="${escapeHtml(v)}">${getVehicleOptionLabel(v)}</option>`;
+      }).join('');
+  }
+
+  const rVehicle = document.getElementById('r-vehicle-sel');
+  if(rVehicle){
+    rVehicle.innerHTML =
+      '<option value="ALL">All Vehicles — Summary</option>' +
+      orderedVehicles.map(v => {
+        return `<option value="${escapeHtml(v)}">${getVehicleOptionLabel(v)}</option>`;
+      }).join('');
+  }
 }
 
 function resetMaintenanceFilters(){
@@ -3226,7 +3225,9 @@ function ensureSelectOption(selectId, value){
 
   if(!el || !v) return;
 
-  const exists = Array.from(el.options).some(opt => opt.value === v || opt.textContent === v);
+  const exists = Array.from(el.options).some(opt => {
+    return opt.value === v || opt.textContent === v;
+  });
 
   if(!exists){
     const opt = document.createElement('option');
@@ -3234,7 +3235,7 @@ function ensureSelectOption(selectId, value){
     opt.textContent = v;
     el.appendChild(opt);
   }
-}   
+}
 
 // ── Edit ──────────────────────────────────────────────────
 function editRecord(rowId){
@@ -3383,66 +3384,28 @@ function getVehicleOptionLabel(vehicleId){
     return `${unit} - ${id}`;
   }
 
-  const fallbackMap = {
-    'O24260': '#1',
-    'O24288': '#2',
-    'O25893': '#3',
-    'O25894': '#4',
-    'O25895': '#5',
-    'O25896': '#6',
-    'O24277': '#7',
-    'O24289': '#8',
-    'O24284': '#9',
-    'O25890': '#A',
-    'O25891': '#B',
-    'O29872': '#C'
-  };
-
-  return fallbackMap[id] ? `${fallbackMap[id]} - ${id}` : id;
+  return id;
 }
 
-function rebuildVehicleFilterOptions(){
-  const orderedVehicles = [
-    'O24260',
-    'O24288',
-    'O25893',
-    'O25894',
-    'O25895',
-    'O25896',
-    'O24277',
-    'O24289',
-    'O24284',
-    'O25890',
-    'O25891',
-    'O29872'
-  ];
+function rebuildMaintenanceVehicleOptions(){
+  const el = document.getElementById('mt-vehicle');
+  if(!el) return;
 
-  // Search & Overview vehicle filter
-  const fVehicle = document.getElementById('f-vehicle');
-  if(fVehicle){
-    fVehicle.innerHTML =
-      '<option value="ALL">All Vehicles</option>' +
-      orderedVehicles.map(v => {
-        return `<option value="${v}">${getVehicleOptionLabel(v)}</option>`;
-      }).join('');
-  }
+  const orderedVehicles = getAllVehicleIds().sort((a, b) => {
+    return getVehicleUnitSortKey(a) - getVehicleUnitSortKey(b);
+  });
 
-  // Monthly Report vehicle filter
-  const rVehicle = document.getElementById('r-vehicle-sel');
-  if(rVehicle){
-    rVehicle.innerHTML =
-      '<option value="ALL">All Vehicles — Summary</option>' +
-      orderedVehicles.map(v => {
-        return `<option value="${v}">${getVehicleOptionLabel(v)}</option>`;
-      }).join('');
-  }
+  el.innerHTML =
+    '<option value="ALL">All Vehicles</option>' +
+    orderedVehicles.map(v => {
+      return `<option value="${escapeHtml(v)}">${getVehicleOptionLabel(v)}</option>`;
+    }).join('');
 }
    
 function getVehicleUnitSortKey(vehicleId){
   const id = String(vehicleId || '').trim();
   const label = getVehicleUnitLabel(id);
 
-  // Vehicles 시트 displayName에서 #1, #2, #A 등을 읽어 정렬
   if(label){
     const raw = label.replace('#', '').trim().toUpperCase();
 
@@ -3452,27 +3415,10 @@ function getVehicleUnitSortKey(vehicleId){
 
     if(raw.length === 1 && raw >= 'A' && raw <= 'Z'){
       return 9 + (raw.charCodeAt(0) - 64);
-      // #A = 10, #B = 11, #C = 12
     }
   }
 
-  // vehicleMaster 로딩 실패 시 백업 정렬
-  const fallbackMap = {
-    'O24260': 1,
-    'O24288': 2,
-    'O25893': 3,
-    'O25894': 4,
-    'O25895': 5,
-    'O25896': 6,
-    'O24277': 7,
-    'O24289': 8,
-    'O24284': 9,
-    'O25890': 10,
-    'O25891': 11,
-    'O29872': 12
-  };
-
-  return fallbackMap[id] || 999;
+  return 999;
 }
    
 function vehicleDisplayHtml(vehicleId){
