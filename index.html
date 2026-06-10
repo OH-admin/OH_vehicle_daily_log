@@ -1289,7 +1289,9 @@ async function sendToSheets(){
 
   const tm ={pre:'Pre-Trip',post:'Post-Trip',fuel:'Fuel Log'};
   const isFuel = S.trip==='fuel';
-  const row = {
+ const row = {
+  action: 'insertPublic',
+
   date: ds,
   time: ts,
   timestamp: ny.timestamp,
@@ -1297,8 +1299,8 @@ async function sendToSheets(){
   epochMs: ny.epochMs,
   timezone: ny.timezone,
 
-  driver:S.driver,
-  vehicle:S.vehicle,
+  driver: S.driver,
+  vehicle: S.vehicle,
     odometer:S.odo, tripType:tm[S.trip],
     brakes:   isFuel?'N/A':(S.dvir.brakes||'N/A'),
     tires:    isFuel?'N/A':(S.dvir.tires||'N/A'),
@@ -1338,22 +1340,39 @@ async function sendToSheets(){
 
   const ss=document.getElementById('sheets-status');
   try {
-    const ctrl=new AbortController();
-    const t=setTimeout(()=>ctrl.abort(),8000);
-    await fetch(APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',body:JSON.stringify(row),signal:ctrl.signal});
-    clearTimeout(t);
-    ss.className='alert alert-ok'; ss.style.display='block';
-    ss.textContent='구글 시트에 저장되었습니다. Google Sheets saved ✓';
-    // Save odo locally for next Pre-Trip auto-fill
-    if(S.trip === 'post' && S.odo && S.vehicle){
-      saveLastOdo(S.vehicle, S.odo);
-    }
-  } catch(e){
-    ss.className='alert alert-err'; ss.style.display='block';
-    ss.innerHTML=e.name==='AbortError'
-      ?'저장 시간 초과 — 인터넷 연결을 확인하세요.<br><span style="font-size:12px;">Save timed out.</span>'
-      :'구글 시트 저장 실패 — 인쇄본을 보관하세요.<br><span style="font-size:12px;">Sheets save failed. ('+e.message+')</span>';
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 8000);
+
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify(row),
+    signal: ctrl.signal
+  });
+
+  clearTimeout(t);
+
+  const json = await res.json();
+
+  if (json.result !== 'success') {
+    throw new Error(json.message || json.msg || json.error || 'Save failed');
   }
+
+  ss.className = 'alert alert-ok';
+  ss.style.display = 'block';
+  ss.textContent = '구글 시트에 저장되었습니다. Google Sheets saved ✓';
+
+  // Save odo locally for next Pre-Trip auto-fill
+  if (S.trip === 'post' && S.odo && S.vehicle) {
+    saveLastOdo(S.vehicle, S.odo);
+  }
+
+} catch(e) {
+  ss.className = 'alert alert-err';
+  ss.style.display = 'block';
+  ss.innerHTML = e.name === 'AbortError'
+    ? '저장 시간 초과 — 인터넷 연결을 확인하세요.<br><span style="font-size:12px;">Save timed out.</span>'
+    : '구글 시트 저장 실패 — 인쇄본을 보관하세요.<br><span style="font-size:12px;">Sheets save failed. (' + e.message + ')</span>';
+}
   goTo('done');
 }
 
