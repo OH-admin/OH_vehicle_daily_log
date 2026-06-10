@@ -1030,18 +1030,17 @@ async function checkPw(){
     const json = await res.json();
 
     if(json.result === 'success' && json.token){
-  ADMIN_TOKEN = json.token;
-  sessionStorage.setItem('OHADC_ADMIN_TOKEN', ADMIN_TOKEN);
+      ADMIN_TOKEN = json.token;
+      sessionStorage.setItem('OHADC_ADMIN_TOKEN', ADMIN_TOKEN);
 
-  document.getElementById('login-overlay').style.display = 'none';
-  document.getElementById('main-app').style.display = 'block';
+      document.getElementById('login-overlay').style.display = 'none';
+      document.getElementById('main-app').style.display = 'block';
 
-  initDates();
-  buildForms();
-  loadData();
+      initDates();
+      buildForms();
+      loadData();
 
-}
-    else {
+    } else {
       errEl.textContent = 'Incorrect password. Please try again.';
       errEl.style.display = 'block';
       pwInput.value = '';
@@ -1057,7 +1056,7 @@ async function checkPw(){
 function signOut(){
   ADMIN_TOKEN = '';
   sessionStorage.removeItem('OHADC_ADMIN_TOKEN');
-  localStorage.removeItem('OHADC_ADMIN_TOKEN'); // 기존 잔여 token 정리용
+  localStorage.removeItem('OHADC_ADMIN_TOKEN');
   location.reload();
 }
    
