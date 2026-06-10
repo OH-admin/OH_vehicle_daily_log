@@ -1777,7 +1777,7 @@ async function deleteReviewIssue(issueRowIndex, sourceRecordId){
   const hasSourceRecordId = sourceRecordId && String(sourceRecordId).trim();
 
   const msg = hasSourceRecordId
-    ? 'Delete this review queue item AND the original Inspection/Fuel record?\n\nUse this only for duplicate or incorrect entries.'
+    ? 'Remove this review queue item AND hide the original Inspection/Fuel record from Admin view?\n\nThe original row will be kept in the sheet as DELETED.'
     : 'SourceRecordID is missing.\n\nThe original DVIR_Log record cannot be safely deleted, but this Review Queue item can be removed from the queue.\n\nRemove this item from Review Queue only?';
 
   if(!confirm(msg)) return;
@@ -3184,7 +3184,7 @@ async function deleteRecord(rowId){
     return;
   }
 
-  if(!confirm('Delete this record permanently?')) return;
+  if(!confirm('Remove this record from Admin view? The row will be kept in the sheet as DELETED.')) return;
 
   try {
     const res = await fetch(APPS_SCRIPT_URL, {
@@ -3208,7 +3208,7 @@ async function deleteRecord(rowId){
       return;
     }
 
-    alert('Deleted.');
+    alert('Record marked as DELETED.');
     await loadData();
 
   } catch(e){
