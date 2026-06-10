@@ -279,7 +279,7 @@ textarea {
 .receipt-upload-area span { font-size:12px; color:var(--ink3); }
 #receipt-preview-wrap { margin-top:12px; text-align:center; display:none; }
 #receipt-preview { max-width:100%; border-radius:var(--r-sm); border:0.5px solid var(--hairline); }
-#fuel-receipt { display:none; }
+#fuel-receipt-camera, #fuel-receipt-gallery, #defect-photo-camera, #defect-photo-gallery {   display: none; }
 
 /* ── Other name input ────────────────────────────────── */
 #other-name-wrap { display:none; margin-top:8px; }
@@ -408,12 +408,26 @@ textarea {
 
       <div class="card">
         <span class="lbl">영수증 사진 <span class="lbl-sub">Receipt Photo</span></span>
-        <div class="receipt-upload-area" onclick="document.getElementById('fuel-receipt').click()">
-          <p>📷 탭하여 영수증 촬영</p>
-          <span>Tap to take a photo of the receipt</span>
-        </div>
-        <input type="file" id="fuel-receipt" accept="image/*" capture="environment"
-               onchange="previewReceipt(event)" />
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+  <div class="receipt-upload-area" onclick="document.getElementById('fuel-receipt-camera').click()">
+    <p>📷 영수증 촬영</p>
+    <span>Take photo</span>
+  </div>
+
+  <div class="receipt-upload-area" onclick="document.getElementById('fuel-receipt-gallery').click()">
+    <p>🖼 사진첩 선택</p>
+    <span>Choose from gallery</span>
+  </div>
+</div>
+
+<input type="file" id="fuel-receipt-camera"
+       accept="image/*"
+       capture="environment"
+       onchange="previewReceipt(event)" />
+
+<input type="file" id="fuel-receipt-gallery"
+       accept="image/*"
+       onchange="previewReceipt(event)" />
         <div id="receipt-preview-wrap">
           <img id="receipt-preview" alt="Receipt" />
           <p style="font-size:12px;color:var(--g-tx);margin-top:6px;">✓ 사진이 선택되었습니다 / Photo selected</p>
@@ -454,12 +468,25 @@ textarea {
           <span class="field-label">보고 시각 / Time Reported</span>
           <input type="text" id="def-time" placeholder="예: 08:45" inputmode="numeric" />
           <span class="field-label">결함 사진 / Defect Photo</span>
-<div class="receipt-upload-area" onclick="document.getElementById('defect-photo').click()">
-  <p>📷 탭하여 결함 사진 촬영</p>
-  <span>Tap to take a photo of the defect</span>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+  <div class="receipt-upload-area" onclick="document.getElementById('defect-photo-camera').click()">
+    <p>📷 결함 촬영</p>
+    <span>Take photo</span>
+  </div>
+
+  <div class="receipt-upload-area" onclick="document.getElementById('defect-photo-gallery').click()">
+    <p>🖼 사진첩 선택</p>
+    <span>Choose from gallery</span>
+  </div>
 </div>
 
-<input type="file" id="defect-photo" accept="image/*" capture="environment"
+<input type="file" id="defect-photo-camera"
+       accept="image/*"
+       capture="environment"
+       onchange="previewDefectPhoto(event)" />
+
+<input type="file" id="defect-photo-gallery"
+       accept="image/*"
        onchange="previewDefectPhoto(event)" />
 
 <div id="defect-preview-wrap" style="margin-top:12px; text-align:center; display:none;">
@@ -1090,8 +1117,10 @@ function buildDVIR(){
   document.getElementById('def-to').value = '';
   document.getElementById('def-time').value = '';
 
-  const defectPhoto = document.getElementById('defect-photo');
-  if(defectPhoto) defectPhoto.value = '';
+  ['defect-photo-camera','defect-photo-gallery'].forEach(id => {
+  const el = document.getElementById(id);
+  if(el) el.value = '';
+});
 
   const defectPreviewWrap = document.getElementById('defect-preview-wrap');
   if(defectPreviewWrap) defectPreviewWrap.style.display = 'none';
