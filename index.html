@@ -368,7 +368,7 @@ textarea {
 
 <div class="card" id="odo-card" style="display:none;">
   <span class="lbl">주행거리 <span class="lbl-sub">Odometer Reading</span></span>
-  <input type="text" id="odo" placeholder="예: 45,230" inputmode="numeric" />
+  <input type="text"        id="odo"        placeholder="예: 45,230"        inputmode="numeric"        pattern="[0-9,]*"        oninput="this.value=this.value.replace(/[^0-9,]/g,'')" />
   <div id="odo-hint" style="display:none; margin-top:10px; padding:10px 12px;
     background:#f0f4ff; border-radius:var(--r-sm); border:1px solid #c2d5ff;">
     <p style="font-size:16px; color:#1a3a8a; font-weight:600; margin-bottom:2px;" id="odo-hint-text"></p>
@@ -811,7 +811,7 @@ function useLastOdo(){
   const hintTx = document.getElementById('odo-hint-text');
   // 화면에 보이는 최신값(서버 우선)에서 숫자만 추출
   let txt = hintTx ? hintTx.textContent : '';
-  let num = txt.replace(/,/g, '').match(/\d+(\.\d+)?/);
+  let num = txt.replace(/,/g, '').match(/\d+/);
   if(num){
     document.getElementById('odo').value = num[0];
     return;
@@ -821,7 +821,7 @@ function useLastOdo(){
     const saved = localStorage.getItem('lastOdo_' + (document.getElementById('veh-sel').value || ''));
     if(saved){
       const d = JSON.parse(saved);
-      document.getElementById('odo').value = String(d.odo).replace(/,/g, '');
+      document.getElementById('odo').value = String(d.odo).replace(/[^\d]/g, '');
     }
   } catch(e){}
 }
@@ -962,8 +962,15 @@ function startForm(){
   const drv = getDriverName();
   if(!drv){ alert('운전자 이름을 선택하거나 입력해주세요.'); return; }
   if(!tripSel){ alert('점검/주유 구분을 선택해주세요.'); return; }
-  const odo = document.getElementById('odo').value.trim();
-  if(!odo){ alert('주행거리를 입력해주세요.'); return; }
+  let odo = document.getElementById('odo').value.trim();
+odo = odo.replace(/[^\d]/g, '');
+
+if(!odo){
+  alert('주행거리를 입력해주세요.');
+  return;
+}
+
+document.getElementById('odo').value = Number(odo).toLocaleString('en-US');}
   S.driver  = drv;
   S.vehicle = document.getElementById('veh-sel').value;
   S.trip    = tripSel;
