@@ -1344,18 +1344,18 @@ async function sendToSheets(){
   const t = setTimeout(() => ctrl.abort(), 8000);
 
   const res = await fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    body: JSON.stringify(row),
-    signal: ctrl.signal
-  });
+  method: 'POST',
+  body: JSON.stringify(row),
+  signal: ctrl.signal
+});
 
-  clearTimeout(t);
+clearTimeout(t);
 
-  const json = await res.json();
+const json = await res.json();
 
-  if (json.result !== 'success') {
-    throw new Error(json.message || json.msg || json.error || 'Save failed');
-  }
+if (json.result !== 'success') {
+  throw new Error(json.message || json.msg || json.error || 'Save failed');
+}
 
   ss.className = 'alert alert-ok';
   ss.style.display = 'block';
