@@ -1646,7 +1646,7 @@ const drv  = typeof getFilterValue === 'function' ? getFilterValue('f-driver') :
   if(veh !== 'ALL' && issueVehicle && issueVehicle !== veh) return false;
 
   // 기사 필터는 기사 정보가 있는 경우에만 적용
-  if(drv !== 'ALL' && issueDriver && issueDriver !== drv) return false;
+  if(   drv !== 'ALL' &&   issueDriver &&   issueDriver.toLowerCase() !== String(drv).toLowerCase() ) return false;
 
   return true;
 });
@@ -1880,7 +1880,7 @@ function applyFilters(){
       if(to && d > to) return false;
 
       if(veh !== 'ALL' && rowVehicle !== veh) return false;
-      if(drv !== 'ALL' && rowDriver !== drv) return false;
+      if(drv !== 'ALL' && rowDriver.toLowerCase() !== String(drv).toLowerCase()) return false;
 
       return true;
     });
@@ -2288,7 +2288,16 @@ function renderMissingInspections(){
 // ── Inspection table ──────────────────────────────────────
 function renderInspections(){
   const rows = filteredData.filter(r => r[COL.tripType] !== 'Fuel Log');
-
+sortArrayByConfig(rows, 'insp', {
+  date:     { getter: r => r[COL.date], type: 'date' },
+  time:     { getter: r => r[COL.time], type: 'time' },
+  driver:   { getter: r => r[COL.driver], type: 'text' },
+  vehicle:  { getter: r => r[COL.vehicle], type: 'text' },
+  odometer: { getter: r => r[COL.odometer], type: 'number' },
+  tripType: { getter: r => r[COL.tripType], type: 'text' },
+  defect:   { getter: r => r[COL.defectFound], type: 'text' },
+  photo:    { getter: r => r[COL.receiptUrl], type: 'text' }
+});
   document.getElementById('insp-title').textContent =
     `Inspections (${rows.length})`;
 
@@ -2362,14 +2371,14 @@ function renderInspections(){
       <table class="main-t">
         <thead>
           <tr>
-            <th>Date</th>
-            <th>Time</th>
-            <th>Driver</th>
-            <th>Vehicle</th>
-            <th style="text-align:right;">Odometer</th>
-            <th>Trip Type</th>
-            <th>Defect Report</th>
-            <th style="text-align:center;">Photo</th>
+           ${sortableTh('insp','date','Date')}
+${sortableTh('insp','time','Time')}
+${sortableTh('insp','driver','Driver')}
+${sortableTh('insp','vehicle','Vehicle')}
+${sortableTh('insp','odometer','Odometer', true)}
+${sortableTh('insp','tripType','Trip Type')}
+${sortableTh('insp','defect','Defect Report')}
+${sortableTh('insp','photo','Photo')}
            <th style="min-width:180px;text-align:right;">Actions</th>
           </tr>
         </thead>
@@ -2504,30 +2513,91 @@ function initMaintenanceDates(){
   toEl.value = fmt(ny);
 }
 
+function normalizeDriverName(d){
+  if(!d) return '';
+
+  // getDrivers / getAll이 객체 배열을 줄 때 처리
+  if(typeof d === 'object'){
+    return String(
+      d.driverName ||
+      d.name ||
+      d.DriverName ||
+      d['Driver Name'] ||
+      d.koreanName ||
+      ''
+    ).trim();
+  }
+
+  // 문자열 배열일 때 처리
+  return String(d).trim();
+}
+
+function normalizeDriverLabel(d){
+  if(!d) return '';
+
+  if(typeof d === 'object'){
+    const en = String(
+      d.driverName ||
+      d.name ||
+      d.DriverName ||
+      d['Driver Name'] ||
+      ''
+    ).trim();
+
+    const ko = String(d.koreanName || d.KoreanName || d['Korean Name'] || '').trim();
+
+    if(en && ko) return `${en} (${ko})`;
+    return en || ko;
+  }
+
+  return String(d).trim();
+}
+
 function rebuildDriverOptions(drivers){
+  const seen = new Set();
+
   const list = Array.isArray(drivers)
-    ? drivers.map(d => String(d || '').trim()).filter(Boolean).sort()
+    ? drivers
+        .map(d => ({
+          value: normalizeDriverName(d),
+          label: normalizeDriverLabel(d)
+        }))
+        .filter(d => d.value)
+        .filter(d => {
+          const key = d.value.toLowerCase();
+          if(seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .sort((a, b) => a.value.localeCompare(b.value, undefined, {
+          numeric: true,
+          sensitivity: 'base'
+        }))
     : [];
+
+  const optionHtml = list
+    .map(d => `<option value="${escapeHtml(d.value)}">${escapeHtml(d.label || d.value)}</option>`)
+    .join('');
 
   const fDriver = document.getElementById('f-driver');
   if(fDriver){
     fDriver.innerHTML =
       '<option value="ALL">All Drivers</option>' +
-      list.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+      optionHtml;
   }
 
   const mDriver = document.getElementById('m-driver');
   if(mDriver){
     mDriver.innerHTML =
       '<option value="">Select driver</option>' +
-      list.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+      optionHtml;
   }
 
   const rDriver = document.getElementById('r-driver-sel');
   if(rDriver){
     rDriver.innerHTML =
       '<option value="ALL">All Drivers</option>' +
-      list.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+      optionHtml;
   }
 }
    
@@ -3414,7 +3484,7 @@ function resetFilters(){
   const d = document.getElementById('f-driver');
 
   if(v) v.value = 'ALL';
-  if(d) d.value = '';
+  if(d) d.value = 'ALL';
 
   initDates();
   applyFilters();
