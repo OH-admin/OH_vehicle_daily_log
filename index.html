@@ -340,7 +340,7 @@ textarea {
 
       <div class="card" id="veh-card" style="display:none;">
         <span class="lbl">차량 선택 <span class="lbl-sub">Select Vehicle</span></span>
-        <select id="veh-sel" onchange="checkLastOdo()">
+        <select id="veh-sel" onchange="onVehicleChange()">
            <option value="O25890">#A - O2 5890</option>
            <option value="O25891">#B - O2 5891</option>
            <option value="O29872">#C - O2 9872</option>
@@ -726,15 +726,47 @@ function onDriverChange(){
     } catch(e) {}
   }
 
-  const vis = v !== '';
+  const hasDriver = v !== '';
 
-  ['veh-card','odo-card','trip-card'].forEach(id =>
-    document.getElementById(id).style.display = vis ? 'block' : 'none'
-  );
+  // 순서: 운전자 선택 → 차량 선택 → 구분 선택
+  document.getElementById('veh-card').style.display = hasDriver ? 'block' : 'none';
+  document.getElementById('trip-card').style.display = 'none';
+  document.getElementById('odo-card').style.display = 'none';
+  document.getElementById('start-btn').style.display = 'none';
 
-  document.getElementById('start-btn').style.display = vis ? 'block' : 'none';
+  tripSel = '';
+  ['pre','post','fuel'].forEach(x=>{
+    const el=document.getElementById('tb-'+x);
+    if(el){ el.classList.remove('sel'); el.classList.remove('fuel'); }
+  });
 
-  if(vis) checkLastOdo();
+  const note = document.getElementById('trip-note');
+  if(note){
+    note.classList.remove('show');
+    note.style.borderLeftColor='';
+  }
+}
+
+function onVehicleChange(){
+  const vehicle = document.getElementById('veh-sel').value || '';
+
+  if(typeof isRememberOn === 'function' && isRememberOn()){
+    try {
+      if(vehicle) localStorage.setItem(SAVED_VEHICLE_KEY, vehicle);
+    } catch(e){}
+  }
+
+  // 차량 선택 후에만 구분 선택 표시
+  document.getElementById('trip-card').style.display = vehicle ? 'block' : 'none';
+
+  // 주행거리는 Fuel Log에서만 표시
+  document.getElementById('odo-card').style.display = 'none';
+  document.getElementById('start-btn').style.display = tripSel ? 'block' : 'none';
+
+  if(tripSel === 'fuel'){
+    document.getElementById('odo-card').style.display = 'block';
+    checkLastOdo();
+  }
 }
 
 // ── Last odometer lookup ───────────────────────────────────
@@ -842,16 +874,31 @@ function selTrip(t){
     const el=document.getElementById('tb-'+x);
     if(el){ el.classList.toggle('sel',x===t); el.classList.toggle('fuel',x===t&&t==='fuel'); }
   });
+
   const note = document.getElementById('trip-note');
   note.classList.add('show');
+  note.style.borderLeftColor = '';
+
+  // 주행거리는 주유(Fuel Log)에서만 입력
+  const odoCard = document.getElementById('odo-card');
+  const odoInput = document.getElementById('odo');
+
   if(t==='pre'){
     note.innerHTML='<strong>출발 전만 (Pre-Trip only)</strong><br>차량 점검(DVIR)만 작성합니다. 승객 구역 점검은 불필요합니다.';
+    odoCard.style.display='none';
+    if(odoInput) odoInput.value='';
   } else if(t==='post'){
     note.innerHTML='<strong>도착 후 (Post-Trip)</strong><br>차량 점검 + 최종 승객 구역 점검 모두 작성합니다.';
+    odoCard.style.display='none';
+    if(odoInput) odoInput.value='';
   } else if(t==='fuel'){
-    note.innerHTML='<strong>주유 기록 (Fuel Log)</strong><br>차량 점검 없이 주유량, 결제금액 입력 및 영수증을 촬영합니다.';
+    note.innerHTML='<strong>주유 기록 (Fuel Log)</strong><br>차량 점검 없이 주행거리, 주유량, 결제금액 입력 및 영수증을 촬영합니다.';
     note.style.borderLeftColor = 'var(--g-bd)';
+    odoCard.style.display='block';
+    checkLastOdo();
   }
+
+  document.getElementById('start-btn').style.display = 'block';
 }
 
 function getDriverName(){
@@ -938,7 +985,7 @@ function restoreSavedDriver(){
       const vExists = Array.from(vehSel.options).some(opt => opt.value === savedVehicle);
       if(vExists){
         vehSel.value = savedVehicle;
-        checkLastOdo();
+        onVehicleChange();
       }
     }
 
@@ -966,23 +1013,32 @@ function startForm(){
     return;
   }
 
+  if(!document.getElementById('veh-sel').value){
+    alert('차량을 선택해주세요.');
+    return;
+  }
+
   if(!tripSel){
     alert('점검/주유 구분을 선택해주세요.');
     return;
   }
 
-  let odo = document.getElementById('odo').value.trim();
+  let odo = '';
 
-  // 마일리지는 정수만 허용
-  odo = odo.replace(/\D/g, '');
+  // 주행거리는 Fuel Log에서만 필수 입력
+  if(tripSel === 'fuel'){
+    odo = document.getElementById('odo').value.trim();
+    odo = odo.replace(/\D/g, '');
 
-  if(!odo){
-    alert('주행거리를 입력해주세요.');
-    return;
+    if(!odo){
+      alert('주유 기록에는 주행거리를 입력해주세요.');
+      return;
+    }
+
+    document.getElementById('odo').value = odo;
+  } else {
+    document.getElementById('odo').value = '';
   }
-
-  // 화면에도 정수만 남김
-  document.getElementById('odo').value = odo;
 
   S.driver  = drv;
   S.vehicle = document.getElementById('veh-sel').value;
@@ -1330,7 +1386,7 @@ async function sendToSheets(){
 
   driver: S.driver,
   vehicle: S.vehicle,
-    odometer:S.odo, tripType:tm[S.trip],
+    odometer:isFuel?S.odo:'', tripType:tm[S.trip],
     brakes:   isFuel?'N/A':(S.dvir.brakes||'N/A'),
     tires:    isFuel?'N/A':(S.dvir.tires||'N/A'),
     lights:   isFuel?'N/A':(S.dvir.lights||'N/A'),
@@ -1405,8 +1461,8 @@ if (json.result !== 'success') {
   ss.style.display = 'block';
   ss.textContent = '구글 시트에 저장되었습니다. Google Sheets saved ✓';
 
-  // Save odo locally for next Pre-Trip auto-fill
-  if (S.trip === 'post' && S.odo && S.vehicle) {
+  // Save odometer locally only after Fuel Log submissions
+  if (S.trip === 'fuel' && S.odo && S.vehicle) {
     saveLastOdo(S.vehicle, S.odo);
   }
 
@@ -1561,8 +1617,8 @@ function generatePrint(){
       </div>
       <h2 style="font-size:11px;font-weight:700;letter-spacing:.03em;margin-bottom:8px;">FORM A-1. DAILY VEHICLE INSPECTION REPORT / DVIR</h2>
       <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
-        <tr style="background:#f0f0f0;">${th('Date','20%')}${th('Vehicle No.','16%')}${th('Driver Name','34%')}${th('Odometer','30%')}</tr>
-        <tr>${cell(ds)}${cell(S.vehicle)}${cell(S.driver)}${cell(S.odo)}</tr>
+        <tr style="background:#f0f0f0;">${th('Date','24%')}${th('Vehicle No.','24%')}${th('Driver Name','52%')}</tr>
+        <tr>${cell(ds)}${cell(S.vehicle)}${cell(S.driver)}</tr>
       </table>
       <p style="font-size:10px;margin-bottom:10px;"><strong>Inspection Type:</strong> &nbsp; ${tm[S.trip]}</p>
       <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Driver Section</p>
