@@ -1365,6 +1365,14 @@ async function sendToSheets(){
 
   const tm ={pre:'Pre-Trip',post:'Post-Trip',fuel:'Fuel Log'};
   const isFuel = S.trip==='fuel';
+
+  const odoRaw = String(S.odo || (document.getElementById('odo')?.value || '')).trim();
+  const odoClean = odoRaw.replace(/\D/g, '');
+  const odoNumber = Number(odoClean);
+  if(!odoClean || !Number.isFinite(odoNumber) || odoNumber <= 0){
+    throw new Error('Missing or invalid odometer before sending. Sent value: ' + (odoRaw || '(blank)'));
+  }
+
  const row = {
   action: 'insertPublic',
 
@@ -1377,7 +1385,11 @@ async function sendToSheets(){
 
   driver: S.driver,
   vehicle: S.vehicle,
-    odometer:S.odo, tripType:tm[S.trip],
+    odometer:odoNumber,
+    odo:odoNumber,
+    mileage:odoNumber,
+    odometerReading:odoNumber,
+    tripType:tm[S.trip],
     brakes:   isFuel?'N/A':(S.dvir.brakes||'N/A'),
     tires:    isFuel?'N/A':(S.dvir.tires||'N/A'),
     lights:   isFuel?'N/A':(S.dvir.lights||'N/A'),
@@ -1415,19 +1427,23 @@ async function sendToSheets(){
   else ic.style.display='none';
 
   const ss=document.getElementById('sheets-status');
+  let rawText = '';
   try {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 30000);
 
   const res = await fetch(APPS_SCRIPT_URL, {
   method: 'POST',
+  headers: { 'Content-Type': 'text/plain;charset=utf-8' },
   body: JSON.stringify(row),
   signal: ctrl.signal
 });
 
 clearTimeout(t);
 
-const rawText = await res.text();
+rawText = await res.text();
+window.__lastSheetsPayload = row;
+window.__lastSheetsResponse = rawText;
 
 let json;
 try {
@@ -1469,9 +1485,14 @@ if (json.result !== 'success') {
 
   ss.className = 'alert alert-err';ss.className = 'alert alert-err';
   ss.style.display = 'block';
+  const debugDetail =
+    '<br><span style="font-size:12px;">Sent odometer: ' +
+    String((window.__lastSheetsPayload && window.__lastSheetsPayload.odometer) || odoClean || '(blank)') +
+    '</span>' +
+    (rawText ? '<br><span style="font-size:12px;">Server response: ' + rawText.slice(0, 300).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])) + '</span>' : '');
   ss.innerHTML = e.name === 'AbortError'
-    ? '저장 시간 초과 — 인터넷 연결을 확인하세요.<br><span style="font-size:12px;">Save timed out.</span>'
-    : '구글 시트 저장 실패 — 인쇄본을 보관하세요.<br><span style="font-size:12px;">Sheets save failed. (' + e.message + ')</span>';
+    ? '저장 시간 초과 — 인터넷 연결을 확인하세요.<br><span style="font-size:12px;">Save timed out.</span>' + debugDetail
+    : '구글 시트 저장 실패 — 인쇄본을 보관하세요.<br><span style="font-size:12px;">Sheets save failed. (' + e.message + ')</span>' + debugDetail;
 }
   goTo('done');
 }
