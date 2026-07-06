@@ -372,8 +372,8 @@ textarea {
   <div id="odo-hint" style="display:none; margin-top:10px; padding:10px 12px;
     background:#f0f4ff; border-radius:var(--r-sm); border:1px solid #c2d5ff;">
     <p style="font-size:16px; color:#1a3a8a; font-weight:600; margin-bottom:2px;" id="odo-hint-text"></p>
-    <p style="font-size:14px; color:#4a6a9a;">전날 도착 후 주행거리 자동 불러옴<br>
-      <span style="font-size:13px;">Last Post-Trip odometer — tap to use</span></p>
+    <p style="font-size:14px; color:#4a6a9a;">최근 주행거리 자동 불러옴<br>
+      <span style="font-size:13px;">Latest odometer — tap to use</span></p>
     <button onclick="useLastOdo()" style="margin-top:8px; width:100%; padding:12px;
       font-size:18px; font-weight:600; background:#1a3a8a; color:#fff;
       border:none; border-radius:var(--r-sm); cursor:pointer;">
@@ -759,12 +759,11 @@ function onVehicleChange(){
   // 차량 선택 후에만 구분 선택 표시
   document.getElementById('trip-card').style.display = vehicle ? 'block' : 'none';
 
-  // 주행거리는 Fuel Log에서만 표시
-  document.getElementById('odo-card').style.display = 'none';
+  // Google Sheets validation requires an odometer for every record.
+  document.getElementById('odo-card').style.display = vehicle ? 'block' : 'none';
   document.getElementById('start-btn').style.display = tripSel ? 'block' : 'none';
 
-  if(tripSel === 'fuel'){
-    document.getElementById('odo-card').style.display = 'block';
+  if(vehicle){
     checkLastOdo();
   }
 }
@@ -879,18 +878,17 @@ function selTrip(t){
   note.classList.add('show');
   note.style.borderLeftColor = '';
 
-  // 주행거리는 주유(Fuel Log)에서만 입력
+  // Google Sheets validation requires an odometer for every record.
   const odoCard = document.getElementById('odo-card');
-  const odoInput = document.getElementById('odo');
 
   if(t==='pre'){
     note.innerHTML='<strong>출발 전만 (Pre-Trip only)</strong><br>차량 점검(DVIR)만 작성합니다. 승객 구역 점검은 불필요합니다.';
-    odoCard.style.display='none';
-    if(odoInput) odoInput.value='';
+    odoCard.style.display='block';
+    checkLastOdo();
   } else if(t==='post'){
     note.innerHTML='<strong>도착 후 (Post-Trip)</strong><br>차량 점검 + 최종 승객 구역 점검 모두 작성합니다.';
-    odoCard.style.display='none';
-    if(odoInput) odoInput.value='';
+    odoCard.style.display='block';
+    checkLastOdo();
   } else if(t==='fuel'){
     note.innerHTML='<strong>주유 기록 (Fuel Log)</strong><br>차량 점검 없이 주행거리, 주유량, 결제금액 입력 및 영수증을 촬영합니다.';
     note.style.borderLeftColor = 'var(--g-bd)';
@@ -1023,22 +1021,15 @@ function startForm(){
     return;
   }
 
-  let odo = '';
+  let odo = document.getElementById('odo').value.trim();
+  odo = odo.replace(/\D/g, '');
 
-  // 주행거리는 Fuel Log에서만 필수 입력
-  if(tripSel === 'fuel'){
-    odo = document.getElementById('odo').value.trim();
-    odo = odo.replace(/\D/g, '');
-
-    if(!odo){
-      alert('주유 기록에는 주행거리를 입력해주세요.');
-      return;
-    }
-
-    document.getElementById('odo').value = odo;
-  } else {
-    document.getElementById('odo').value = '';
+  if(!odo){
+    alert('주행거리를 입력해주세요.');
+    return;
   }
+
+  document.getElementById('odo').value = odo;
 
   S.driver  = drv;
   S.vehicle = document.getElementById('veh-sel').value;
@@ -1386,7 +1377,7 @@ async function sendToSheets(){
 
   driver: S.driver,
   vehicle: S.vehicle,
-    odometer:isFuel?S.odo:'', tripType:tm[S.trip],
+    odometer:S.odo, tripType:tm[S.trip],
     brakes:   isFuel?'N/A':(S.dvir.brakes||'N/A'),
     tires:    isFuel?'N/A':(S.dvir.tires||'N/A'),
     lights:   isFuel?'N/A':(S.dvir.lights||'N/A'),
@@ -1461,8 +1452,8 @@ if (json.result !== 'success') {
   ss.style.display = 'block';
   ss.textContent = '구글 시트에 저장되었습니다. Google Sheets saved ✓';
 
-  // Save odometer locally only after Fuel Log submissions
-  if (S.trip === 'fuel' && S.odo && S.vehicle) {
+  // Save latest odometer after any successful submission.
+  if (S.odo && S.vehicle) {
     saveLastOdo(S.vehicle, S.odo);
   }
 
