@@ -759,11 +759,10 @@ function onVehicleChange(){
   // 차량 선택 후에만 구분 선택 표시
   document.getElementById('trip-card').style.display = vehicle ? 'block' : 'none';
 
-  // Google Sheets validation requires an odometer for every record.
-  document.getElementById('odo-card').style.display = vehicle ? 'block' : 'none';
+  document.getElementById('odo-card').style.display = (vehicle && tripSel === 'fuel') ? 'block' : 'none';
   document.getElementById('start-btn').style.display = tripSel ? 'block' : 'none';
 
-  if(vehicle){
+  if(vehicle && tripSel === 'fuel'){
     checkLastOdo();
   }
 }
@@ -878,17 +877,17 @@ function selTrip(t){
   note.classList.add('show');
   note.style.borderLeftColor = '';
 
-  // Google Sheets validation requires an odometer for every record.
   const odoCard = document.getElementById('odo-card');
+  const odoInput = document.getElementById('odo');
 
   if(t==='pre'){
     note.innerHTML='<strong>출발 전만 (Pre-Trip only)</strong><br>차량 점검(DVIR)만 작성합니다. 승객 구역 점검은 불필요합니다.';
-    odoCard.style.display='block';
-    checkLastOdo();
+    odoCard.style.display='none';
+    if(odoInput) odoInput.value='';
   } else if(t==='post'){
     note.innerHTML='<strong>도착 후 (Post-Trip)</strong><br>차량 점검 + 최종 승객 구역 점검 모두 작성합니다.';
-    odoCard.style.display='block';
-    checkLastOdo();
+    odoCard.style.display='none';
+    if(odoInput) odoInput.value='';
   } else if(t==='fuel'){
     note.innerHTML='<strong>주유 기록 (Fuel Log)</strong><br>차량 점검 없이 주행거리, 주유량, 결제금액 입력 및 영수증을 촬영합니다.';
     note.style.borderLeftColor = 'var(--g-bd)';
@@ -1021,15 +1020,20 @@ function startForm(){
     return;
   }
 
-  let odo = document.getElementById('odo').value.trim();
-  odo = odo.replace(/\D/g, '');
+  let odo = '';
+  if(tripSel === 'fuel'){
+    odo = document.getElementById('odo').value.trim();
+    odo = odo.replace(/\D/g, '');
 
-  if(!odo){
-    alert('주행거리를 입력해주세요.');
-    return;
+    if(!odo){
+      alert('주유 기록에는 주행거리를 입력해주세요.');
+      return;
+    }
+
+    document.getElementById('odo').value = odo;
+  } else {
+    document.getElementById('odo').value = '';
   }
-
-  document.getElementById('odo').value = odo;
 
   S.driver  = drv;
   S.vehicle = document.getElementById('veh-sel').value;
@@ -1366,12 +1370,10 @@ async function sendToSheets(){
   const tm ={pre:'Pre-Trip',post:'Post-Trip',fuel:'Fuel Log'};
   const isFuel = S.trip==='fuel';
 
-  const odoRaw = String(S.odo || (document.getElementById('odo')?.value || '')).trim();
+  const odoRaw = String(S.odo || '').trim();
   const odoClean = odoRaw.replace(/\D/g, '');
   const odoNumber = Number(odoClean);
-  if(!odoClean || !Number.isFinite(odoNumber) || odoNumber <= 0){
-    throw new Error('Missing or invalid odometer before sending. Sent value: ' + (odoRaw || '(blank)'));
-  }
+  const odometerValue = (isFuel && odoClean && Number.isFinite(odoNumber) && odoNumber > 0) ? odoNumber : '';
 
  const row = {
   action: 'insertPublic',
@@ -1385,10 +1387,10 @@ async function sendToSheets(){
 
   driver: S.driver,
   vehicle: S.vehicle,
-    odometer:odoNumber,
-    odo:odoNumber,
-    mileage:odoNumber,
-    odometerReading:odoNumber,
+    odometer:odometerValue,
+    odo:odometerValue,
+    mileage:odometerValue,
+    odometerReading:odometerValue,
     tripType:tm[S.trip],
     brakes:   isFuel?'N/A':(S.dvir.brakes||'N/A'),
     tires:    isFuel?'N/A':(S.dvir.tires||'N/A'),
