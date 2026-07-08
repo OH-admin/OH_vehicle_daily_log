@@ -398,7 +398,7 @@ textarea {
         <span class="sub">Submit fuel log only. No vehicle inspection required.</span>
       </div>
 
-      <div class="card">
+      <div class="card" style="display:none;">
         <span class="lbl">주유량 <span class="lbl-sub">Gallons (QTY)</span></span>
         <input type="number" id="fuel-qty" placeholder="예: 15.500" inputmode="decimal" step="0.001" />
         <div class="divider" style="margin-top:14px;"></div>
@@ -759,12 +759,8 @@ function onVehicleChange(){
   // 차량 선택 후에만 구분 선택 표시
   document.getElementById('trip-card').style.display = vehicle ? 'block' : 'none';
 
-  document.getElementById('odo-card').style.display = (vehicle && tripSel === 'fuel') ? 'block' : 'none';
+  document.getElementById('odo-card').style.display = 'none';
   document.getElementById('start-btn').style.display = tripSel ? 'block' : 'none';
-
-  if(vehicle && tripSel === 'fuel'){
-    checkLastOdo();
-  }
 }
 
 // ── Last odometer lookup ───────────────────────────────────
@@ -889,10 +885,10 @@ function selTrip(t){
     odoCard.style.display='none';
     if(odoInput) odoInput.value='';
   } else if(t==='fuel'){
-    note.innerHTML='<strong>주유 기록 (Fuel Log)</strong><br>차량 점검 없이 주행거리, 주유량, 결제금액 입력 및 영수증을 촬영합니다.';
+    note.innerHTML='<strong>주유 기록 (Fuel Log)</strong><br>차량 점검 없이 영수증 사진만 촬영합니다.';
     note.style.borderLeftColor = 'var(--g-bd)';
-    odoCard.style.display='block';
-    checkLastOdo();
+    odoCard.style.display='none';
+    if(odoInput) odoInput.value='';
   }
 
   document.getElementById('start-btn').style.display = 'block';
@@ -1021,19 +1017,7 @@ function startForm(){
   }
 
   let odo = '';
-  if(tripSel === 'fuel'){
-    odo = document.getElementById('odo').value.trim();
-    odo = odo.replace(/\D/g, '');
-
-    if(!odo){
-      alert('주유 기록에는 주행거리를 입력해주세요.');
-      return;
-    }
-
-    document.getElementById('odo').value = odo;
-  } else {
-    document.getElementById('odo').value = '';
-  }
+  document.getElementById('odo').value = '';
 
   S.driver  = drv;
   S.vehicle = document.getElementById('veh-sel').value;
@@ -1042,7 +1026,7 @@ function startForm(){
 
   if(S.trip === 'fuel'){
     document.getElementById('fuel-meta').textContent =
-      `${S.driver} | ${S.vehicle} | Odo: ${S.odo}`;
+      `${S.driver} | ${S.vehicle}`;
     goTo('fuel');
     return;
   }
@@ -1116,11 +1100,8 @@ function previewDefectPhoto(event){
 }
    
 function submitFuel(){
-  const qty = document.getElementById('fuel-qty').value.trim();
-  const amt = document.getElementById('fuel-amount').value.trim();
-  if(!qty||!amt){ alert('주유량(QTY)과 결제 금액(Amount)을 입력해주세요.'); return; }
   if(!S.fuelImgBase64){ alert('영수증 사진을 촬영해주세요.'); return; }
-  S.fuelQty = qty; S.fuelAmt = amt;
+  S.fuelQty = ''; S.fuelAmt = '';
   goTo('submitting');
   generatePrint();
   sendToSheets();
@@ -1370,10 +1351,7 @@ async function sendToSheets(){
   const tm ={pre:'Pre-Trip',post:'Post-Trip',fuel:'Fuel Log'};
   const isFuel = S.trip==='fuel';
 
-  const odoRaw = String(S.odo || '').trim();
-  const odoClean = odoRaw.replace(/\D/g, '');
-  const odoNumber = Number(odoClean);
-  const odometerValue = (isFuel && odoClean && Number.isFinite(odoNumber) && odoNumber > 0) ? odoNumber : '';
+  const odometerValue = '';
 
  const row = {
   action: 'insertPublic',
@@ -1387,6 +1365,8 @@ async function sendToSheets(){
 
   driver: S.driver,
   vehicle: S.vehicle,
+    odometerRequired:false,
+    skipOdometer:true,
     odometer:odometerValue,
     odo:odometerValue,
     mileage:odometerValue,
@@ -1414,8 +1394,8 @@ async function sendToSheets(){
     paxNoPax:      (isFuel||S.trip==='pre')?'N/A':(S.pax.nopax||'N/A'),
     paxIssueFound: (isFuel||S.trip==='pre')?'N/A':S.paxIssue,
     paxIssueDesc:  (isFuel||S.trip==='pre')?'':(S.paxTxt||''),
-    fuelQty:    isFuel?S.fuelQty:'N/A',
-    fuelAmt:    isFuel?S.fuelAmt:'N/A',
+    fuelQty:    '',
+    fuelAmt:    '',
     receiptImg: isFuel?S.fuelImgBase64:''
   };
 
@@ -1489,7 +1469,7 @@ if (json.result !== 'success') {
   ss.style.display = 'block';
   const debugDetail =
     '<br><span style="font-size:12px;">Sent odometer: ' +
-    String((window.__lastSheetsPayload && window.__lastSheetsPayload.odometer) || odoClean || '(blank)') +
+    String((window.__lastSheetsPayload && window.__lastSheetsPayload.odometer) || '(blank)') +
     '</span>' +
     (rawText ? '<br><span style="font-size:12px;">Server response: ' + rawText.slice(0, 300).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])) + '</span>' : '');
   ss.innerHTML = e.name === 'AbortError'
@@ -1514,34 +1494,23 @@ function generatePrint(){
           </p>
           <h1 style="font-size:14px;font-weight:700;">Fuel Log Record</h1>
         </div>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
+        <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
           <tr style="background:#f0f0f0;">
             <th style="padding:4px 6px;border:1px solid #bbb;font-size:9px;text-align:left;">Date</th>
             <th style="padding:4px 6px;border:1px solid #bbb;font-size:9px;text-align:left;">Time</th>
             <th style="padding:4px 6px;border:1px solid #bbb;font-size:9px;text-align:left;">Vehicle No.</th>
             <th style="padding:4px 6px;border:1px solid #bbb;font-size:9px;text-align:left;">Driver Name</th>
-            <th style="padding:4px 6px;border:1px solid #bbb;font-size:9px;text-align:left;">Odometer</th>
           </tr>
           <tr>
             <td style="padding:5px 6px;border:1px solid #bbb;">${ds}</td>
             <td style="padding:5px 6px;border:1px solid #bbb;">${ts}</td>
             <td style="padding:5px 6px;border:1px solid #bbb;">${S.vehicle}</td>
             <td style="padding:5px 6px;border:1px solid #bbb;">${S.driver}</td>
-            <td style="padding:5px 6px;border:1px solid #bbb;">${S.odo}</td>
           </tr>
         </table>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
-          <tr style="background:#f0f0f0;">
-            <th style="padding:4px 6px;border:1px solid #bbb;font-size:9px;text-align:left;width:34%;">Fuel Quantity (Gallons)</th>
-            <th style="padding:4px 6px;border:1px solid #bbb;font-size:9px;text-align:left;width:33%;">Amount Paid ($)</th>
-            <th style="padding:4px 6px;border:1px solid #bbb;font-size:9px;text-align:left;width:33%;">Unit Price ($/gal)</th>
-          </tr>
-          <tr>
-            <td style="padding:8px 6px;border:1px solid #bbb;font-size:15px;font-weight:700;">${S.fuelQty}</td>
-            <td style="padding:8px 6px;border:1px solid #bbb;font-size:15px;font-weight:700;">$${S.fuelAmt}</td>
-            <td style="padding:8px 6px;border:1px solid #bbb;font-size:13px;">$${S.fuelQty>0?(parseFloat(S.fuelAmt)/parseFloat(S.fuelQty)).toFixed(3):'—'}</td>
-          </tr>
-        </table>
+        <p style="font-size:10px;margin-bottom:16px;">
+          Receipt photo submitted electronically. Mileage, fuel quantity, and payment amount are not recorded.
+        </p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:16px;">
           <div>
             <p style="font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Driver Signature</p>
