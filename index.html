@@ -89,6 +89,59 @@ html, body {
   margin-bottom:14px;
 }
 
+.notice-card {
+  background:var(--canvas);
+  border:1px solid #c9d8ef;
+  border-top:5px solid var(--blue);
+  border-radius:var(--r-lg);
+  padding:20px 18px 18px;
+  margin-bottom:18px;
+  color:#1d1d1f;
+  text-align:center;
+  box-shadow:0 2px 10px rgba(0,0,0,0.05);
+}
+.notice-card h2 {
+  font-size:24px;
+  line-height:1.25;
+  font-weight:700;
+  margin-bottom:12px;
+  color:var(--ink);
+}
+.notice-card ul {
+  list-style:none;
+  padding:0;
+  margin:0;
+}
+.notice-card li {
+  font-size:21px;
+  line-height:1.45;
+  font-weight:650;
+  padding:11px 0;
+  border-top:1px solid var(--hairline);
+}
+.notice-card .notice-icon {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:32px;
+  height:32px;
+  margin-right:6px;
+  border-radius:50%;
+  background:var(--parchment);
+  font-size:20px;
+  vertical-align:middle;
+}
+.notice-card .date {
+  font-size:18px;
+  font-weight:600;
+  color:var(--ink2);
+  margin-top:14px;
+}
+.notice-card strong {
+  color:var(--blue);
+  font-weight:800;
+}
+
 /* ── Labels ──────────────────────────────────────────── */
 .lbl {
   font-size:20px; font-weight:600;
@@ -311,6 +364,17 @@ textarea {
       <p>일일 차량 점검 &nbsp;·&nbsp; Daily Vehicle Inspection</p>
     </div>
     <div class="page-pad">
+
+      <div class="notice-card" role="note" aria-label="Important notice">
+        <h2>중요 안내</h2>
+        <ul>
+          <li><span class="notice-icon" aria-hidden="true">✕</span>출발 전, 도착 후, 주유 시<br><strong>마일리지 입력 불필요</strong></li>
+          <li><span class="notice-icon" aria-hidden="true">📷</span>주유는 <strong>영수증 사진만 촬영</strong>하세요</li>
+          <li><span class="notice-icon" aria-hidden="true">▣</span><strong>LINXUP</strong> 어플을 설치해주세요</li>
+          <li><span class="notice-icon" aria-hidden="true">$</span><strong>7/13</strong> 주유카드 배포 예정</li>
+        </ul>
+        <div class="date">2026년 7월 8일</div>
+      </div>
 
 <!-- 이 폰 주인 자동 표시 배너 -->
       <div class="card-green" id="me-banner" style="display:none;">
