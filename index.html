@@ -374,11 +374,12 @@ textarea {
         <ul>
           <li><span class="notice-icon" aria-hidden="true">✕</span>출발 전, 도착 후, 주유 시<br><strong>마일리지 입력 불필요</strong></li>
           <li><span class="notice-icon" aria-hidden="true">📷</span>주유는 <strong>영수증 사진만 촬영</strong>하세요</li>
+          <li><span class="notice-icon" aria-hidden="true">✓</span><strong>영수증 원본 사무실 제출 불필요</strong></li>
           <li><span class="notice-icon" aria-hidden="true">▣</span><strong>LINXUP</strong> 어플을 설치해주세요</li>
           <li class="notice-danger"><span class="notice-icon" aria-hidden="true">!</span><strong>LUKOIL 7/31 사용 종료</strong></li>
           <li><span class="notice-icon" aria-hidden="true">!</span><strong>8/1부터 반드시 WEX 카드만 사용</strong></li>
         </ul>
-        <div class="date">2026년 7월 14일</div>
+        <div class="date">08/18/2026</div>
       </div>
 
 <!-- 이 폰 주인 자동 표시 배너 -->
@@ -410,6 +411,7 @@ textarea {
       <div class="card" id="veh-card" style="display:none;">
         <span class="lbl">차량 선택 <span class="lbl-sub">Select Vehicle</span></span>
         <select id="veh-sel" onchange="onVehicleChange()">
+           <option value="">— 차량을 선택하세요 —</option>
            <option value="O25890">#A - O2 5890</option>
            <option value="O25891">#B - O2 5891</option>
            <option value="O29872">#C - O2 9872</option>
@@ -649,7 +651,6 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyWBwZzTwhR3aZ1
 const SAVED_DRIVER_KEY = 'ohadc_saved_driver';
 const SAVED_OTHER_DRIVER_KEY = 'ohadc_saved_other_driver';
 const SAVED_VEHICLE_KEY = 'ohadc_saved_vehicle';
-const REMEMBER_ME_KEY = 'ohadc_remember_me';
 // 동적으로 로드된 차량 목록 (Sheets Vehicles 시트 기준)
 let VEHICLES_MAP = {}; // id → displayName (빠른 조회용)
 let VEHICLES_LIST = []; // 전체 목록
@@ -717,7 +718,7 @@ async function loadDrivers(){
       vehicleJson.vehicles.forEach(v => { VEHICLES_MAP[v.id] = v.displayName; });
 
       const vehSel = document.getElementById('veh-sel');
-      vehSel.innerHTML = '';
+      vehSel.innerHTML = '<option value="">— 차량을 선택하세요 —</option>';
       vehicleJson.vehicles.forEach(v => {
         const opt = document.createElement('option');
         opt.value = v.id;
@@ -743,7 +744,7 @@ async function loadDrivers(){
       ];
       VEHICLES_LIST = fallback;
       const vehSel = document.getElementById('veh-sel');
-      vehSel.innerHTML = '';
+      vehSel.innerHTML = '<option value="">— 차량을 선택하세요 —</option>';
       fallback.forEach(v => {
         const opt = document.createElement('option');
         opt.value = v.id;
@@ -789,7 +790,7 @@ function onDriverChange(){
 
   document.getElementById('other-name-wrap').style.display = v === 'OTHER' ? 'block' : 'none';
 
-  if (v && isRememberOn()) {
+  if (v) {
     try {
       localStorage.setItem(SAVED_DRIVER_KEY, v);
     } catch(e) {}
@@ -798,6 +799,7 @@ function onDriverChange(){
   const hasDriver = v !== '';
 
   // 순서: 운전자 선택 → 차량 선택 → 구분 선택
+  document.getElementById('veh-sel').value = '';
   document.getElementById('veh-card').style.display = hasDriver ? 'block' : 'none';
   document.getElementById('trip-card').style.display = 'none';
   document.getElementById('odo-card').style.display = 'none';
@@ -819,9 +821,9 @@ function onDriverChange(){
 function onVehicleChange(){
   const vehicle = document.getElementById('veh-sel').value || '';
 
-  if(typeof isRememberOn === 'function' && isRememberOn()){
+  if(vehicle){
     try {
-      if(vehicle) localStorage.setItem(SAVED_VEHICLE_KEY, vehicle);
+      localStorage.setItem(SAVED_VEHICLE_KEY, vehicle);
     } catch(e){}
   }
 
@@ -838,14 +840,6 @@ function getVehicleKey(){
 }
 
    function checkLastOdo(){
-  // 이 폰으로 기억 켜져 있으면 지정 차량 저장 (① 기능)
-  if(typeof isRememberOn === 'function' && isRememberOn()){
-    try {
-      const v = document.getElementById('veh-sel').value;
-      if(v) localStorage.setItem(SAVED_VEHICLE_KEY, v);
-    } catch(e){}
-  }
-
   const vehicle = document.getElementById('veh-sel').value || '';
   const hintEl = document.getElementById('odo-hint');
   const hintTx = document.getElementById('odo-hint-text');
@@ -981,32 +975,9 @@ function getDriverName(){
   return v;
 }
 
-function isRememberOn(){
-  try { return localStorage.getItem(REMEMBER_ME_KEY) === '1'; } catch(e){ return false; }
-}
-
-function onRememberToggle(){
-  const on = document.getElementById('remember-me').checked;
-  try {
-    if(on){
-      localStorage.setItem(REMEMBER_ME_KEY, '1');
-      // 현재 선택값 즉시 저장
-      const drv = document.getElementById('drv-sel').value;
-      const veh = document.getElementById('veh-sel').value;
-      if(drv) localStorage.setItem(SAVED_DRIVER_KEY, drv);
-      if(veh) localStorage.setItem(SAVED_VEHICLE_KEY, veh);
-    } else {
-      localStorage.setItem(REMEMBER_ME_KEY, '0');
-    }
-  } catch(e){}
-}
-
 // "변경 / Not me" — 자동 채움 해제하고 직접 고르기
 function changeMe(){
-  try { localStorage.setItem(REMEMBER_ME_KEY, '0'); } catch(e){}
   document.getElementById('me-banner').style.display = 'none';
-  const cb = document.getElementById('remember-me');
-  if(cb) cb.checked = false;
 }
 
 function showMeBanner(driverDisplay, vehicleDisplayText){
@@ -1022,10 +993,6 @@ function restoreSavedDriver(){
     const savedDriver = localStorage.getItem(SAVED_DRIVER_KEY);
     const savedOtherDriver = localStorage.getItem(SAVED_OTHER_DRIVER_KEY);
     const savedVehicle = localStorage.getItem(SAVED_VEHICLE_KEY);
-    const rememberOn = isRememberOn();
-
-    const cb = document.getElementById('remember-me');
-    if(cb) cb.checked = rememberOn;
 
     if(!savedDriver) return;
 
@@ -1051,18 +1018,15 @@ function restoreSavedDriver(){
       }
     }
 
-    // "내 기기로 기억"이 켜져 있으면 상단 배너로 본인 표시
-    if(rememberOn){
-      const driverText = savedDriver === 'OTHER'
-        ? (savedOtherDriver || 'Other')
-        : (sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : savedDriver);
+    const driverText = savedDriver === 'OTHER'
+      ? (savedOtherDriver || 'Other')
+      : (sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : savedDriver);
 
-      const vehText = savedVehicle
-        ? ('🚐 ' + (typeof vehicleDisplay === 'function' ? vehicleDisplay(savedVehicle) : savedVehicle))
-        : '';
+    const vehText = savedVehicle
+      ? ('🚐 ' + (typeof vehicleDisplay === 'function' ? vehicleDisplay(savedVehicle) : savedVehicle))
+      : '';
 
-      showMeBanner('👤 ' + driverText, vehText);
-    }
+    showMeBanner('👤 ' + driverText, vehText);
   } catch(e){}
 }
    
